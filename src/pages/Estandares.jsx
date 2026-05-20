@@ -6,7 +6,6 @@ import { useRole } from '../hooks/useRole.jsx'
 import { puedoHacer } from '../lib/roles'
 import { Plus, Search } from 'lucide-react'
 
-
 const CLIENTES = ['Ascend','Galenicum','Grunenthal','Bamberg','Labomed','Laboratorio Chile','Novartis','Seven Pharma','Emcure','Prater','MSN','Otro']
 const SECTORES = ['FQ','VAL','FQ/VAL','MB','T-R']
 const ESTADOS  = ['EN USO','CERRADO','VENCIDO','SIN STOCK']
@@ -14,10 +13,10 @@ const ALMACENES= ['Desecador','Refrigerador','Freezer','Desecador-Oncológico','
 
 export default function Estandares() {
   const { user } = useAuth()
-  const { rol } = useRole()
-  const puedeAgregar  = puedoHacer(rol, 'agregarInsumo')
-  const puedePesada   = puedoHacer(rol, 'registrarUso')
-  const puedeDarBaja  = puedoHacer(rol, 'darDeBaja')
+  const { rol }  = useRole()
+  const puedeAgregar = puedoHacer(rol, 'agregarInsumo')
+  const puedePesada  = puedoHacer(rol, 'registrarUso')
+
   const [items, setItems]       = useState([])
   const [loading, setLoading]   = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -40,21 +39,21 @@ export default function Estandares() {
     if (!form.codigo || !form.nombre || !form.cliente) { setMsg('Código, nombre y cliente son obligatorios'); return }
     try {
       await crearEstandar({
-        codigo:         form.codigo,
-        nombre:         form.nombre,
-        cas:            form.cas || '',
-        lote:           form.lote || '',
-        cliente:        form.cliente,
-        producto:       form.producto || '',
-        potencia:       parseFloat(form.potencia) || null,
-        sector:         form.sector || 'FQ',
-        vial:           form.vial || 'A',
-        almacenamiento: form.almacen || 'Desecador',
-        fabricante:     form.fabricante || '',
-        stockRestante:  parseFloat(form.stock) || 0,
+        codigo:          form.codigo,
+        nombre:          form.nombre,
+        cas:             form.cas || '',
+        lote:            form.lote || '',
+        cliente:         form.cliente,
+        producto:        form.producto || '',
+        potencia:        parseFloat(form.potencia) || null,
+        sector:          form.sector || 'FQ',
+        vial:            form.vial || 'A',
+        almacenamiento:  form.almacen || 'Desecador',
+        fabricante:      form.fabricante || '',
+        stockRestante:   parseFloat(form.stock) || 0,
         cantPorAnalisis: parseFloat(form.xAnalisis) || 200,
         fechaVencimiento: form.vencimiento || null,
-        estado:         'CERRADO',
+        estado:          'CERRADO',
       }, user.email)
       setShowForm(false); setForm({}); setMsg(''); load()
     } catch(e) { setMsg(e.message) }
@@ -90,12 +89,12 @@ export default function Estandares() {
         <h2 style={{ fontSize:16, fontWeight:600 }}>Estándares — inventario</h2>
         {puedeAgregar && (
           <button className="btn btn-primary btn-sm" onClick={() => { setShowForm(!showForm); setPesadaId(null); setForm({}) }}>
-              <Plus size={14} /> Nuevo estándar
+            <Plus size={14} /> Nuevo estándar
           </button>
-)}
+        )}
       </div>
 
-      {showForm && (
+      {showForm && puedeAgregar && (
         <div className="card">
           <div className="card-title">Ingresar vial al inventario</div>
           {msg && <div className="alert-item danger" style={{marginBottom:10}}>{msg}</div>}
@@ -128,7 +127,7 @@ export default function Estandares() {
         </div>
       )}
 
-      {pesadaId && (
+      {pesadaId && puedePesada && (
         <div className="card">
           <div className="card-title">Registrar pesada — {items.find(i=>i.id===pesadaId)?.nombre}</div>
           {msg && <div className="alert-item danger" style={{marginBottom:10}}>{msg}</div>}
@@ -171,7 +170,13 @@ export default function Estandares() {
                   <td><strong>{i.stockRestante ?? '—'}</strong></td>
                   <td>{vence ? <span className={`badge ${badgeCls}`}>{sem.texto}</span> : <span style={{color:'var(--text-3)'}}>—</span>}</td>
                   <td><span className={`badge ${estCls}`}>{i.estado}</span></td>
-                  <td><button className="btn btn-sm" disabled={i.estado==='SIN STOCK'||i.estado==='VENCIDO'} onClick={() => { setPesadaId(i.id); setShowForm(false); setForm({}) }}>Pesada</button></td>
+                  <td>
+                    {puedePesada && (
+                      <button className="btn btn-sm" disabled={i.estado==='SIN STOCK'||i.estado==='VENCIDO'} onClick={() => { setPesadaId(i.id); setShowForm(false); setForm({}) }}>
+                        Pesada
+                      </button>
+                    )}
+                  </td>
                 </tr>
               )
             })}
@@ -183,9 +188,9 @@ export default function Estandares() {
 }
 
 const DEMO_E = [
-  { id:'1', codigo:'Std-0025/MAR24/LRAD4238/A', nombre:'Cilostazol', cliente:'Galenicum', sector:'FQ', stockRestante:440.69, fechaVencimiento:'2026-11-30', estado:'EN USO' },
-  { id:'2', codigo:'Std-0040/NOV23/R11500/B', nombre:'Irbesartan', cliente:'Galenicum', sector:'FQ', stockRestante:184.71, fechaVencimiento:'2025-11-12', estado:'EN USO' },
-  { id:'3', codigo:'Std-0053/MAY24/LRAD4836/A', nombre:'Alcohol Bencílico', cliente:'Ascend', sector:'FQ', stockRestante:976.99, fechaVencimiento:'2027-09-30', estado:'EN USO' },
-  { id:'4', codigo:'Std-0685/MAR25/G1303069/A', nombre:'Blexit', cliente:'Laboratorio Chile', sector:'FQ', stockRestante:92.4, fechaVencimiento:'2026-03-20', estado:'EN USO' },
+  { id:'1', codigo:'Std-0025/MAR24/LRAD4238/A', nombre:'Cilostazol', cliente:'Galenicum', sector:'FQ', stockRestante:440.69, fechaVencimiento:'2026-11-30', estado:'CERRADO' },
+  { id:'2', codigo:'Std-0040/NOV23/R11500/B', nombre:'Irbesartan', cliente:'Galenicum', sector:'FQ', stockRestante:184.71, fechaVencimiento:'2025-11-12', estado:'CERRADO' },
+  { id:'3', codigo:'Std-0053/MAY24/LRAD4836/A', nombre:'Alcohol Bencílico', cliente:'Ascend', sector:'FQ', stockRestante:976.99, fechaVencimiento:'2027-09-30', estado:'CERRADO' },
+  { id:'4', codigo:'Std-0685/MAR25/G1303069/A', nombre:'Blexit', cliente:'Laboratorio Chile', sector:'FQ', stockRestante:92.4, fechaVencimiento:'2026-03-20', estado:'CERRADO' },
   { id:'5', codigo:'Std-0024/OCT22/LRAD1294/A', nombre:'Rifaximina', cliente:'Grunenthal', sector:'FQ', stockRestante:0, fechaVencimiento:'2025-11-30', estado:'VENCIDO' },
 ]
