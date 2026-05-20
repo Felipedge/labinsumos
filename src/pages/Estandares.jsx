@@ -47,7 +47,7 @@ export default function Estandares() {
         stockRestante:  parseFloat(form.stock) || 0,
         cantPorAnalisis: parseFloat(form.xAnalisis) || 200,
         fechaVencimiento: form.vencimiento || null,
-        estado:         'EN USO',
+        estado:         'CERRADO',
       }, user.email)
       setShowForm(false); setForm({}); setMsg(''); load()
     } catch(e) { setMsg(e.message) }
