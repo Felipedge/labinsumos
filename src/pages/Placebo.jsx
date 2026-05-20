@@ -2,6 +2,8 @@
 import { useState, useEffect } from 'react'
 import { getPlacebos, crearPlacebo, registrarUsoPlacebo, calcularSemaforo } from '../lib/db'
 import { useAuth } from '../hooks/useAuth.jsx'
+import { useRole } from '../hooks/useRole.jsx'
+import { puedoHacer } from '../lib/roles'
 import { Plus } from 'lucide-react'
 
 const CLIENTES   = ['Ascend','Galenicum','Grunenthal','Laboratorio Chile','Novartis','Seven Pharma','Emcure','Otro']
@@ -9,6 +11,10 @@ const FORMAS     = ['Comprimido','Cápsula','Inyectable','Solución oral','Crema
 
 export default function Placebo() {
   const { user } = useAuth()
+  const { rol }  = useRole()
+  const puedeAgregar = puedoHacer(rol, 'agregarInsumo')
+  const puedeOperar  = puedoHacer(rol, 'registrarUso')
+
   const [items, setItems]       = useState([])
   const [loading, setLoading]   = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -37,7 +43,7 @@ export default function Placebo() {
         dosis:              form.dosis || '',
         stockUnidades:      parseInt(form.stock) || 0,
         fechaVencimiento:   form.vencimiento || null,
-        almacenamiento:     form.almacen || '',
+        almacenamiento:     form.almacen || 'Temperatura ambiente',
         estado:             'ACTIVO',
       }, user.email)
       setShowForm(false); setForm({}); setMsg(''); load()
@@ -64,12 +70,14 @@ export default function Placebo() {
     <>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
         <h2 style={{ fontSize:16, fontWeight:600 }}>Placebo — lotes activos</h2>
-        <button className="btn btn-primary btn-sm" onClick={() => { setShowForm(!showForm); setUsoId(null); setForm({}) }}>
-          <Plus size={14} /> Nuevo lote
-        </button>
+        {puedeAgregar && (
+          <button className="btn btn-primary btn-sm" onClick={() => { setShowForm(!showForm); setUsoId(null); setForm({}) }}>
+            <Plus size={14} /> Nuevo lote
+          </button>
+        )}
       </div>
 
-      {showForm && (
+      {showForm && puedeAgregar && (
         <div className="card">
           <div className="card-title">Registrar lote de placebo</div>
           {msg && <div className="alert-item danger" style={{marginBottom:10}}>{msg}</div>}
@@ -95,7 +103,7 @@ export default function Placebo() {
         </div>
       )}
 
-      {usoId && (
+      {usoId && puedeOperar && (
         <div className="card">
           <div className="card-title">Registrar uso — {items.find(p=>p.id===usoId)?.productoReferencia}</div>
           {msg && <div className="alert-item danger" style={{marginBottom:10}}>{msg}</div>}
@@ -127,7 +135,13 @@ export default function Placebo() {
                   <td><strong>{p.stockUnidades ?? '—'}</strong></td>
                   <td>{vence ? <span className={`badge ${badgeCls}`}>{sem.texto}</span> : <span style={{color:'var(--text-3)'}}>—</span>}</td>
                   <td><span className={p.estado==='ACTIVO'?'badge badge-ok':'badge badge-danger'}>{p.estado}</span></td>
-                  <td><button className="btn btn-sm" onClick={() => { setUsoId(p.id); setShowForm(false); setForm({}) }}>Registrar uso</button></td>
+                  <td>
+                    {puedeOperar && (
+                      <button className="btn btn-sm" onClick={() => { setUsoId(p.id); setShowForm(false); setForm({}) }}>
+                        Registrar uso
+                      </button>
+                    )}
+                  </td>
                 </tr>
               )
             })}
