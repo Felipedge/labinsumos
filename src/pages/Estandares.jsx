@@ -2,7 +2,10 @@
 import { useState, useEffect } from 'react'
 import { getEstandares, crearEstandar, registrarPesada, calcularSemaforo } from '../lib/db'
 import { useAuth } from '../hooks/useAuth.jsx'
+import { useRole } from '../hooks/useRole.jsx'
+import { puedoHacer } from '../lib/roles'
 import { Plus, Search } from 'lucide-react'
+
 
 const CLIENTES = ['Ascend','Galenicum','Grunenthal','Bamberg','Labomed','Laboratorio Chile','Novartis','Seven Pharma','Emcure','Prater','MSN','Otro']
 const SECTORES = ['FQ','VAL','FQ/VAL','MB','T-R']
@@ -11,6 +14,10 @@ const ALMACENES= ['Desecador','Refrigerador','Freezer','Desecador-Oncológico','
 
 export default function Estandares() {
   const { user } = useAuth()
+  const { rol } = useRole()
+  const puedeAgregar  = puedoHacer(rol, 'agregarInsumo')
+  const puedePesada   = puedoHacer(rol, 'registrarUso')
+  const puedeDarBaja  = puedoHacer(rol, 'darDeBaja')
   const [items, setItems]       = useState([])
   const [loading, setLoading]   = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -81,9 +88,11 @@ export default function Estandares() {
     <>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
         <h2 style={{ fontSize:16, fontWeight:600 }}>Estándares — inventario</h2>
-        <button className="btn btn-primary btn-sm" onClick={() => { setShowForm(!showForm); setPesadaId(null); setForm({}) }}>
-          <Plus size={14} /> Nuevo estándar
-        </button>
+        {puedeAgregar && (
+          <button className="btn btn-primary btn-sm" onClick={() => { setShowForm(!showForm); setPesadaId(null); setForm({}) }}>
+              <Plus size={14} /> Nuevo estándar
+          </button>
+)}
       </div>
 
       {showForm && (
