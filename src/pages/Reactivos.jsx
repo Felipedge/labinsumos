@@ -2,6 +2,8 @@
 import { useState, useEffect } from 'react'
 import { getReactivos, crearReactivo, registrarRetiroReactivo, calcularSemaforo } from '../lib/db'
 import { useAuth } from '../hooks/useAuth.jsx'
+import { useRole } from '../hooks/useRole.jsx'
+import { puedoHacer } from '../lib/roles'
 import { Plus } from 'lucide-react'
 
 const CATEGORIAS = ['HPLC','Solventes','Sales / buffer','Ácidos','Bases','Indicadores','Otro']
@@ -9,6 +11,10 @@ const UNIDADES   = ['mL','L','g','kg','mg','unid']
 
 export default function Reactivos() {
   const { user } = useAuth()
+  const { rol }  = useRole()
+  const puedeAgregar = puedoHacer(rol, 'agregarInsumo')
+  const puedeOperar  = puedoHacer(rol, 'registrarUso')
+
   const [items, setItems]       = useState([])
   const [loading, setLoading]   = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -30,12 +36,12 @@ export default function Reactivos() {
     if (!form.codigo || !form.nombre) { setMsg('Código y nombre son obligatorios'); return }
     try {
       await crearReactivo({
-        codigo:       form.codigo,
-        nombre:       form.nombre,
-        lote:         form.lote || '',
-        categoria:    form.categoria || 'Otro',
-        grado:        form.grado || '',
-        fabricante:   form.fabricante || '',
+        codigo:        form.codigo,
+        nombre:        form.nombre,
+        lote:          form.lote || '',
+        categoria:     form.categoria || 'Otro',
+        grado:         form.grado || '',
+        fabricante:    form.fabricante || '',
         stockRestante: parseFloat(form.stock) || 0,
         stockMinimo:   parseFloat(form.minimo) || 0,
         unidad:        form.unidad || 'mL',
@@ -70,12 +76,14 @@ export default function Reactivos() {
     <>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
         <h2 style={{ fontSize:16, fontWeight:600 }}>Reactivos</h2>
-        <button className="btn btn-primary btn-sm" onClick={() => { setShowForm(!showForm); setRetiroId(null); setForm({}) }}>
-          <Plus size={14} /> Nuevo reactivo
-        </button>
+        {puedeAgregar && (
+          <button className="btn btn-primary btn-sm" onClick={() => { setShowForm(!showForm); setRetiroId(null); setForm({}) }}>
+            <Plus size={14} /> Nuevo reactivo
+          </button>
+        )}
       </div>
 
-      {showForm && (
+      {showForm && puedeAgregar && (
         <div className="card">
           <div className="card-title">Registrar reactivo</div>
           {msg && <div className="alert-item danger" style={{marginBottom:10}}>{msg}</div>}
@@ -103,7 +111,7 @@ export default function Reactivos() {
         </div>
       )}
 
-      {retiroId && (
+      {retiroId && puedeOperar && (
         <div className="card">
           <div className="card-title">Registrar retiro — {items.find(r=>r.id===retiroId)?.nombre}</div>
           {msg && <div className="alert-item danger" style={{marginBottom:10}}>{msg}</div>}
@@ -123,7 +131,8 @@ export default function Reactivos() {
 
       <div style={{ display:'flex', gap:8, marginBottom:12, flexWrap:'wrap' }}>
         {['', ...CATEGORIAS].map(c => (
-          <button key={c} className="btn btn-sm" style={filtro===c?{background:'var(--accent-lt)',color:'var(--accent)',borderColor:'var(--accent)'}:{}}
+          <button key={c} className="btn btn-sm"
+            style={filtro===c?{background:'var(--accent-lt)',color:'var(--accent)',borderColor:'var(--accent)'}:{}}
             onClick={() => setFiltro(c)}>{c || 'Todos'}</button>
         ))}
       </div>
@@ -146,7 +155,11 @@ export default function Reactivos() {
                   <td><strong>{r.stockRestante ?? '—'}</strong> <span style={{ color:'var(--text-3)' }}>{r.unidad}</span></td>
                   <td>{vence ? <span className={`badge ${badgeCls}`}>{sem.texto}</span> : <span style={{color:'var(--text-3)'}}>—</span>}</td>
                   <td><span className={`badge ${estCls}`}>{r.estado}</span></td>
-                  <td><button className="btn btn-sm" onClick={() => { setRetiroId(r.id); setShowForm(false); setForm({}) }}>Retirar</button></td>
+                  <td>
+                    {puedeOperar && (
+                      <button className="btn btn-sm" onClick={() => { setRetiroId(r.id); setShowForm(false); setForm({}) }}>Retirar</button>
+                    )}
+                  </td>
                 </tr>
               )
             })}
