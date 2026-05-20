@@ -2,7 +2,9 @@
 import { useState, useEffect } from 'react'
 import { getColumnas, crearColumna, registrarUsoColumna, calcularSemaforoColumna } from '../lib/db'
 import { useAuth } from '../hooks/useAuth.jsx'
-import { Plus, Cylinder } from 'lucide-react'
+import { useRole } from '../hooks/useRole.jsx'
+import { puedoHacer } from '../lib/roles'
+import { Plus } from 'lucide-react'
 
 const CLIENTES  = ['Ascend','Galenicum','Grunenthal','Bamberg','Labomed','Laboratorio Chile','Novartis','Seven Pharma','Emcure','Prater','Otro']
 const FASES     = ['C18','C8','C4','NH2','CN','Silica','RP-18','Phenyl','Otro']
@@ -24,6 +26,10 @@ function ProgBar({ pct }) {
 
 export default function Columnas() {
   const { user } = useAuth()
+  const { rol }  = useRole()
+  const puedeAgregar = puedoHacer(rol, 'agregarInsumo')
+  const puedeOperar  = puedoHacer(rol, 'registrarUso')
+
   const [columnas, setColumnas] = useState([])
   const [loading, setLoading]   = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -79,13 +85,14 @@ export default function Columnas() {
     <>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
         <h2 style={{ fontSize:16, fontWeight:600 }}>Columnas cromatográficas</h2>
-        <button className="btn btn-primary btn-sm" onClick={() => { setShowForm(!showForm); setUseForm(null); setForm({}) }}>
-          <Plus size={14} /> Nueva columna
-        </button>
+        {puedeAgregar && (
+          <button className="btn btn-primary btn-sm" onClick={() => { setShowForm(!showForm); setUseForm(null); setForm({}) }}>
+            <Plus size={14} /> Nueva columna
+          </button>
+        )}
       </div>
 
-      {/* Formulario nueva columna */}
-      {showForm && (
+      {showForm && puedeAgregar && (
         <div className="card">
           <div className="card-title">Registrar nueva columna</div>
           {msg && <div className="alert-item danger" style={{marginBottom:10}}>{msg}</div>}
@@ -113,8 +120,7 @@ export default function Columnas() {
         </div>
       )}
 
-      {/* Formulario registrar uso */}
-      {useForm && (
+      {useForm && puedeOperar && (
         <div className="card">
           <div className="card-title">Registrar uso — {useForm.codigo}</div>
           {msg && <div className="alert-item danger" style={{marginBottom:10}}>{msg}</div>}
@@ -158,9 +164,11 @@ export default function Columnas() {
                   </td>
                   <td><span className={`badge ${badgeCls}`}>{c.estado}</span></td>
                   <td>
-                    <button className="btn btn-sm" onClick={() => { setUseForm(c); setShowForm(false); setForm({}) }}>
-                      Registrar uso
-                    </button>
+                    {puedeOperar && (
+                      <button className="btn btn-sm" onClick={() => { setUseForm(c); setShowForm(false); setForm({}) }}>
+                        Registrar uso
+                      </button>
+                    )}
                   </td>
                 </tr>
               )
