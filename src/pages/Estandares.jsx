@@ -1,6 +1,6 @@
 // src/pages/Estandares.jsx
 import { useState, useEffect } from 'react'
-import { collection, getDocs, addDoc, serverTimestamp, query, orderBy, limit } from 'firebase/firestore'
+import { collection, getDocs, addDoc, updateDoc, doc, serverTimestamp, query, orderBy, limit } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { calcularSemaforo } from '../lib/db'
 import { useAuth } from '../hooks/useAuth.jsx'
@@ -10,12 +10,11 @@ import { Plus, Search, FlaskConical } from 'lucide-react'
 
 const CLIENTES = ['Ascend','Galenicum','Grunenthal','Bamberg','Labomed','Laboratorio Chile','Novartis','Seven Pharma','Emcure','Prater','MSN','Otro']
 const SECTORES = ['FQ','VAL','FQ/VAL','MB','T-R']
-const ESTADOS  = ['EN USO','CERRADO','VENCIDO','SIN STOCK']
+const ESTADOS  = ['EN USO','CERRADO','VENCIDO','SIN STOCK','DADO DE BAJA']
 const ALMACENES= ['Desecador','Refrigerador','Freezer','Desecador-Oncológico','Refrigerador-Oncológico','Refrigerador-Controlado']
 const MESES    = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC']
 
-// Obtener siguiente número correlativo STD
-async function getSiguienteNumero() {
+async function getSiguienteNumero(db) {
   try {
     const q = query(collection(db, 'estandares'), orderBy('numeroStd', 'desc'), limit(1))
     const snap = await getDocs(q)
@@ -27,9 +26,8 @@ async function getSiguienteNumero() {
   }
 }
 
-// Generar código completo
 function generarCodigo(numero, mes, anio, lote, frasco) {
-  const num  = String(numero).padStart(4, '0')
+  const num    = String(numero).padStart(4, '0')
   const mesStr = MESES[parseInt(mes) - 1]
   const anioStr = String(anio).slice(-2)
   return `STD-${num}/${mesStr}${anioStr}/${lote}/${frasco}`
@@ -40,6 +38,7 @@ export default function Estandares() {
   const { rol }  = useRole()
   const puedeAgregar = puedoHacer(rol, 'agregarInsumo')
   const puedePesada  = puedoHacer(rol, 'registrarUso')
+  const puedeBaja    = puedoHacer(rol, 'darDeBaja')
 
   const [items, setItems]         = useState([])
   const [loading, setLoading]     = useState(true)
@@ -52,9 +51,10 @@ export default function Estandares() {
   const [filtroEst, setFiltroEst] = useState('')
   const [sigNum, setSigNum]       = useState(null)
   const [guardando, setGuardando] = useState(false)
+  const [verPapelera, setVerPapelera] = useState(false)
 
-  const hoy   = new Date()
-  const mesAct = String(hoy.getMonth() + 1).padStart(2, '0')
+  const hoy    = new Date()
+  const mesAct  = String(hoy.getMonth() + 1).padStart(2, '0')
   const anioAct = hoy.getFullYear()
 
   const load = async () => {
@@ -64,14 +64,15 @@ export default function Estandares() {
     } catch {
       setItems(DEMO_E)
     } finally {
-      setLoading(false) }
+      setLoading(false)
+    }
   }
 
   useEffect(() => { load() }, [])
 
   const abrirFormulario = async () => {
     if (!showForm) {
-      const n = await getSiguienteNumero()
+      const n = await getSiguienteNumero(db)
       setSigNum(n)
       setForm({ mes: mesAct, anio: anioAct })
       setFrascos([{ letra: 'A', stock: '' }])
@@ -83,7 +84,6 @@ export default function Estandares() {
 
   const f = k => e => setForm(p => ({ ...p, [k]: e.target.value }))
 
-  // Agregar frasco
   const agregarFrasco = () => {
     const letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
     const siguiente = letras[frascos.length]
@@ -96,7 +96,7 @@ export default function Estandares() {
   }
 
   const updateFrasco = (i, valor) => {
-    setFrascos(p => p.map((f, idx) => idx === i ? { ...f, stock: valor } : f))
+    setFrascos(p => p.map((fr, idx) => idx === i ? { ...fr, stock: valor } : fr))
   }
 
   const guardar = async () => {
@@ -104,47 +104,41 @@ export default function Estandares() {
       setMsg('Nombre, cliente y lote son obligatorios')
       return
     }
-    if (frascos.some(f => !f.stock || isNaN(f.stock))) {
+    if (frascos.some(fr => !fr.stock || isNaN(fr.stock))) {
       setMsg('Ingresa el stock de cada frasco')
       return
     }
-
     setGuardando(true)
     try {
-      const numero = sigNum || await getSiguienteNumero()
-
-      // Crear un documento por cada frasco
+      const numero = sigNum || await getSiguienteNumero(db)
       for (let i = 0; i < frascos.length; i++) {
         const frasco = frascos[i]
         const codigo = generarCodigo(numero, form.mes || mesAct, form.anio || anioAct, form.lote, frasco.letra)
-
         await addDoc(collection(db, 'estandares'), {
           codigo,
-          numeroStd:       numero,
-          frasco:          frasco.letra,
-          nombre:          form.nombre,
-          cas:             form.cas || '',
-          lote:            form.lote,
-          cliente:         form.cliente,
-          producto:        form.producto || '',
-          potencia:        parseFloat(form.potencia) || null,
-          sector:          form.sector || 'FQ',
-          almacenamiento:  form.almacen || 'Desecador',
-          fabricante:      form.fabricante || '',
-          stockInicial:    parseFloat(frasco.stock),
-          stockRestante:   parseFloat(frasco.stock),
-          cantPorAnalisis: parseFloat(form.xAnalisis) || 200,
+          numeroStd:        numero,
+          frasco:           frasco.letra,
+          nombre:           form.nombre,
+          cas:              form.cas || '',
+          lote:             form.lote,
+          cliente:          form.cliente,
+          producto:         form.producto || '',
+          potencia:         parseFloat(form.potencia) || null,
+          sector:           form.sector || 'FQ',
+          almacenamiento:   form.almacen || 'Desecador',
+          fabricante:       form.fabricante || '',
+          stockInicial:     parseFloat(frasco.stock),
+          stockRestante:    parseFloat(frasco.stock),
+          cantPorAnalisis:  parseFloat(form.xAnalisis) || 200,
           fechaVencimiento: form.vencimiento ? new Date(form.vencimiento) : null,
-          // Solo el frasco A empieza EN USO, los demás CERRADO
-          estado:          i === 0 ? 'EN USO' : 'CERRADO',
-          mesIngreso:      form.mes || mesAct,
-          anioIngreso:     form.anio || anioAct,
-          creadoPor:       user.email,
-          creadoEn:        serverTimestamp(),
-          actualizadoEn:   serverTimestamp(),
+          estado:           i === 0 ? 'EN USO' : 'CERRADO',
+          mesIngreso:       form.mes || mesAct,
+          anioIngreso:      form.anio || anioAct,
+          creadoPor:        user.email,
+          creadoEn:         serverTimestamp(),
+          actualizadoEn:    serverTimestamp(),
         })
       }
-
       setShowForm(false)
       setForm({})
       setFrascos([{ letra: 'A', stock: '' }])
@@ -173,7 +167,38 @@ export default function Estandares() {
     } catch(e) { setMsg(e.message) }
   }
 
-  const filtrados = items.filter(i => {
+  const darDeBaja = async (id, codigo) => {
+    const razon = window.prompt(`Razón para dar de baja ${codigo}:`)
+    if (!razon) return
+    try {
+      await updateDoc(doc(db, 'estandares', id), {
+        estado:        'DADO DE BAJA',
+        bajaPor:       user.email,
+        bajaRazon:     razon,
+        bajaFecha:     serverTimestamp(),
+        actualizadoEn: serverTimestamp(),
+      })
+      load()
+    } catch(e) { alert('Error: ' + e.message) }
+  }
+
+  const restaurar = async (id) => {
+    try {
+      await updateDoc(doc(db, 'estandares', id), {
+        estado:        'CERRADO',
+        bajaPor:       null,
+        bajaRazon:     null,
+        bajaFecha:     null,
+        actualizadoEn: serverTimestamp(),
+      })
+      load()
+    } catch(e) { alert('Error: ' + e.message) }
+  }
+
+  const activos   = items.filter(i => i.estado !== 'DADO DE BAJA')
+  const papelera  = items.filter(i => i.estado === 'DADO DE BAJA')
+
+  const filtrados = (verPapelera ? papelera : activos).filter(i => {
     const q = search.toLowerCase()
     const matchQ = !q || i.codigo?.toLowerCase().includes(q) || i.nombre?.toLowerCase().includes(q) || i.cliente?.toLowerCase().includes(q)
     const matchE = !filtroEst || i.estado === filtroEst
@@ -185,15 +210,28 @@ export default function Estandares() {
   return (
     <>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
-        <h2 style={{ fontSize:16, fontWeight:600 }}>Estándares — inventario</h2>
-        {puedeAgregar && (
-          <button className="btn btn-primary btn-sm" onClick={abrirFormulario}>
-            <Plus size={14} /> Nuevo estándar
-          </button>
-        )}
+        <h2 style={{ fontSize:16, fontWeight:600 }}>
+          Estándares — {verPapelera ? 'Papelera' : 'inventario'}
+        </h2>
+        <div style={{ display:'flex', gap:8 }}>
+          {puedeBaja && (
+            <button
+              className="btn btn-sm"
+              style={verPapelera ? {background:'var(--danger-lt)',color:'var(--danger)',borderColor:'var(--danger)'} : {}}
+              onClick={() => { setVerPapelera(!verPapelera); setSearch(''); setFiltroEst('') }}
+            >
+              🗑 Papelera {papelera.length > 0 && `(${papelera.length})`}
+            </button>
+          )}
+          {!verPapelera && puedeAgregar && (
+            <button className="btn btn-primary btn-sm" onClick={abrirFormulario}>
+              <Plus size={14} /> Nuevo estándar
+            </button>
+          )}
+        </div>
       </div>
 
-      {showForm && puedeAgregar && (
+      {showForm && puedeAgregar && !verPapelera && (
         <div className="card">
           <div className="card-title">
             Ingresar nuevo estándar
@@ -204,7 +242,6 @@ export default function Estandares() {
             )}
           </div>
           {msg && <div className="alert-item danger" style={{marginBottom:10}}>{msg}</div>}
-
           <div className="form-grid">
             <div className="form-group"><label>Nombre del estándar *</label><input placeholder="ej: Cilostazol" onChange={f('nombre')} /></div>
             <div className="form-group"><label>Cliente *</label>
@@ -237,7 +274,6 @@ export default function Estandares() {
             <div className="form-group" style={{gridColumn:'1/-1'}}><label>Fecha vencimiento</label><input type="date" onChange={f('vencimiento')} style={{maxWidth:200}} /></div>
           </div>
 
-          {/* Sección frascos */}
           <div style={{marginBottom:14}}>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
               <label style={{fontSize:11,fontWeight:600,color:'var(--text-2)'}}>FRASCOS DEL ENVÍO</label>
@@ -310,10 +346,12 @@ export default function Estandares() {
       <div className="search-bar">
         <Search size={16} style={{ color:'var(--text-3)', flexShrink:0 }} />
         <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por código, nombre o cliente..." style={{ flex:1 }} />
-        <select value={filtroEst} onChange={e=>setFiltroEst(e.target.value)}>
-          <option value="">Todos los estados</option>
-          {ESTADOS.map(e=><option key={e}>{e}</option>)}
-        </select>
+        {!verPapelera && (
+          <select value={filtroEst} onChange={e=>setFiltroEst(e.target.value)}>
+            <option value="">Todos los estados</option>
+            {ESTADOS.filter(e => e !== 'DADO DE BAJA').map(e=><option key={e}>{e}</option>)}
+          </select>
+        )}
       </div>
 
       <div className="table-wrap">
@@ -329,7 +367,13 @@ export default function Estandares() {
               const vence = i.fechaVencimiento?.toDate?.() || (i.fechaVencimiento ? new Date(i.fechaVencimiento) : null)
               const sem   = calcularSemaforo(vence)
               const badgeCls = sem.color==='danger'?'badge-danger':sem.color==='warning'?'badge-warn':sem.color==='success'?'badge-ok':'badge-gray'
-              const estCls = {'EN USO':'badge-ok','CERRADO':'badge-info','VENCIDO':'badge-danger','SIN STOCK':'badge-warn'}[i.estado] || 'badge-gray'
+              const estCls = {
+                'EN USO':      'badge-ok',
+                'CERRADO':     'badge-info',
+                'VENCIDO':     'badge-danger',
+                'SIN STOCK':   'badge-warn',
+                'DADO DE BAJA':'badge-gray',
+              }[i.estado] || 'badge-gray'
               return (
                 <tr key={i.id}>
                   <td className="mono" style={{ fontSize:10 }}>{i.codigo}</td>
@@ -343,16 +387,31 @@ export default function Estandares() {
                   <td><strong>{i.stockRestante ?? '—'}</strong></td>
                   <td>{vence ? <span className={`badge ${badgeCls}`}>{sem.texto}</span> : <span style={{color:'var(--text-3)'}}>—</span>}</td>
                   <td><span className={`badge ${estCls}`}>{i.estado}</span></td>
-                  <td>
+                  <td style={{display:'flex', gap:4}}>
                     {puedePesada && i.estado === 'EN USO' && (
                       <button className="btn btn-sm" onClick={() => { setPesadaId(i.id); setShowForm(false); setForm({}) }}>
                         Pesada
+                      </button>
+                    )}
+                    {puedeBaja && !verPapelera && (
+                      <button className="btn btn-sm" style={{color:'var(--danger)',borderColor:'var(--danger)'}} onClick={() => darDeBaja(i.id, i.codigo)} title="Dar de baja">
+                        🗑
+                      </button>
+                    )}
+                    {puedeBaja && verPapelera && (
+                      <button className="btn btn-sm" onClick={() => restaurar(i.id)}>
+                        Restaurar
                       </button>
                     )}
                   </td>
                 </tr>
               )
             })}
+            {filtrados.length === 0 && (
+              <tr><td colSpan={8} style={{textAlign:'center',padding:24,color:'var(--text-3)'}}>
+                {verPapelera ? 'La papelera está vacía' : 'No hay estándares que coincidan'}
+              </td></tr>
+            )}
           </tbody>
         </table>
       </div>
