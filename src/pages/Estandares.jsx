@@ -1,13 +1,13 @@
 // src/pages/Estandares.jsx
 import { useState, useEffect } from 'react'
 import { collection, getDocs, addDoc, updateDoc, doc,
-         serverTimestamp, query, orderBy, limit } from 'firebase/firestore'
+         serverTimestamp, query, orderBy, limit, where, writeBatch } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { calcularSemaforo } from '../lib/db'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useRole } from '../hooks/useRole.jsx'
 import { puedoHacer } from '../lib/roles'
-import { Plus, Search, FlaskConical, History, Package } from 'lucide-react'
+import { Plus, Search, FlaskConical, History, Package, ExternalLink, CheckCircle, XCircle } from 'lucide-react'
 
 const CLIENTES  = ['Ascend','Galenicum','Grunenthal','Bamberg','Labomed','Laboratorio Chile','Novartis','Seven Pharma','Emcure','Prater','MSN','Otro']
 const SECTORES  = ['Fq','Val','Fq/val','Mb','T-r']
@@ -17,21 +17,18 @@ const MESES     = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','
 const MESES_NUM = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC']
 
 const TIPO_POTENCIA = [
-  { value: 'tal_cual',    label: 'Tal cual' },
-  { value: 'base_seca',   label: 'Base seca' },
+  { value: 'tal_cual',     label: 'Tal cual' },
+  { value: 'base_seca',    label: 'Base seca' },
   { value: 'sin_potencia', label: 'Sin potencia' },
-  { value: 'cualitativo', label: 'Estándar cualitativo' },
+  { value: 'cualitativo',  label: 'Estándar cualitativo' },
 ]
 
 // ── Capitalización automática ─────────────────────────────────
-// Primera letra mayúscula, resto minúscula por palabra no aplica
-// Solo primera letra del texto mayúscula, resto minúscula
 function capitalizar(str) {
   if (!str) return ''
-  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase()
+  return str.charAt(0).toUpperCase() + str.slice(1)
 }
 
-// Para inputs: capitalizar al escribir
 function onChangeCapitalizar(setter) {
   return (e) => {
     const val = e.target.value
@@ -62,31 +59,52 @@ function formatFecha(ts) {
   return d.toLocaleDateString('es-CL') + ' ' + d.toLocaleTimeString('es-CL', { hour:'2-digit', minute:'2-digit' })
 }
 
-// ── Componente badge de potencia ──────────────────────────────
+// Calcular próxima fecha de revisión USP
+function calcularProximaRevision(fechaBase, meses) {
+  const d = new Date(fechaBase)
+  d.setMonth(d.getMonth() + parseInt(meses))
+  return d.toISOString().split('T')[0]
+}
+
+// Días hasta próxima revisión USP
+function diasHastaRevision(fechaRevision) {
+  if (!fechaRevision) return null
+  const hoy  = new Date(); hoy.setHours(0,0,0,0)
+  const rev  = new Date(fechaRevision)
+  return Math.round((rev - hoy) / 86400000)
+}
+
+// ── Badge potencia ────────────────────────────────────────────
 function BadgePotencia({ tipoPotencia, potencia }) {
-  if (tipoPotencia === 'cualitativo') return <span className="badge badge-purple">Cualitativo</span>
+  if (tipoPotencia === 'cualitativo')  return <span className="badge badge-purple">Cualitativo</span>
   if (tipoPotencia === 'sin_potencia') return <span className="badge badge-gray">Sin potencia</span>
   if (tipoPotencia === 'base_seca')    return <span className="badge badge-info">{potencia}% Base seca</span>
   if (tipoPotencia === 'tal_cual')     return <span className="badge badge-ok">{potencia}% Tal cual</span>
   return potencia ? <span className="badge badge-gray">{potencia}%</span> : <span style={{color:'var(--text-3)'}}>—</span>
 }
 
-// ── Componente condiciones especiales ─────────────────────────
+// ── Badge condiciones especiales ──────────────────────────────
 function BadgesCondiciones({ karlFischer, secadoPrevio, tempSecado, tiempoSecado }) {
   return (
     <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
-      {karlFischer && (
-        <span className="badge badge-warn" title="Requiere determinación de agua por Karl Fischer">
-          💧 Karl Fischer
-        </span>
-      )}
+      {karlFischer && <span className="badge badge-warn" title="Requiere Karl Fischer">💧 Karl Fischer</span>}
       {secadoPrevio && (
-        <span className="badge badge-warn" title={`Secado previo${tempSecado?` a ${tempSecado}°C`:''}${tiempoSecado?` por ${tiempoSecado}`:''}`}>
+        <span className="badge badge-warn" title={`Secado${tempSecado?` ${tempSecado}°C`:''}${tiempoSecado?` — ${tiempoSecado}`:''}`}>
           🌡️ Secado {tempSecado ? `${tempSecado}°C` : ''} {tiempoSecado || ''}
         </span>
       )}
     </div>
   )
+}
+
+// ── Badge revisión USP ────────────────────────────────────────
+function BadgeRevisionUSP({ proximaRevision }) {
+  const dias = diasHastaRevision(proximaRevision)
+  if (dias === null) return <span className="badge badge-gray">USP — Sin fecha</span>
+  if (dias < 0)      return <span className="badge badge-danger">🔴 USP — Revisión vencida hace {Math.abs(dias)}d</span>
+  if (dias <= 30)    return <span className="badge badge-danger">🔴 USP — Revisar en {dias}d</span>
+  if (dias <= 60)    return <span className="badge badge-warn">🟡 USP — Revisar en {dias}d</span>
+  return <span className="badge badge-info">🔵 USP — Revisar en {dias}d</span>
 }
 
 export default function Estandares() {
@@ -111,41 +129,52 @@ export default function Estandares() {
   const [guardando, setGuardando] = useState(false)
   const [verPapelera, setVerPapelera] = useState(false)
 
-  // Campos del formulario con capitalización
-  const [fNombre, setFNombre]         = useState('')
-  const [fCliente, setFCliente]       = useState('')
-  const [fLote, setFLote]             = useState('')
-  const [fCas, setFCas]               = useState('')
-  const [fProducto, setFProducto]     = useState('')
-  const [fFabricante, setFabricante]  = useState('')
+  // Verificación USP
+  const [uspModalId, setUspModalId]         = useState(null)
+  const [uspResultado, setUspResultado]     = useState('vigente')
+  const [uspFechaVerif, setUspFechaVerif]   = useState('')
+  const [uspProxRevision, setUspProxRevision] = useState('')
+  const [uspFrecuencia, setUspFrecuencia]   = useState('')
+  const [uspObs, setUspObs]                 = useState('')
+  const [guardandoUSP, setGuardandoUSP]     = useState(false)
+
+  // Campos formulario
+  const [fNombre, setFNombre]           = useState('')
+  const [fCliente, setFCliente]         = useState('')
+  const [fLote, setFLote]               = useState('')
+  const [fCas, setFCas]                 = useState('')
+  const [fProducto, setFProducto]       = useState('')
+  const [fFabricante, setFabricante]    = useState('')
   const [fObservacion, setFObservacion] = useState('')
-  const [fSector, setFSector]         = useState('Fq')
-  const [fAlmacen, setFAlmacen]       = useState('Desecador')
-  const [fMes, setFMes]               = useState('')
-  const [fAnio, setFAnio]             = useState('')
+  const [fSector, setFSector]           = useState('Fq')
+  const [fAlmacen, setFAlmacen]         = useState('Desecador')
+  const [fMes, setFMes]                 = useState('')
+  const [fAnio, setFAnio]               = useState('')
   const [fVencimiento, setFVencimiento] = useState('')
-  const [fXAnalisis, setFXAnalisis]   = useState('200')
-  // Potencia
+  const [fXAnalisis, setFXAnalisis]     = useState('200')
   const [fTipoPotencia, setFTipoPotencia] = useState('tal_cual')
-  const [fPotencia, setFPotencia]     = useState('')
-  // Condiciones especiales
+  const [fPotencia, setFPotencia]       = useState('')
   const [fKarlFischer, setFKarlFischer] = useState(false)
   const [fSecadoPrevio, setFSecadoPrevio] = useState(false)
   const [fTempSecado, setFTempSecado]   = useState('')
   const [fTiempoSecado, setFTiempoSecado] = useState('')
+  // USP
+  const [fEsUSP, setFEsUSP]             = useState(false)
+  const [fFrecuenciaUSP, setFFrecuenciaUSP] = useState('12')
+  const [fProxRevisionUSP, setFProxRevisionUSP] = useState('')
   // Pesada
-  const [fMg, setFMg]               = useState('')
-  const [fNAnalisis, setFNAnalisis]  = useState('')
-  const [fProducto2, setFProducto2]  = useState('')
+  const [fMg, setFMg]                   = useState('')
+  const [fNAnalisis, setFNAnalisis]     = useState('')
+  const [fProducto2, setFProducto2]     = useState('')
 
   // Historial
-  const [pesadas, setPesadas]             = useState([])
-  const [loadingH, setLoadingH]           = useState(false)
-  const [searchH, setSearchH]             = useState('')
-  const [filtroUsuario, setFiltroUsuario] = useState('')
-  const [filtroStd, setFiltroStd]         = useState('')
-  const [fechaDesde, setFechaDesde]       = useState('')
-  const [fechaHasta, setFechaHasta]       = useState('')
+  const [pesadas, setPesadas]               = useState([])
+  const [loadingH, setLoadingH]             = useState(false)
+  const [searchH, setSearchH]               = useState('')
+  const [filtroUsuario, setFiltroUsuario]   = useState('')
+  const [filtroStd, setFiltroStd]           = useState('')
+  const [fechaDesde, setFechaDesde]         = useState('')
+  const [fechaHasta, setFechaHasta]         = useState('')
 
   const hoy     = new Date()
   const mesAct  = String(hoy.getMonth() + 1).padStart(2, '0')
@@ -171,19 +200,27 @@ export default function Estandares() {
   useEffect(() => { load() }, [])
   useEffect(() => { if (tab === 'historial' && pesadas.length === 0) loadHistorial() }, [tab])
 
+  // Cuando marca USP, calcular próxima revisión automáticamente
+  useEffect(() => {
+    if (fEsUSP && fFrecuenciaUSP) {
+      setFProxRevisionUSP(calcularProximaRevision(new Date().toISOString().split('T')[0], fFrecuenciaUSP))
+    }
+  }, [fEsUSP, fFrecuenciaUSP])
+
   const abrirFormulario = async () => {
     if (!showForm) {
       const n = await getSiguienteNumero(db)
       setSigNum(n)
       setFMes(mesAct); setFAnio(String(anioAct))
       setFrascos([{ letra: 'A', stock: '' }])
-      // Resetear todos los campos
       setFNombre(''); setFCliente(''); setFLote(''); setFCas('')
       setFProducto(''); setFabricante(''); setFObservacion('')
       setFSector('Fq'); setFAlmacen('Desecador'); setFVencimiento('')
       setFXAnalisis('200'); setFTipoPotencia('tal_cual'); setFPotencia('')
       setFKarlFischer(false); setFSecadoPrevio(false)
-      setFTempSecado(''); setFTiempoSecado(''); setMsg('')
+      setFTempSecado(''); setFTiempoSecado('')
+      setFEsUSP(false); setFFrecuenciaUSP('12'); setFProxRevisionUSP('')
+      setMsg('')
     }
     setShowForm(!showForm)
     setPesadaId(null)
@@ -201,8 +238,10 @@ export default function Estandares() {
     if (!fLote || !fNombre || !fCliente) { setMsg('Nombre, cliente y lote son obligatorios'); return }
     if (frascos.some(fr => !fr.stock || isNaN(fr.stock))) { setMsg('Ingresa el stock de cada frasco'); return }
     if ((fTipoPotencia === 'tal_cual' || fTipoPotencia === 'base_seca') && !fPotencia) {
-      setMsg('Ingresa el valor de potencia o selecciona "Sin potencia" / "Cualitativo"'); return
+      setMsg('Ingresa el valor de potencia'); return
     }
+    if (fEsUSP && !fFrecuenciaUSP) { setMsg('Ingresa la frecuencia de revisión USP'); return }
+
     setGuardando(true)
     try {
       const numero = sigNum || await getSiguienteNumero(db)
@@ -211,36 +250,39 @@ export default function Estandares() {
         const codigo = generarCodigo(numero, fMes || mesAct, fAnio || anioAct, fLote, frasco.letra)
         await addDoc(collection(db, 'estandares'), {
           codigo,
-          numeroStd:        numero,
-          frasco:           frasco.letra,
-          nombre:           capitalizar(fNombre),
-          cas:              fCas.toUpperCase(),
-          lote:             fLote.toUpperCase(),
-          cliente:          fCliente,
-          producto:         capitalizar(fProducto),
-          // Potencia
-          tipoPotencia:     fTipoPotencia,
-          potencia:         (fTipoPotencia === 'tal_cual' || fTipoPotencia === 'base_seca') ? parseFloat(fPotencia) : null,
-          // Condiciones especiales
-          karlFischer:      fKarlFischer,
-          secadoPrevio:     fSecadoPrevio,
-          tempSecado:       fSecadoPrevio ? capitalizar(fTempSecado) : '',
-          tiempoSecado:     fSecadoPrevio ? capitalizar(fTiempoSecado) : '',
-          // Resto
-          sector:           fSector,
-          almacenamiento:   fAlmacen,
-          fabricante:       capitalizar(fFabricante),
-          observacion:      capitalizar(fObservacion),
-          stockInicial:     parseFloat(frasco.stock),
-          stockRestante:    parseFloat(frasco.stock),
-          cantPorAnalisis:  parseFloat(fXAnalisis) || 200,
-          fechaVencimiento: fVencimiento ? new Date(fVencimiento) : null,
-          estado:           i === 0 ? 'En uso' : 'Cerrado',
-          mesIngreso:       fMes || mesAct,
-          anioIngreso:      parseInt(fAnio || anioAct),
-          creadoPor:        user.email,
-          creadoEn:         serverTimestamp(),
-          actualizadoEn:    serverTimestamp(),
+          numeroStd:           numero,
+          frasco:              frasco.letra,
+          nombre:              capitalizar(fNombre),
+          cas:                 fCas.toUpperCase(),
+          lote:                fLote.toUpperCase(),
+          cliente:             fCliente,
+          producto:            capitalizar(fProducto),
+          tipoPotencia:        fTipoPotencia,
+          potencia:            (fTipoPotencia === 'tal_cual' || fTipoPotencia === 'base_seca') ? parseFloat(fPotencia) : null,
+          karlFischer:         fKarlFischer,
+          secadoPrevio:        fSecadoPrevio,
+          tempSecado:          fSecadoPrevio ? capitalizar(fTempSecado) : '',
+          tiempoSecado:        fSecadoPrevio ? capitalizar(fTiempoSecado) : '',
+          sector:              fSector,
+          almacenamiento:      fAlmacen,
+          fabricante:          capitalizar(fFabricante),
+          observacion:         capitalizar(fObservacion),
+          stockInicial:        parseFloat(frasco.stock),
+          stockRestante:       parseFloat(frasco.stock),
+          cantPorAnalisis:     parseFloat(fXAnalisis) || 200,
+          // USP
+          esUSP:               fEsUSP,
+          frecuenciaRevUSP:    fEsUSP ? parseInt(fFrecuenciaUSP) : null,
+          proximaRevisionUSP:  fEsUSP ? fProxRevisionUSP : null,
+          ultimaRevisionUSP:   null,
+          // Vencimiento solo si no es USP
+          fechaVencimiento:    !fEsUSP && fVencimiento ? new Date(fVencimiento) : null,
+          estado:              i === 0 ? 'En uso' : 'Cerrado',
+          mesIngreso:          fMes || mesAct,
+          anioIngreso:         parseInt(fAnio || anioAct),
+          creadoPor:           user.email,
+          creadoEn:            serverTimestamp(),
+          actualizadoEn:       serverTimestamp(),
         })
       }
       setShowForm(false); setFrascos([{ letra: 'A', stock: '' }]); setMsg(''); load()
@@ -261,7 +303,6 @@ export default function Estandares() {
         email:      user.email,
       })
       setPesadaId(null); setFMg(''); setFNAnalisis(''); setFProducto2(''); setMsg(''); load()
-      if (tab === 'historial') loadHistorial()
     } catch(e) { setMsg(e.message) }
   }
 
@@ -280,10 +321,101 @@ export default function Estandares() {
   const restaurar = async (id) => {
     try {
       await updateDoc(doc(db, 'estandares', id), {
-        estado: 'Cerrado', bajaPor: null, bajaRazon: null, bajaFecha: null, actualizadoEn: serverTimestamp(),
+        estado: 'Cerrado', bajaPor: null, bajaRazon: null, bajaFecha: null,
+        actualizadoEn: serverTimestamp(),
       })
       load()
     } catch(e) { alert('Error: ' + e.message) }
+  }
+
+  // ── Abrir modal de verificación USP ──────────────────────────
+  const abrirVerificacionUSP = (item) => {
+    setUspModalId(item.id)
+    setUspResultado('vigente')
+    setUspFechaVerif(new Date().toISOString().split('T')[0])
+    setUspFrecuencia(String(item.frecuenciaRevUSP || 12))
+    setUspProxRevision(calcularProximaRevision(
+      new Date().toISOString().split('T')[0],
+      item.frecuenciaRevUSP || 12
+    ))
+    setUspObs('')
+  }
+
+  // ── Guardar verificación USP ──────────────────────────────────
+  const guardarVerificacionUSP = async () => {
+    if (!uspModalId) return
+    setGuardandoUSP(true)
+    const item = items.find(i => i.id === uspModalId)
+    if (!item) return
+
+    try {
+      if (uspResultado === 'vigente') {
+        // Actualizar solo este vial con nueva fecha de revisión
+        await updateDoc(doc(db, 'estandares', uspModalId), {
+          proximaRevisionUSP:  uspProxRevision,
+          ultimaRevisionUSP:   uspFechaVerif,
+          frecuenciaRevUSP:    parseInt(uspFrecuencia),
+          observacion:         uspObs ? capitalizar(uspObs) : item.observacion,
+          actualizadoEn:       serverTimestamp(),
+        })
+
+        // Registrar en historial de usos como verificación
+        await addDoc(collection(db, 'usos_estandares'), {
+          estandarId:    uspModalId,
+          codigo:        item.codigo,
+          nombre:        item.nombre,
+          cliente:       item.cliente,
+          tipo:          'verificacion_usp',
+          resultado:     'Vigente',
+          fechaVerif:    uspFechaVerif,
+          proxRevision:  uspProxRevision,
+          observacion:   uspObs,
+          analista:      user.displayName || user.email,
+          email:         user.email,
+          fecha:         serverTimestamp(),
+        })
+
+      } else {
+        // No vigente → dar de baja todos los frascos del mismo lote
+        const mismosLotes = items.filter(i =>
+          i.lote === item.lote &&
+          i.nombre === item.nombre &&
+          i.estado !== 'Dado de baja'
+        )
+
+        const batch = writeBatch(db)
+        for (const vial of mismosLotes) {
+          batch.update(doc(db, 'estandares', vial.id), {
+            estado:        'Dado de baja',
+            bajaPor:       user.email,
+            bajaRazon:     `Estándar USP no vigente — verificación ${uspFechaVerif}. ${uspObs}`,
+            bajaFecha:     serverTimestamp(),
+            actualizadoEn: serverTimestamp(),
+          })
+        }
+        await batch.commit()
+
+        // Registrar en historial
+        await addDoc(collection(db, 'usos_estandares'), {
+          estandarId:    uspModalId,
+          codigo:        item.codigo,
+          nombre:        item.nombre,
+          cliente:       item.cliente,
+          tipo:          'verificacion_usp',
+          resultado:     'No vigente — baja automática',
+          vialsDadosDeBaja: mismosLotes.length,
+          fechaVerif:    uspFechaVerif,
+          observacion:   uspObs,
+          analista:      user.displayName || user.email,
+          email:         user.email,
+          fecha:         serverTimestamp(),
+        })
+      }
+
+      setUspModalId(null)
+      load()
+    } catch(e) { alert('Error: ' + e.message) }
+    finally { setGuardandoUSP(false) }
   }
 
   const activos  = items.filter(i => i.estado !== 'Dado de baja')
@@ -311,13 +443,100 @@ export default function Estandares() {
   })
 
   const totalMg = pesadasFiltradas.reduce((acc, p) => acc + (parseFloat(p.mgPesados) || 0), 0)
+  const needsPotencia = fTipoPotencia === 'tal_cual' || fTipoPotencia === 'base_seca'
 
   if (loading) return <div style={{display:'flex',justifyContent:'center',padding:40}}><div className="spinner"/></div>
 
-  const needsPotencia = fTipoPotencia === 'tal_cual' || fTipoPotencia === 'base_seca'
-
   return (
     <>
+      {/* ── MODAL VERIFICACIÓN USP ── */}
+      {uspModalId && (() => {
+        const item = items.find(i => i.id === uspModalId)
+        if (!item) return null
+        return (
+          <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
+            <div style={{background:'var(--surface)',borderRadius:'var(--radius-lg)',padding:24,width:'100%',maxWidth:520,maxHeight:'90vh',overflowY:'auto'}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+                <div>
+                  <p style={{fontSize:15,fontWeight:600}}>Verificación USP</p>
+                  <p style={{fontSize:12,color:'var(--text-2)'}}>{item.nombre} · {item.codigo}</p>
+                </div>
+                <button className="btn btn-sm" onClick={()=>setUspModalId(null)}>✕</button>
+              </div>
+
+              {/* Link a USP */}
+              <a
+                href={`https://www.usp.org/reference-standards/reference-standards-catalog?query=${encodeURIComponent(item.nombre)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-sm"
+                style={{width:'100%',justifyContent:'center',marginBottom:16,textDecoration:'none'}}
+              >
+                <ExternalLink size={14}/> Verificar en catálogo USP ↗
+              </a>
+
+              {/* Resultado */}
+              <p style={{fontSize:11,fontWeight:600,color:'var(--text-2)',marginBottom:8}}>RESULTADO DE LA VERIFICACIÓN</p>
+              <div style={{display:'flex',gap:10,marginBottom:16}}>
+                <label style={{flex:1,display:'flex',alignItems:'center',gap:8,padding:'10px 14px',borderRadius:'var(--radius-sm)',border:`2px solid ${uspResultado==='vigente'?'var(--ok)':'var(--border-md)'}`,background:uspResultado==='vigente'?'var(--ok-lt)':'var(--surface)',cursor:'pointer',fontSize:13}}>
+                  <input type="radio" name="uspRes" value="vigente" checked={uspResultado==='vigente'} onChange={e=>setUspResultado(e.target.value)} style={{display:'none'}}/>
+                  <CheckCircle size={16} style={{color:uspResultado==='vigente'?'var(--ok)':'var(--text-3)'}}/> Vigente — continúa en uso
+                </label>
+                <label style={{flex:1,display:'flex',alignItems:'center',gap:8,padding:'10px 14px',borderRadius:'var(--radius-sm)',border:`2px solid ${uspResultado==='no_vigente'?'var(--danger)':'var(--border-md)'}`,background:uspResultado==='no_vigente'?'var(--danger-lt)':'var(--surface)',cursor:'pointer',fontSize:13}}>
+                  <input type="radio" name="uspRes" value="no_vigente" checked={uspResultado==='no_vigente'} onChange={e=>setUspResultado(e.target.value)} style={{display:'none'}}/>
+                  <XCircle size={16} style={{color:uspResultado==='no_vigente'?'var(--danger)':'var(--text-3)'}}/> No vigente — dar de baja
+                </label>
+              </div>
+
+              {uspResultado === 'no_vigente' && (
+                <div style={{background:'var(--danger-lt)',border:'1px solid var(--danger)',borderRadius:'var(--radius-sm)',padding:'10px 12px',marginBottom:16,fontSize:12,color:'var(--danger)'}}>
+                  ⚠️ Se darán de baja automáticamente <strong>todos los frascos del lote {item.lote}</strong> del estándar {item.nombre}.
+                </div>
+              )}
+
+              <div className="form-grid">
+                <div className="form-group">
+                  <label>Fecha de verificación *</label>
+                  <input type="date" value={uspFechaVerif} onChange={e=>setUspFechaVerif(e.target.value)} />
+                </div>
+                {uspResultado === 'vigente' && (
+                  <>
+                    <div className="form-group">
+                      <label>Frecuencia de revisión (meses)</label>
+                      <input type="number" min="1" max="24" value={uspFrecuencia}
+                        onChange={e=>{
+                          setUspFrecuencia(e.target.value)
+                          if (e.target.value) setUspProxRevision(calcularProximaRevision(uspFechaVerif || new Date().toISOString().split('T')[0], e.target.value))
+                        }} />
+                    </div>
+                    <div className="form-group" style={{gridColumn:'1/-1'}}>
+                      <label>Próxima revisión</label>
+                      <input type="date" value={uspProxRevision} onChange={e=>setUspProxRevision(e.target.value)} />
+                    </div>
+                  </>
+                )}
+                <div className="form-group" style={{gridColumn:'1/-1'}}>
+                  <label>Observaciones</label>
+                  <input value={uspObs} onChange={onChangeCapitalizar(setUspObs)} placeholder="Observaciones de la verificación" />
+                </div>
+              </div>
+
+              <div style={{display:'flex',gap:8,marginTop:8}}>
+                <button
+                  className={`btn btn-sm ${uspResultado==='no_vigente'?'btn-danger':'btn-primary'}`}
+                  onClick={guardarVerificacionUSP}
+                  disabled={guardandoUSP}
+                >
+                  {guardandoUSP ? <div className="spinner" style={{width:14,height:14,borderWidth:2}}/> : null}
+                  {uspResultado==='vigente' ? 'Confirmar — sigue vigente' : 'Confirmar — dar de baja lote completo'}
+                </button>
+                <button className="btn btn-sm" onClick={()=>setUspModalId(null)}>Cancelar</button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
       {/* Header */}
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
         <h2 style={{fontSize:16,fontWeight:600}}>Estándares</h2>
@@ -334,27 +553,25 @@ export default function Estandares() {
               <Plus size={14}/> Nuevo estándar
             </button>
           )}
-          {tab==='historial' && (
-            <button className="btn btn-sm" onClick={loadHistorial}>↻ Actualizar</button>
-          )}
+          {tab==='historial' && <button className="btn btn-sm" onClick={loadHistorial}>↻ Actualizar</button>}
         </div>
       </div>
 
       {/* Pestañas */}
-      <div style={{display:'flex',gap:4,marginBottom:16,borderBottom:'1px solid var(--border)',paddingBottom:0}}>
+      <div style={{display:'flex',gap:4,marginBottom:16,borderBottom:'1px solid var(--border)'}}>
         {[
-          { id:'inventario', icon:<Package size={14}/>, label:'Inventario', count:activos.length },
-          { id:'historial',  icon:<History size={14}/>, label:'Historial de pesadas', count:pesadas.length },
+          { id:'inventario', label:'Inventario', count:activos.length },
+          { id:'historial',  label:'Historial de pesadas', count:pesadas.length },
         ].map(t => (
           <button key={t.id} onClick={()=>setTab(t.id)} style={{
-            display:'flex',alignItems:'center',gap:6,
-            padding:'8px 16px',fontSize:13,cursor:'pointer',
-            border:'none',background:'none',
+            display:'flex',alignItems:'center',gap:6,padding:'8px 16px',
+            fontSize:13,cursor:'pointer',border:'none',background:'none',
             color:tab===t.id?'var(--accent)':'var(--text-2)',
             borderBottom:tab===t.id?'2px solid var(--accent)':'2px solid transparent',
             fontWeight:tab===t.id?500:400,marginBottom:-1,
           }}>
-            {t.icon} {t.label}
+            {t.id==='inventario'?<Package size={14}/>:<History size={14}/>}
+            {t.label}
             {t.count>0&&<span style={{fontSize:11,padding:'1px 6px',borderRadius:10,background:'var(--bg)',color:'var(--text-2)'}}>{t.count}</span>}
           </button>
         ))}
@@ -368,155 +585,155 @@ export default function Estandares() {
             <div className="card">
               <div className="card-title">
                 Ingresar nuevo estándar
-                {sigNum && <span className="badge badge-purple">Próximo N°: STD-{String(sigNum).padStart(4,'0')}</span>}
+                {sigNum && <span className="badge badge-purple">N°: STD-{String(sigNum).padStart(4,'0')}</span>}
               </div>
               {msg && <div className="alert-item danger" style={{marginBottom:10}}>{msg}</div>}
 
               <div className="form-grid">
-                <div className="form-group">
-                  <label>Nombre del estándar *</label>
-                  <input value={fNombre} onChange={onChangeCapitalizar(setFNombre)} placeholder="ej: Cilostazol" />
-                </div>
-                <div className="form-group">
-                  <label>Cliente *</label>
+                <div className="form-group"><label>Nombre *</label><input value={fNombre} onChange={onChangeCapitalizar(setFNombre)} placeholder="ej: Cilostazol"/></div>
+                <div className="form-group"><label>Cliente *</label>
                   <select value={fCliente} onChange={e=>setFCliente(e.target.value)}>
                     <option value="">Seleccionar...</option>
                     {CLIENTES.map(c=><option key={c}>{c}</option>)}
                   </select>
                 </div>
-                <div className="form-group">
-                  <label>N° Lote *</label>
-                  <input value={fLote} onChange={e=>setFLote(e.target.value.toUpperCase())} placeholder="ej: LRAD4238" />
-                </div>
-                <div className="form-group">
-                  <label>N° CAS</label>
-                  <input value={fCas} onChange={e=>setFCas(e.target.value)} placeholder="ej: 73963-72-1" />
-                </div>
-                <div className="form-group">
-                  <label>Mes de ingreso</label>
-                  <select value={fMes} onChange={e=>setFMes(e.target.value)} defaultValue={mesAct}>
+                <div className="form-group"><label>N° Lote *</label><input value={fLote} onChange={e=>setFLote(e.target.value.toUpperCase())} placeholder="ej: LRAD4238"/></div>
+                <div className="form-group"><label>N° CAS</label><input value={fCas} onChange={e=>setFCas(e.target.value)} placeholder="ej: 73963-72-1"/></div>
+                <div className="form-group"><label>Mes ingreso</label>
+                  <select value={fMes} onChange={e=>setFMes(e.target.value)}>
                     {Array.from({length:12},(_,i)=>(
                       <option key={i+1} value={String(i+1).padStart(2,'0')}>{MESES[i]}</option>
                     ))}
                   </select>
                 </div>
-                <div className="form-group">
-                  <label>Año de ingreso</label>
-                  <select value={fAnio} onChange={e=>setFAnio(e.target.value)} defaultValue={anioAct}>
+                <div className="form-group"><label>Año ingreso</label>
+                  <select value={fAnio} onChange={e=>setFAnio(e.target.value)}>
                     {[2023,2024,2025,2026,2027].map(a=><option key={a}>{a}</option>)}
                   </select>
                 </div>
-                <div className="form-group">
-                  <label>Producto</label>
-                  <input value={fProducto} onChange={onChangeCapitalizar(setFProducto)} placeholder="ej: Cilosvitae 100" />
-                </div>
-                <div className="form-group">
-                  <label>Sector</label>
+                <div className="form-group"><label>Producto</label><input value={fProducto} onChange={onChangeCapitalizar(setFProducto)} placeholder="ej: Cilosvitae 100"/></div>
+                <div className="form-group"><label>Sector</label>
                   <select value={fSector} onChange={e=>setFSector(e.target.value)}>
                     {SECTORES.map(s=><option key={s}>{s}</option>)}
                   </select>
                 </div>
-                <div className="form-group">
-                  <label>Almacenamiento</label>
+                <div className="form-group"><label>Almacenamiento</label>
                   <select value={fAlmacen} onChange={e=>setFAlmacen(e.target.value)}>
                     {ALMACENES.map(a=><option key={a}>{a}</option>)}
                   </select>
                 </div>
-                <div className="form-group">
-                  <label>Fabricante</label>
-                  <input value={fFabricante} onChange={onChangeCapitalizar(setFabricante)} placeholder="ej: Sigma-aldrich" />
-                </div>
-                <div className="form-group">
-                  <label>Cant. por análisis (mg)</label>
-                  <input type="number" step="0.01" value={fXAnalisis} onChange={e=>setFXAnalisis(e.target.value)} />
-                </div>
-                <div className="form-group">
-                  <label>Fecha vencimiento</label>
-                  <input type="date" value={fVencimiento} onChange={e=>setFVencimiento(e.target.value)} />
-                </div>
+                <div className="form-group"><label>Fabricante</label><input value={fFabricante} onChange={onChangeCapitalizar(setFabricante)} placeholder="ej: Sigma-aldrich"/></div>
+                <div className="form-group"><label>Cant. por análisis (mg)</label><input type="number" step="0.01" value={fXAnalisis} onChange={e=>setFXAnalisis(e.target.value)}/></div>
               </div>
 
-              {/* ── SECCIÓN POTENCIA ── */}
+              {/* Estándar USP */}
+              <div style={{background:'var(--accent-lt)',borderRadius:'var(--radius-md)',padding:'12px 14px',marginBottom:14,border:'1px solid var(--border)'}}>
+                <label style={{display:'flex',alignItems:'center',gap:10,cursor:'pointer',fontSize:13,fontWeight:500}}>
+                  <input type="checkbox" checked={fEsUSP} onChange={e=>setFEsUSP(e.target.checked)}/>
+                  🔵 Estándar USP — sin fecha de vencimiento, requiere verificación periódica
+                </label>
+                {fEsUSP && (
+                  <div style={{marginTop:12,display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+                    <div className="form-group">
+                      <label>Frecuencia de revisión (meses) *</label>
+                      <input type="number" min="1" max="24" value={fFrecuenciaUSP}
+                        onChange={e=>{
+                          setFFrecuenciaUSP(e.target.value)
+                          if (e.target.value) setFProxRevisionUSP(calcularProximaRevision(new Date().toISOString().split('T')[0], e.target.value))
+                        }}
+                        placeholder="ej: 12"/>
+                    </div>
+                    <div className="form-group">
+                      <label>Próxima revisión (calculada)</label>
+                      <input type="date" value={fProxRevisionUSP} onChange={e=>setFProxRevisionUSP(e.target.value)}/>
+                    </div>
+                    <div className="form-group" style={{gridColumn:'1/-1'}}>
+                      <p style={{fontSize:11,color:'var(--accent)',fontStyle:'italic'}}>
+                        El sistema alertará cuando se acerque la fecha de revisión y permitirá registrar la verificación en el catálogo USP.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Fecha vencimiento (solo si no es USP) */}
+              {!fEsUSP && (
+                <div className="form-group" style={{marginBottom:14,maxWidth:200}}>
+                  <label>Fecha vencimiento</label>
+                  <input type="date" value={fVencimiento} onChange={e=>setFVencimiento(e.target.value)}/>
+                </div>
+              )}
+
+              {/* Potencia */}
               <div style={{background:'var(--bg)',borderRadius:'var(--radius-md)',padding:'12px 14px',marginBottom:14}}>
                 <p style={{fontSize:11,fontWeight:600,color:'var(--text-2)',marginBottom:10}}>POTENCIA</p>
                 <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:10}}>
                   {TIPO_POTENCIA.map(t => (
                     <label key={t.value} style={{display:'flex',alignItems:'center',gap:6,cursor:'pointer',fontSize:13,padding:'6px 12px',borderRadius:'var(--radius-sm)',border:`1px solid ${fTipoPotencia===t.value?'var(--accent)':'var(--border-md)'}`,background:fTipoPotencia===t.value?'var(--accent-lt)':'var(--surface)',color:fTipoPotencia===t.value?'var(--accent)':'var(--text-1)'}}>
-                      <input type="radio" name="tipoPotencia" value={t.value} checked={fTipoPotencia===t.value} onChange={e=>setFTipoPotencia(e.target.value)} style={{display:'none'}} />
+                      <input type="radio" name="tipoPotencia" value={t.value} checked={fTipoPotencia===t.value} onChange={e=>setFTipoPotencia(e.target.value)} style={{display:'none'}}/>
                       {t.label}
                     </label>
                   ))}
                 </div>
                 {needsPotencia && (
                   <div className="form-group" style={{maxWidth:200}}>
-                    <label>Valor de potencia (%)*</label>
-                    <input type="number" step="0.001" min="0" max="100" value={fPotencia} onChange={e=>setFPotencia(e.target.value)} placeholder="ej: 99.5" />
+                    <label>Valor de potencia (%) *</label>
+                    <input type="number" step="0.001" min="0" max="100" value={fPotencia} onChange={e=>setFPotencia(e.target.value)} placeholder="ej: 99.5"/>
                   </div>
-                )}
-                {fTipoPotencia==='cualitativo' && (
-                  <p style={{fontSize:12,color:'var(--text-2)',fontStyle:'italic'}}>Este estándar no tiene valor de potencia numérico asignado.</p>
-                )}
-                {fTipoPotencia==='sin_potencia' && (
-                  <p style={{fontSize:12,color:'var(--text-2)',fontStyle:'italic'}}>Sin potencia registrada.</p>
                 )}
               </div>
 
-              {/* ── CONDICIONES ESPECIALES ── */}
-              <div style={{background:'var(--warn-lt)',borderRadius:'var(--radius-md)',padding:'12px 14px',marginBottom:14,border:'1px solid var(--border)'}}>
+              {/* Condiciones especiales */}
+              <div style={{background:'var(--warn-lt)',borderRadius:'var(--radius-md)',padding:'12px 14px',marginBottom:14}}>
                 <p style={{fontSize:11,fontWeight:600,color:'var(--text-2)',marginBottom:10}}>CONDICIONES ESPECIALES PREVIAS</p>
                 <div style={{display:'flex',gap:12,flexWrap:'wrap',marginBottom:10}}>
                   <label style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer',fontSize:13}}>
-                    <input type="checkbox" checked={fKarlFischer} onChange={e=>setFKarlFischer(e.target.checked)} />
-                    <span>💧 Karl Fischer (determinación de agua)</span>
+                    <input type="checkbox" checked={fKarlFischer} onChange={e=>setFKarlFischer(e.target.checked)}/>
+                    💧 Karl Fischer
                   </label>
                   <label style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer',fontSize:13}}>
-                    <input type="checkbox" checked={fSecadoPrevio} onChange={e=>setFSecadoPrevio(e.target.checked)} />
-                    <span>🌡️ Secado previo</span>
+                    <input type="checkbox" checked={fSecadoPrevio} onChange={e=>setFSecadoPrevio(e.target.checked)}/>
+                    🌡️ Secado previo
                   </label>
                 </div>
                 {fSecadoPrevio && (
-                  <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
-                    <div className="form-group" style={{flex:1,minWidth:140}}>
+                  <div style={{display:'flex',gap:10}}>
+                    <div className="form-group" style={{flex:1}}>
                       <label>Temperatura (°C)</label>
-                      <input value={fTempSecado} onChange={e=>setFTempSecado(e.target.value)} placeholder="ej: 105" />
+                      <input value={fTempSecado} onChange={e=>setFTempSecado(e.target.value)} placeholder="ej: 105"/>
                     </div>
-                    <div className="form-group" style={{flex:1,minWidth:140}}>
+                    <div className="form-group" style={{flex:1}}>
                       <label>Tiempo / condición</label>
-                      <input value={fTiempoSecado} onChange={onChangeCapitalizar(setFTiempoSecado)} placeholder="ej: 2 horas, Hasta peso constante" />
+                      <input value={fTiempoSecado} onChange={onChangeCapitalizar(setFTiempoSecado)} placeholder="ej: 2 horas"/>
                     </div>
                   </div>
-                )}
-                {!fKarlFischer && !fSecadoPrevio && (
-                  <p style={{fontSize:12,color:'var(--text-3)',fontStyle:'italic'}}>Sin condiciones especiales previas.</p>
                 )}
               </div>
 
               {/* Observaciones */}
               <div className="form-group" style={{marginBottom:14}}>
                 <label>Observaciones</label>
-                <input value={fObservacion} onChange={onChangeCapitalizar(setFObservacion)} placeholder="Observaciones adicionales" />
+                <input value={fObservacion} onChange={onChangeCapitalizar(setFObservacion)} placeholder="Observaciones adicionales"/>
               </div>
 
-              {/* ── FRASCOS ── */}
+              {/* Frascos */}
               <div style={{marginBottom:14}}>
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
                   <label style={{fontSize:11,fontWeight:600,color:'var(--text-2)'}}>FRASCOS DEL ENVÍO</label>
-                  <button className="btn btn-sm" onClick={agregarFrasco} type="button"><Plus size={12}/> Agregar frasco</button>
+                  <button className="btn btn-sm" onClick={agregarFrasco}><Plus size={12}/> Agregar frasco</button>
                 </div>
-                <div style={{display:'flex',flexDirection:'column',gap:6}}>
-                  {frascos.map((fr,i) => (
-                    <div key={fr.letra} style={{display:'flex',alignItems:'center',gap:10,background:'var(--bg)',padding:'8px 12px',borderRadius:'var(--radius-sm)',border:'1px solid var(--border)'}}>
-                      <div style={{width:28,height:28,borderRadius:'50%',background:i===0?'var(--accent-lt)':'var(--bg)',border:'1px solid var(--border-md)',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:600,fontSize:12,color:i===0?'var(--accent)':'var(--text-2)',flexShrink:0}}>{fr.letra}</div>
-                      <div style={{fontSize:11,color:'var(--text-2)',minWidth:80}}>
-                        {i===0?<span style={{color:'var(--ok)',fontWeight:500}}>En uso</span>:<span>Cerrado</span>}
-                      </div>
-                      <div className="form-group" style={{flex:1,margin:0}}>
-                        <input type="number" step="0.01" placeholder="Stock inicial (mg)" value={fr.stock} onChange={e=>updateFrasco(i,e.target.value)} />
-                      </div>
-                      {frascos.length>1 && <button className="btn btn-sm" onClick={()=>quitarFrasco(i)} style={{padding:'4px 8px',color:'var(--danger)'}}>✕</button>}
+                {frascos.map((fr,i) => (
+                  <div key={fr.letra} style={{display:'flex',alignItems:'center',gap:10,background:'var(--bg)',padding:'8px 12px',borderRadius:'var(--radius-sm)',border:'1px solid var(--border)',marginBottom:6}}>
+                    <div style={{width:28,height:28,borderRadius:'50%',background:i===0?'var(--accent-lt)':'var(--bg)',border:'1px solid var(--border-md)',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:600,fontSize:12,color:i===0?'var(--accent)':'var(--text-2)',flexShrink:0}}>{fr.letra}</div>
+                    <div style={{fontSize:11,color:'var(--text-2)',minWidth:80}}>
+                      {i===0?<span style={{color:'var(--ok)',fontWeight:500}}>En uso</span>:<span>Cerrado</span>}
                     </div>
-                  ))}
-                </div>
+                    <div className="form-group" style={{flex:1,margin:0}}>
+                      <input type="number" step="0.01" placeholder="Stock inicial (mg)" value={fr.stock} onChange={e=>updateFrasco(i,e.target.value)}/>
+                    </div>
+                    {frascos.length>1 && <button className="btn btn-sm" onClick={()=>quitarFrasco(i)} style={{padding:'4px 8px',color:'var(--danger)'}}>✕</button>}
+                  </div>
+                ))}
                 {sigNum && fLote && (
                   <div style={{marginTop:8,padding:'8px 12px',background:'var(--accent-lt)',borderRadius:'var(--radius-sm)',fontSize:11,color:'var(--accent)'}}>
                     <strong>Códigos que se generarán:</strong><br/>
@@ -542,24 +759,21 @@ export default function Estandares() {
           {/* Formulario pesada */}
           {pesadaId && puedePesada && (
             <div className="card">
-              <div className="card-title">
-                Registrar pesada — {items.find(i=>i.id===pesadaId)?.nombre} · Frasco {items.find(i=>i.id===pesadaId)?.frasco}
-              </div>
-              {/* Mostrar condiciones especiales si aplica */}
+              <div className="card-title">Registrar pesada — {items.find(i=>i.id===pesadaId)?.nombre} · Frasco {items.find(i=>i.id===pesadaId)?.frasco}</div>
               {(() => {
                 const std = items.find(i=>i.id===pesadaId)
                 return std && (std.karlFischer || std.secadoPrevio) ? (
-                  <div style={{background:'var(--warn-lt)',border:'1px solid var(--warn-lt)',borderRadius:'var(--radius-sm)',padding:'8px 12px',marginBottom:12,fontSize:12}}>
-                    <strong style={{color:'var(--warn)'}}>⚠️ Condiciones especiales requeridas antes de pesar:</strong>
-                    <BadgesCondiciones karlFischer={std.karlFischer} secadoPrevio={std.secadoPrevio} tempSecado={std.tempSecado} tiempoSecado={std.tiempoSecado} />
+                  <div style={{background:'var(--warn-lt)',borderRadius:'var(--radius-sm)',padding:'8px 12px',marginBottom:12,fontSize:12}}>
+                    <strong style={{color:'var(--warn)'}}>⚠️ Condiciones especiales requeridas:</strong>
+                    <BadgesCondiciones karlFischer={std.karlFischer} secadoPrevio={std.secadoPrevio} tempSecado={std.tempSecado} tiempoSecado={std.tiempoSecado}/>
                   </div>
                 ) : null
               })()}
               {msg && <div className="alert-item danger" style={{marginBottom:10}}>{msg}</div>}
               <div className="form-grid">
-                <div className="form-group"><label>Cantidad pesada (mg) *</label><input type="number" step="0.01" placeholder="ej: 10.25" value={fMg} onChange={e=>setFMg(e.target.value)} /></div>
-                <div className="form-group"><label>N° análisis</label><input value={fNAnalisis} onChange={e=>setFNAnalisis(e.target.value)} /></div>
-                <div className="form-group"><label>Producto / análisis</label><input value={fProducto2} onChange={onChangeCapitalizar(setFProducto2)} /></div>
+                <div className="form-group"><label>Cantidad pesada (mg) *</label><input type="number" step="0.01" placeholder="ej: 10.25" value={fMg} onChange={e=>setFMg(e.target.value)}/></div>
+                <div className="form-group"><label>N° análisis</label><input value={fNAnalisis} onChange={e=>setFNAnalisis(e.target.value)}/></div>
+                <div className="form-group"><label>Producto / análisis</label><input value={fProducto2} onChange={onChangeCapitalizar(setFProducto2)}/></div>
               </div>
               <div style={{display:'flex',gap:8}}>
                 <button className="btn btn-primary btn-sm" onClick={pesada}>Confirmar pesada</button>
@@ -580,14 +794,14 @@ export default function Estandares() {
             )}
           </div>
 
-          {/* Tabla inventario */}
+          {/* Tabla */}
           <div className="table-wrap">
             <table>
               <thead>
                 <tr>
                   <th>Código</th><th>Nombre</th><th>Frasco</th><th>Cliente</th>
-                  <th>Potencia</th><th>Condiciones</th><th>Stock (mg)</th>
-                  <th>Vencimiento</th><th>Estado</th><th></th>
+                  <th>Potencia / Tipo</th><th>Condiciones</th><th>Stock (mg)</th>
+                  <th>Vencimiento / Revisión</th><th>Estado</th><th></th>
                 </tr>
               </thead>
               <tbody>
@@ -595,39 +809,51 @@ export default function Estandares() {
                   const vence    = i.fechaVencimiento?.toDate?.() || (i.fechaVencimiento ? new Date(i.fechaVencimiento) : null)
                   const sem      = calcularSemaforo(vence)
                   const badgeCls = sem.color==='danger'?'badge-danger':sem.color==='warning'?'badge-warn':sem.color==='success'?'badge-ok':'badge-gray'
-                  const estCls   = {
-                    'En uso':      'badge-ok',
-                    'Cerrado':     'badge-info',
-                    'Vencido':     'badge-danger',
-                    'Sin stock':   'badge-warn',
-                    'Dado de baja':'badge-gray',
-                  }[i.estado] || 'badge-gray'
+                  const estCls   = {'En uso':'badge-ok','Cerrado':'badge-info','Vencido':'badge-danger','Sin stock':'badge-warn','Dado de baja':'badge-gray'}[i.estado]||'badge-gray'
+                  const diasUSP  = i.esUSP ? diasHastaRevision(i.proximaRevisionUSP) : null
+                  const uspAlerta = i.esUSP && diasUSP !== null && diasUSP <= 60
+
                   return (
                     <tr key={i.id}>
                       <td className="mono" style={{fontSize:10}}>{i.codigo}</td>
-                      <td style={{fontWeight:500}}>{i.nombre}</td>
+                      <td style={{fontWeight:500}}>
+                        {i.nombre}
+                        {i.esUSP && <span className="badge badge-info" style={{marginLeft:4,fontSize:10}}>USP</span>}
+                      </td>
                       <td>
                         <span style={{width:24,height:24,borderRadius:'50%',background:i.estado==='En uso'?'var(--accent-lt)':'var(--bg)',border:'1px solid var(--border-md)',display:'inline-flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:600,color:i.estado==='En uso'?'var(--accent)':'var(--text-2)'}}>
                           {i.frasco||'—'}
                         </span>
                       </td>
                       <td style={{color:'var(--text-2)'}}>{i.cliente}</td>
-                      <td><BadgePotencia tipoPotencia={i.tipoPotencia} potencia={i.potencia} /></td>
+                      <td><BadgePotencia tipoPotencia={i.tipoPotencia} potencia={i.potencia}/></td>
                       <td>
-                        {(i.karlFischer || i.secadoPrevio)
-                          ? <BadgesCondiciones karlFischer={i.karlFischer} secadoPrevio={i.secadoPrevio} tempSecado={i.tempSecado} tiempoSecado={i.tiempoSecado} />
-                          : <span style={{color:'var(--text-3)',fontSize:11}}>—</span>
-                        }
+                        {(i.karlFischer||i.secadoPrevio)
+                          ?<BadgesCondiciones karlFischer={i.karlFischer} secadoPrevio={i.secadoPrevio} tempSecado={i.tempSecado} tiempoSecado={i.tiempoSecado}/>
+                          :<span style={{color:'var(--text-3)',fontSize:11}}>—</span>}
                       </td>
                       <td><strong>{i.stockRestante??'—'}</strong></td>
-                      <td>{vence?<span className={`badge ${badgeCls}`}>{sem.texto}</span>:<span style={{color:'var(--text-3)'}}>—</span>}</td>
+                      <td>
+                        {i.esUSP
+                          ? <BadgeRevisionUSP proximaRevision={i.proximaRevisionUSP}/>
+                          : vence ? <span className={`badge ${badgeCls}`}>{sem.texto}</span> : <span style={{color:'var(--text-3)'}}>—</span>
+                        }
+                      </td>
                       <td><span className={`badge ${estCls}`}>{i.estado}</span></td>
-                      <td style={{display:'flex',gap:4}}>
+                      <td style={{display:'flex',gap:4,flexWrap:'wrap'}}>
                         {puedePesada && i.estado==='En uso' && (
                           <button className="btn btn-sm" onClick={()=>{setPesadaId(i.id);setShowForm(false)}}>Pesada</button>
                         )}
+                        {i.esUSP && (i.estado==='En uso'||i.estado==='Cerrado') && puedePesada && (
+                          <button className="btn btn-sm"
+                            style={uspAlerta?{background:'var(--accent-lt)',color:'var(--accent)',borderColor:'var(--accent)'}:{}}
+                            onClick={()=>abrirVerificacionUSP(i)}
+                            title="Registrar verificación USP">
+                            🔵 Verificar
+                          </button>
+                        )}
                         {puedeBaja && !verPapelera && (
-                          <button className="btn btn-sm" style={{color:'var(--danger)',borderColor:'var(--danger)'}} onClick={()=>darDeBaja(i.id,i.codigo)} title="Dar de baja">🗑</button>
+                          <button className="btn btn-sm" style={{color:'var(--danger)',borderColor:'var(--danger)'}} onClick={()=>darDeBaja(i.id,i.codigo)}>🗑</button>
                         )}
                         {puedeBaja && verPapelera && (
                           <button className="btn btn-sm" onClick={()=>restaurar(i.id)}>Restaurar</button>
@@ -651,7 +877,7 @@ export default function Estandares() {
       {tab==='historial' && (
         <>
           <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10,marginBottom:16}}>
-            <div className="kpi-card"><div className="kpi-label">Total pesadas</div><div className="kpi-value info">{pesadasFiltradas.length}</div></div>
+            <div className="kpi-card"><div className="kpi-label">Total registros</div><div className="kpi-value info">{pesadasFiltradas.length}</div></div>
             <div className="kpi-card"><div className="kpi-label">Total mg pesados</div><div className="kpi-value">{totalMg.toFixed(2)} mg</div></div>
             <div className="kpi-card"><div className="kpi-label">Analistas</div><div className="kpi-value">{usuariosUnicos.length}</div></div>
           </div>
@@ -662,13 +888,13 @@ export default function Estandares() {
               <div className="form-group"><label>Buscar</label><input value={searchH} onChange={e=>setSearchH(e.target.value)} placeholder="Código, nombre o N° análisis..."/></div>
               <div className="form-group"><label>Analista</label>
                 <select value={filtroUsuario} onChange={e=>setFiltroUsuario(e.target.value)}>
-                  <option value="">Todos los analistas</option>
+                  <option value="">Todos</option>
                   {usuariosUnicos.map(u=><option key={u}>{u}</option>)}
                 </select>
               </div>
               <div className="form-group"><label>Estándar</label>
                 <select value={filtroStd} onChange={e=>setFiltroStd(e.target.value)}>
-                  <option value="">Todos los estándares</option>
+                  <option value="">Todos</option>
                   {stdsUnicos.map(s=><option key={s}>{s}</option>)}
                 </select>
               </div>
@@ -687,26 +913,36 @@ export default function Estandares() {
               <table>
                 <thead>
                   <tr>
-                    <th>Fecha y hora</th><th>Analista</th><th>Código</th><th>Nombre</th>
-                    <th>Mg pesados</th><th>Stock antes</th><th>Stock después</th><th>N° análisis</th><th>Producto</th>
+                    <th>Fecha y hora</th><th>Tipo</th><th>Analista</th><th>Código</th><th>Nombre</th>
+                    <th>Mg / Resultado</th><th>Stock antes</th><th>Stock después</th><th>N° análisis</th>
                   </tr>
                 </thead>
                 <tbody>
                   {pesadasFiltradas.map(p=>(
                     <tr key={p.id}>
                       <td style={{fontSize:11,color:'var(--text-2)',whiteSpace:'nowrap'}}>{formatFecha(p.fecha)}</td>
+                      <td>
+                        {p.tipo==='verificacion_usp'
+                          ? <span className="badge badge-info">🔵 USP</span>
+                          : <span className="badge badge-gray">Pesada</span>
+                        }
+                      </td>
                       <td><div style={{fontSize:12,fontWeight:500}}>{p.analista||'—'}</div><div style={{fontSize:10,color:'var(--text-3)'}}>{p.email}</div></td>
                       <td className="mono" style={{fontSize:10}}>{p.codigo||p.insumoCode||'—'}</td>
                       <td style={{fontWeight:500}}>{p.nombre||p.insumoNombre||'—'}</td>
-                      <td><strong style={{color:'var(--accent)'}}>{p.mgPesados} mg</strong></td>
-                      <td style={{color:'var(--text-2)'}}>{p.stockAntes?.toFixed(2)??'—'} mg</td>
-                      <td style={{color:'var(--text-2)'}}>{p.stockDespues?.toFixed(2)??'—'} mg</td>
-                      <td style={{color:'var(--text-2)'}}>{p.nAnalisis||'—'}</td>
-                      <td style={{color:'var(--text-2)',fontSize:11}}>{p.producto||'—'}</td>
+                      <td>
+                        {p.tipo==='verificacion_usp'
+                          ? <span style={{fontSize:12,color:p.resultado?.includes('No')?'var(--danger)':'var(--ok)',fontWeight:500}}>{p.resultado}</span>
+                          : <strong style={{color:'var(--accent)'}}>{p.mgPesados} mg</strong>
+                        }
+                      </td>
+                      <td style={{color:'var(--text-2)'}}>{p.stockAntes?.toFixed(2)??'—'} {p.stockAntes?'mg':''}</td>
+                      <td style={{color:'var(--text-2)'}}>{p.stockDespues?.toFixed(2)??'—'} {p.stockDespues?'mg':''}</td>
+                      <td style={{color:'var(--text-2)'}}>{p.nAnalisis||p.fechaVerif||'—'}</td>
                     </tr>
                   ))}
                   {pesadasFiltradas.length===0 && (
-                    <tr><td colSpan={9} style={{textAlign:'center',padding:24,color:'var(--text-3)'}}>No hay pesadas que coincidan</td></tr>
+                    <tr><td colSpan={9} style={{textAlign:'center',padding:24,color:'var(--text-3)'}}>No hay registros que coincidan</td></tr>
                   )}
                 </tbody>
               </table>
@@ -719,8 +955,7 @@ export default function Estandares() {
 }
 
 const DEMO_E = [
-  { id:'1', codigo:'STD-0025/MAR24/LRAD4238/A', nombre:'Cilostazol', frasco:'A', cliente:'Galenicum', tipoPotencia:'tal_cual', potencia:99.5, karlFischer:false, secadoPrevio:true, tempSecado:'105', tiempoSecado:'2 horas', stockRestante:440.69, fechaVencimiento:'2026-11-30', estado:'En uso' },
-  { id:'2', codigo:'STD-0025/MAR24/LRAD4238/B', nombre:'Cilostazol', frasco:'B', cliente:'Galenicum', tipoPotencia:'tal_cual', potencia:99.5, karlFischer:false, secadoPrevio:true, tempSecado:'105', tiempoSecado:'2 horas', stockRestante:500.00, fechaVencimiento:'2026-11-30', estado:'Cerrado' },
-  { id:'3', codigo:'STD-0040/NOV23/R11500/A', nombre:'Irbesartan', frasco:'A', cliente:'Galenicum', tipoPotencia:'base_seca', potencia:98.2, karlFischer:true, secadoPrevio:false, stockRestante:184.71, fechaVencimiento:'2025-11-12', estado:'En uso' },
-  { id:'4', codigo:'STD-0053/MAY24/LRAD4836/A', nombre:'Alcohol bencílico', frasco:'A', cliente:'Ascend', tipoPotencia:'cualitativo', potencia:null, karlFischer:false, secadoPrevio:false, stockRestante:976.99, fechaVencimiento:'2027-09-30', estado:'En uso' },
+  { id:'1', codigo:'STD-0025/MAR24/LRAD4238/A', nombre:'Cilostazol', frasco:'A', cliente:'Galenicum', tipoPotencia:'tal_cual', potencia:99.5, karlFischer:false, secadoPrevio:true, tempSecado:'105', tiempoSecado:'2 horas', stockRestante:440.69, fechaVencimiento:'2026-11-30', estado:'En uso', esUSP:false },
+  { id:'2', codigo:'STD-0040/NOV23/R11500/A', nombre:'Irbesartan', frasco:'A', cliente:'Galenicum', tipoPotencia:'base_seca', potencia:98.2, karlFischer:true, secadoPrevio:false, stockRestante:184.71, fechaVencimiento:'2025-11-12', estado:'En uso', esUSP:false },
+  { id:'3', codigo:'STD-0053/MAY24/USP001/A', nombre:'Paracetamol usp', frasco:'A', cliente:'Ascend', tipoPotencia:'tal_cual', potencia:100.0, karlFischer:false, secadoPrevio:false, stockRestante:500, fechaVencimiento:null, estado:'En uso', esUSP:true, frecuenciaRevUSP:12, proximaRevisionUSP:'2026-06-01' },
 ]
