@@ -15,6 +15,7 @@ import Placebo from './pages/Placebo'
 import Alertas from './pages/Alertas'
 import Escanear from './pages/Escanear'
 import Usuarios from './pages/Usuarios'
+import Metodos from './pages/Metodos'
 import './index.css'
 
 function ProtectedRoute({ children }) {
@@ -49,6 +50,9 @@ function App() {
             <Route path="alertas"    element={<Alertas />} />
             <Route path="escanear"   element={<Escanear />} />
             <Route path="usuarios"   element={<Usuarios />} />
+            <Route path="metodos"    element={<Metodos />} />
+            
+
           </Route>
         </Routes>
       </BrowserRouter>
