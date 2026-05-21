@@ -4,10 +4,8 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth.jsx'
 import { useRole } from '../../hooks/useRole.jsx'
 import { puedoHacer, ROLES } from '../../lib/roles'
-import {
-  LayoutDashboard, FlaskConical, Cylinder, Droplets,
-  Pill, Bell, ScanLine, LogOut, Users
-} from 'lucide-react'
+import { LayoutDashboard, FlaskConical, Cylinder, Droplets,
+         Pill, Bell, ScanLine, LogOut, Users, BookOpen } from 'lucide-react'
 
 const ETIQUETAS_ROL = {
   admin:     'Administrador',
@@ -75,11 +73,16 @@ export default function AppShell() {
             <Bell size={16} /> Alertas
           </NavLink>
 
+          <NavLink to="/metodos" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
+            <BookOpen size={16} /> Métodos
+          </NavLink>
+
           {puedoHacer(rol, 'gestionarUsuarios') && (
-            <NavLink to="/usuarios" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
-              <Users size={16} /> Usuarios
-            </NavLink>
-          )}
+           <NavLink to="/usuarios" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
+            <Users size={16} /> Usuarios
+          </NavLink>
+        )}
+          
         </nav>
 
         <div className="sidebar-footer">
