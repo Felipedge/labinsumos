@@ -1,16 +1,21 @@
 // src/components/layout/AppShell.jsx
-// src/components/layout/AppShell.jsx
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth.jsx'
 import { useRole } from '../../hooks/useRole.jsx'
 import { puedoHacer, ROLES } from '../../lib/roles'
-import { LayoutDashboard, FlaskConical, Cylinder, Droplets,
-         Pill, Bell, ScanLine, LogOut, Users, BookOpen } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { collection, getDocs, query, where } from 'firebase/firestore'
+import { db } from '../../lib/firebase'
+import {
+  LayoutDashboard, FlaskConical, Cylinder, Droplets,
+  Pill, Bell, ScanLine, LogOut, Users, BookOpen, ClipboardCheck
+} from 'lucide-react'
 
 const ETIQUETAS_ROL = {
   admin:     'Administrador',
   jefe:      'Jefe de laboratorio',
   encargado: 'Encargado de insumos',
+  analista:  'Analista',
   lectura:   'Solo lectura',
 }
 
@@ -18,21 +23,44 @@ const COLORES_ROL = {
   admin:     '#A32D2D',
   jefe:      '#185FA5',
   encargado: '#3B6D11',
+  analista:  '#3C3489',
   lectura:   '#6b6860',
 }
 
 export default function AppShell() {
   const { user, logout } = useAuth()
-  const { rol } = useRole()
-  const navigate = useNavigate()
+  const { rol }          = useRole()
+  const navigate         = useNavigate()
+  const [pendientes, setPendientes] = useState(0)
+
+  const puedeOperar  = puedoHacer(rol, 'registrarUso')
+  const puedeAprobar = puedoHacer(rol, 'aprobarInsumos')
+
+  // Contar aprobaciones pendientes
+  useEffect(() => {
+    if (!puedeAprobar) return
+    async function contarPendientes() {
+      try {
+        let total = 0
+        for (const col of ['estandares','columnas','reactivos','placebo']) {
+          const snap = await getDocs(
+            query(collection(db, col), where('estado', '==', 'Pendiente de aprobación'))
+          )
+          total += snap.size
+        }
+        setPendientes(total)
+      } catch {}
+    }
+    contarPendientes()
+    const interval = setInterval(contarPendientes, 60000) // actualizar cada minuto
+    return () => clearInterval(interval)
+  }, [puedeAprobar])
 
   const initials = user?.displayName
     ? user.displayName.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
     : user?.email?.[0]?.toUpperCase() ?? 'U'
 
   const handleLogout = async () => { await logout(); navigate('/login') }
-
-  const puedeOperar = puedoHacer(rol, 'registrarUso')
 
   return (
     <div className="app-shell">
@@ -44,64 +72,78 @@ export default function AppShell() {
 
         <nav>
           <div className="nav-section">Principal</div>
-          <NavLink to="/" end className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
-            <LayoutDashboard size={16} /> Inicio
+          <NavLink to="/" end className={({ isActive }) => `nav-link${isActive?' active':''}`}>
+            <LayoutDashboard size={16}/> Inicio
           </NavLink>
 
           {puedeOperar && (
-            <NavLink to="/escanear" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
-              <ScanLine size={16} /> Escanear
+            <NavLink to="/escanear" className={({ isActive }) => `nav-link${isActive?' active':''}`}>
+              <ScanLine size={16}/> Escanear
             </NavLink>
           )}
 
           <div className="nav-section">Módulos</div>
-          <NavLink to="/estandares" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
-            <FlaskConical size={16} /> Estándares
+          <NavLink to="/estandares" className={({ isActive }) => `nav-link${isActive?' active':''}`}>
+            <FlaskConical size={16}/> Estándares
           </NavLink>
-          <NavLink to="/columnas" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
-            <Cylinder size={16} /> Columnas
+          <NavLink to="/columnas" className={({ isActive }) => `nav-link${isActive?' active':''}`}>
+            <Cylinder size={16}/> Columnas
           </NavLink>
-          <NavLink to="/reactivos" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
-            <Droplets size={16} /> Reactivos
+          <NavLink to="/reactivos" className={({ isActive }) => `nav-link${isActive?' active':''}`}>
+            <Droplets size={16}/> Reactivos
           </NavLink>
-          <NavLink to="/placebo" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
-            <Pill size={16} /> Placebo
+          <NavLink to="/placebo" className={({ isActive }) => `nav-link${isActive?' active':''}`}>
+            <Pill size={16}/> Placebo
           </NavLink>
 
           <div className="nav-section">Sistema</div>
-          <NavLink to="/alertas" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
-            <Bell size={16} /> Alertas
+          <NavLink to="/alertas" className={({ isActive }) => `nav-link${isActive?' active':''}`}>
+            <Bell size={16}/> Alertas
+          </NavLink>
+          <NavLink to="/metodos" className={({ isActive }) => `nav-link${isActive?' active':''}`}>
+            <BookOpen size={16}/> Métodos
           </NavLink>
 
-          <NavLink to="/metodos" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
-            <BookOpen size={16} /> Métodos
-          </NavLink>
+          {puedeAprobar && (
+            <NavLink to="/aprobaciones" className={({ isActive }) => `nav-link${isActive?' active':''}`}>
+              <ClipboardCheck size={16}/>
+              <span style={{flex:1}}>Aprobaciones</span>
+              {pendientes > 0 && (
+                <span style={{
+                  background:'var(--danger)', color:'#fff',
+                  borderRadius:10, fontSize:10, fontWeight:600,
+                  padding:'1px 6px', minWidth:18, textAlign:'center'
+                }}>
+                  {pendientes}
+                </span>
+              )}
+            </NavLink>
+          )}
 
           {puedoHacer(rol, 'gestionarUsuarios') && (
-           <NavLink to="/usuarios" className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
-            <Users size={16} /> Usuarios
-          </NavLink>
-        )}
-          
+            <NavLink to="/usuarios" className={({ isActive }) => `nav-link${isActive?' active':''}`}>
+              <Users size={16}/> Usuarios
+            </NavLink>
+          )}
         </nav>
 
         <div className="sidebar-footer">
           <div className="user-row">
             <div className="avatar">
               {user?.photoURL
-                ? <img src={user.photoURL} alt={initials} />
+                ? <img src={user.photoURL} alt={initials}/>
                 : initials}
             </div>
             <div style={{ flex:1, minWidth:0 }}>
               <div className="user-name" style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                {user?.displayName || 'Analista'}
+                {user?.displayName || 'Usuario'}
               </div>
               <div style={{ fontSize:10, fontWeight:500, color: COLORES_ROL[rol] || 'var(--text-3)' }}>
                 {ETIQUETAS_ROL[rol] || 'Cargando...'}
               </div>
             </div>
             <button onClick={handleLogout} className="btn btn-sm" title="Cerrar sesión" style={{ padding:'5px', border:'none' }}>
-              <LogOut size={14} />
+              <LogOut size={14}/>
             </button>
           </div>
         </div>
@@ -113,14 +155,13 @@ export default function AppShell() {
           <div className="topbar-actions">
             {puedeOperar && (
               <NavLink to="/escanear" className="btn btn-primary btn-sm">
-                <ScanLine size={14} /> Escanear QR
+                <ScanLine size={14}/> Escanear QR
               </NavLink>
             )}
           </div>
         </header>
-
         <main className="page-content">
-          <Outlet />
+          <Outlet/>
         </main>
       </div>
     </div>
