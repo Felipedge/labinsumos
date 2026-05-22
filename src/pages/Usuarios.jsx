@@ -10,6 +10,7 @@ const ETIQUETAS = {
   admin:     'Administrador',
   jefe:      'Jefe de laboratorio',
   encargado: 'Encargado de insumos',
+  analista:  'Analista',
   lectura:   'Solo lectura',
 }
 
@@ -17,7 +18,16 @@ const COLORES = {
   admin:     'badge-danger',
   jefe:      'badge-info',
   encargado: 'badge-ok',
+  analista:  'badge-purple',
   lectura:   'badge-gray',
+}
+
+const DESCRIPCIONES = {
+  admin:     'Acceso total + gestión de usuarios',
+  jefe:      'Aprueba insumos, exporta reportes, da de baja',
+  encargado: 'Agrega insumos, registra usos, exporta reportes',
+  analista:  'Registra pesadas y usos, ve documentación',
+  lectura:   'Solo visualiza, sin acciones',
 }
 
 export default function Usuarios() {
@@ -30,11 +40,8 @@ export default function Usuarios() {
     try {
       const snap = await getDocs(collection(db, 'usuarios'))
       setUsuarios(snap.docs.map(d => ({ id: d.id, ...d.data() })))
-    } catch(e) {
-      console.error(e)
-    } finally {
-      setLoading(false)
-    }
+    } catch(e) { console.error(e) }
+    finally { setLoading(false) }
   }
 
   useEffect(() => { load() }, [])
@@ -45,9 +52,7 @@ export default function Usuarios() {
       setMsg('Rol actualizado correctamente')
       setTimeout(() => setMsg(''), 3000)
       load()
-    } catch(e) {
-      setMsg('Error al actualizar rol')
-    }
+    } catch(e) { setMsg('Error al actualizar rol') }
   }
 
   if (!puedoHacer(rol, 'gestionarUsuarios')) {
@@ -63,13 +68,26 @@ export default function Usuarios() {
 
   return (
     <>
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
-        <h2 style={{ fontSize:16, fontWeight:600 }}>Gestión de usuarios</h2>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+        <h2 style={{fontSize:16,fontWeight:600}}>Gestión de usuarios</h2>
         <span className="badge badge-info">{usuarios.length} usuarios registrados</span>
       </div>
 
+      {/* Leyenda de roles */}
+      <div className="card" style={{marginBottom:16}}>
+        <div className="card-title">Roles disponibles</div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:8}}>
+          {Object.entries(ETIQUETAS).map(([k,v]) => (
+            <div key={k} style={{padding:'8px 12px',background:'var(--bg)',borderRadius:'var(--radius-sm)',border:'1px solid var(--border)'}}>
+              <div style={{marginBottom:4}}><span className={`badge ${COLORES[k]}`}>{v}</span></div>
+              <div style={{fontSize:11,color:'var(--text-2)'}}>{DESCRIPCIONES[k]}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {msg && (
-        <div className="alert-item" style={{ background:'var(--ok-lt)', border:'1px solid var(--ok)', marginBottom:12 }}>
+        <div className="alert-item" style={{background:'var(--ok-lt)',border:'1px solid var(--ok)',marginBottom:12}}>
           {msg}
         </div>
       )}
@@ -89,26 +107,28 @@ export default function Usuarios() {
             {usuarios.map(u => (
               <tr key={u.id}>
                 <td>
-                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                  <div style={{display:'flex',alignItems:'center',gap:8}}>
                     {u.foto
-                      ? <img src={u.foto} alt="" style={{ width:28, height:28, borderRadius:'50%' }} />
-                      : <div style={{ width:28, height:28, borderRadius:'50%', background:'var(--accent-lt)', color:'var(--accent)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:600 }}>
-                          {u.nombre?.[0]?.toUpperCase() || 'U'}
+                      ? <img src={u.foto} alt="" style={{width:28,height:28,borderRadius:'50%'}}/>
+                      : <div style={{width:28,height:28,borderRadius:'50%',background:'var(--accent-lt)',color:'var(--accent)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:600}}>
+                          {u.nombre?.[0]?.toUpperCase()||'U'}
                         </div>
                     }
-                    <span style={{ fontWeight:500 }}>{u.nombre}</span>
+                    <span style={{fontWeight:500}}>{u.nombre}</span>
                   </div>
                 </td>
-                <td style={{ color:'var(--text-2)', fontSize:12 }}>{u.email}</td>
-                <td><span className={`badge ${COLORES[u.rol] || 'badge-gray'}`}>{ETIQUETAS[u.rol] || u.rol}</span></td>
-                <td style={{ color:'var(--text-3)', fontSize:11 }}>{u.creadoEn ? new Date(u.creadoEn).toLocaleDateString('es-CL') : '—'}</td>
+                <td style={{color:'var(--text-2)',fontSize:12}}>{u.email}</td>
+                <td><span className={`badge ${COLORES[u.rol]||'badge-gray'}`}>{ETIQUETAS[u.rol]||u.rol}</span></td>
+                <td style={{color:'var(--text-3)',fontSize:11}}>
+                  {u.creadoEn ? new Date(u.creadoEn).toLocaleDateString('es-CL') : '—'}
+                </td>
                 <td>
                   <select
                     value={u.rol}
                     onChange={e => cambiarRol(u.id, e.target.value)}
-                    style={{ fontSize:12, padding:'4px 8px' }}
+                    style={{fontSize:12,padding:'4px 8px'}}
                   >
-                    {Object.entries(ROLES).map(([k, v]) => (
+                    {Object.entries(ROLES).map(([k,v]) => (
                       <option key={v} value={v}>{ETIQUETAS[v]}</option>
                     ))}
                   </select>
