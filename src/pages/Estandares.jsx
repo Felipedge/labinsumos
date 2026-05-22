@@ -7,7 +7,8 @@ import { calcularSemaforo } from '../lib/db'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useRole } from '../hooks/useRole.jsx'
 import { puedoHacer } from '../lib/roles'
-import { Plus, Search, FlaskConical, History, Package, ExternalLink, CheckCircle, XCircle } from 'lucide-react'
+import { Plus, Search, FlaskConical, History, Package, ExternalLink, CheckCircle, XCircle, FileText } from 'lucide-react'
+import DocumentosPanel from '../components/shared/DocumentosPanel.jsx'
 
 const CLIENTES  = ['Ascend','Galenicum','Grunenthal','Bamberg','Labomed','Laboratorio Chile','Novartis','Seven Pharma','Emcure','Prater','MSN','Otro']
 const SECTORES  = ['Fq','Val','Fq/val','Mb','T-r']
@@ -128,6 +129,7 @@ export default function Estandares() {
   const [sigNum, setSigNum]       = useState(null)
   const [guardando, setGuardando] = useState(false)
   const [verPapelera, setVerPapelera] = useState(false)
+  const [docInsumo, setDocInsumo]     = useState(null)
 
   // Verificación USP
   const [uspModalId, setUspModalId]         = useState(null)
@@ -277,8 +279,8 @@ export default function Estandares() {
           ultimaRevisionUSP:   null,
           // Vencimiento solo si no es USP
           fechaVencimiento:    !fEsUSP && fVencimiento ? new Date(fVencimiento) : null,
-          estado:       'Pendiente de aprobación',
-          creadoPorRol: rol,
+          estado:              'Pendiente de aprobación',
+          creadoPorRol:        rol,
           mesIngreso:          fMes || mesAct,
           anioIngreso:         parseInt(fAnio || anioAct),
           creadoPor:           user.email,
@@ -450,6 +452,16 @@ export default function Estandares() {
 
   return (
     <>
+      {/* ── MODAL DOCUMENTOS ── */}
+      {docInsumo && (
+        <DocumentosPanel
+          insumoId={docInsumo.id}
+          modulo="estandares"
+          nombreInsumo={`${docInsumo.nombre} · ${docInsumo.codigo}`}
+          onClose={()=>setDocInsumo(null)}
+        />
+      )}
+
       {/* ── MODAL VERIFICACIÓN USP ── */}
       {uspModalId && (() => {
         const item = items.find(i => i.id === uspModalId)
@@ -845,6 +857,9 @@ export default function Estandares() {
                         {puedePesada && i.estado==='En uso' && (
                           <button className="btn btn-sm" onClick={()=>{setPesadaId(i.id);setShowForm(false)}}>Pesada</button>
                         )}
+                        <button className="btn btn-sm" onClick={()=>setDocInsumo(i)} title="Ver documentos">
+                          <FileText size={13}/>
+                        </button>
                         {i.esUSP && (i.estado==='En uso'||i.estado==='Cerrado') && puedePesada && (
                           <button className="btn btn-sm"
                             style={uspAlerta?{background:'var(--accent-lt)',color:'var(--accent)',borderColor:'var(--accent)'}:{}}

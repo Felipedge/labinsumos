@@ -10,11 +10,12 @@
 //      firestore.rules que se incluye en este proyecto
 // ─────────────────────────────────────────────────────────────
 
+// src/lib/firebase.js
 import { initializeApp } from 'firebase/app'
 import { getAuth, GoogleAuthProvider } from 'firebase/auth'
 import { getFirestore } from 'firebase/firestore'
+import { getStorage } from 'firebase/storage'
 
-// ⚠️  Reemplazar con las credenciales reales del proyecto Firebase
 const firebaseConfig = {
   apiKey:            "AIzaSyA9Ko7joxu0jQjr1v388-GZmrs5YnEK_pQ",
   authDomain:        "labinsumos-fqval.firebaseapp.com",
@@ -27,6 +28,7 @@ const firebaseConfig = {
 const app      = initializeApp(firebaseConfig)
 export const auth     = getAuth(app)
 export const db       = getFirestore(app)
+export const storage  = getStorage(app)
 export const provider = new GoogleAuthProvider()
 
 // Forzar selección de cuenta institucional en cada login

@@ -4,7 +4,8 @@ import { getColumnas, crearColumna, registrarUsoColumna, calcularSemaforoColumna
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useRole } from '../hooks/useRole.jsx'
 import { puedoHacer } from '../lib/roles'
-import { Plus } from 'lucide-react'
+import { Plus, FileText } from 'lucide-react'
+import DocumentosPanel from '../components/shared/DocumentosPanel.jsx'
 
 const CLIENTES  = ['Ascend','Galenicum','Grunenthal','Bamberg','Labomed','Laboratorio Chile','Novartis','Seven Pharma','Emcure','Prater','Otro']
 const FASES     = ['C18','C8','C4','NH2','CN','Silica','RP-18','Phenyl','Otro']
@@ -30,12 +31,13 @@ export default function Columnas() {
   const puedeAgregar = puedoHacer(rol, 'agregarInsumo')
   const puedeOperar  = puedoHacer(rol, 'registrarUso')
 
-  const [columnas, setColumnas] = useState([])
-  const [loading, setLoading]   = useState(true)
-  const [showForm, setShowForm] = useState(false)
-  const [useForm, setUseForm]   = useState(null)
-  const [form, setForm]         = useState({})
-  const [msg, setMsg]           = useState('')
+  const [columnas, setColumnas]   = useState([])
+  const [loading, setLoading]     = useState(true)
+  const [showForm, setShowForm]   = useState(false)
+  const [useForm, setUseForm]     = useState(null)
+  const [form, setForm]           = useState({})
+  const [msg, setMsg]             = useState('')
+  const [docInsumo, setDocInsumo] = useState(null)
 
   const load = async () => {
     try { setColumnas(await getColumnas()) }
@@ -59,8 +61,9 @@ export default function Columnas() {
         fabricante:        form.fabricante || '',
         limiteInyecciones: parseInt(form.limite) || 1500,
         fechaPrimerUso:    form.fechaPrimerUso || new Date().toISOString().split('T')[0],
-        estado:       'Pendiente de aprobación',
-        creadoPorRol: rol,      }, user.email)
+        estado:            'Pendiente de aprobación',
+        creadoPorRol:      rol,
+      }, user.email)
       setShowForm(false); setForm({}); setMsg(''); load()
     } catch(e) { setMsg(e.message) }
   }
@@ -83,6 +86,16 @@ export default function Columnas() {
 
   return (
     <>
+      {/* Modal documentos */}
+      {docInsumo && (
+        <DocumentosPanel
+          insumoId={docInsumo.id}
+          modulo="columnas"
+          nombreInsumo={`${docInsumo.codigo} — ${docInsumo.fase} ${docInsumo.tamanoParticula}`}
+          onClose={()=>setDocInsumo(null)}
+        />
+      )}
+
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
         <h2 style={{ fontSize:16, fontWeight:600 }}>Columnas cromatográficas</h2>
         {puedeAgregar && (
@@ -148,6 +161,7 @@ export default function Columnas() {
             {columnas.map(c => {
               const sem = calcularSemaforoColumna(c.inyeccionesAcumuladas || 0, c.limiteInyecciones || 1500)
               const badgeCls = sem.color === 'danger' ? 'badge-danger' : sem.color === 'warning' ? 'badge-warn' : 'badge-ok'
+              const esPendiente = c.estado === 'Pendiente de aprobación'
               return (
                 <tr key={c.id}>
                   <td className="mono">{c.codigo}</td>
@@ -162,13 +176,21 @@ export default function Columnas() {
                     </div>
                     <ProgBar pct={(c.inyeccionesAcumuladas || 0) / (c.limiteInyecciones || 1500)} />
                   </td>
-                  <td><span className={`badge ${badgeCls}`}>{c.estado}</span></td>
                   <td>
-                    {puedeOperar && (
+                    {esPendiente
+                      ? <span className="badge badge-warn">Pendiente de aprobación</span>
+                      : <span className={`badge ${badgeCls}`}>{c.estado}</span>
+                    }
+                  </td>
+                  <td style={{display:'flex',gap:4}}>
+                    {puedeOperar && !esPendiente && (
                       <button className="btn btn-sm" onClick={() => { setUseForm(c); setShowForm(false); setForm({}) }}>
                         Registrar uso
                       </button>
                     )}
+                    <button className="btn btn-sm" onClick={()=>setDocInsumo(c)} title="Ver documentos">
+                      <FileText size={13}/>
+                    </button>
                   </td>
                 </tr>
               )

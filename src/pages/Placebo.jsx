@@ -4,7 +4,8 @@ import { getPlacebos, crearPlacebo, registrarUsoPlacebo, calcularSemaforo } from
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useRole } from '../hooks/useRole.jsx'
 import { puedoHacer } from '../lib/roles'
-import { Plus } from 'lucide-react'
+import { Plus, FileText } from 'lucide-react'
+import DocumentosPanel from '../components/shared/DocumentosPanel.jsx'
 
 const CLIENTES   = ['Ascend','Galenicum','Grunenthal','Laboratorio Chile','Novartis','Seven Pharma','Emcure','Otro']
 const FORMAS     = ['Comprimido','Cápsula','Inyectable','Solución oral','Crema / ungüento','Otro']
@@ -15,12 +16,13 @@ export default function Placebo() {
   const puedeAgregar = puedoHacer(rol, 'agregarInsumo')
   const puedeOperar  = puedoHacer(rol, 'registrarUso')
 
-  const [items, setItems]       = useState([])
-  const [loading, setLoading]   = useState(true)
-  const [showForm, setShowForm] = useState(false)
-  const [usoId, setUsoId]       = useState(null)
-  const [form, setForm]         = useState({})
-  const [msg, setMsg]           = useState('')
+  const [items, setItems]         = useState([])
+  const [loading, setLoading]     = useState(true)
+  const [showForm, setShowForm]   = useState(false)
+  const [usoId, setUsoId]         = useState(null)
+  const [form, setForm]           = useState({})
+  const [msg, setMsg]             = useState('')
+  const [docInsumo, setDocInsumo] = useState(null)
 
   const load = async () => {
     try { setItems(await getPlacebos()) }
@@ -44,8 +46,9 @@ export default function Placebo() {
         stockUnidades:      parseInt(form.stock) || 0,
         fechaVencimiento:   form.vencimiento || null,
         almacenamiento:     form.almacen || 'Temperatura ambiente',
-        estado:       'Pendiente de aprobación',
-        creadoPorRol: rol,      }, user.email)
+        estado:             'Pendiente de aprobación',
+        creadoPorRol:       rol,
+      }, user.email)
       setShowForm(false); setForm({}); setMsg(''); load()
     } catch(e) { setMsg(e.message) }
   }
@@ -68,6 +71,16 @@ export default function Placebo() {
 
   return (
     <>
+      {/* Modal documentos */}
+      {docInsumo && (
+        <DocumentosPanel
+          insumoId={docInsumo.id}
+          modulo="placebo"
+          nombreInsumo={`${docInsumo.productoReferencia} — ${docInsumo.codigo}`}
+          onClose={()=>setDocInsumo(null)}
+        />
+      )}
+
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
         <h2 style={{ fontSize:16, fontWeight:600 }}>Placebo — lotes activos</h2>
         {puedeAgregar && (
@@ -126,6 +139,7 @@ export default function Placebo() {
               const vence = p.fechaVencimiento?.toDate?.() || (p.fechaVencimiento ? new Date(p.fechaVencimiento) : null)
               const sem   = calcularSemaforo(vence)
               const badgeCls = sem.color==='danger'?'badge-danger':sem.color==='warning'?'badge-warn':sem.color==='success'?'badge-ok':'badge-gray'
+              const esPendiente = p.estado === 'Pendiente de aprobación'
               return (
                 <tr key={p.id}>
                   <td className="mono">{p.codigo}</td>
@@ -134,13 +148,19 @@ export default function Placebo() {
                   <td><span className="badge badge-gray">{p.formaFarmaceutica || '—'}</span></td>
                   <td><strong>{p.stockUnidades ?? '—'}</strong></td>
                   <td>{vence ? <span className={`badge ${badgeCls}`}>{sem.texto}</span> : <span style={{color:'var(--text-3)'}}>—</span>}</td>
-                  <td><span className={p.estado==='ACTIVO'?'badge badge-ok':'badge badge-danger'}>{p.estado}</span></td>
                   <td>
-                    {puedeOperar && (
-                      <button className="btn btn-sm" onClick={() => { setUsoId(p.id); setShowForm(false); setForm({}) }}>
-                        Registrar uso
-                      </button>
+                    {esPendiente
+                      ? <span className="badge badge-warn">Pendiente de aprobación</span>
+                      : <span className={p.estado==='ACTIVO'?'badge badge-ok':'badge badge-danger'}>{p.estado}</span>
+                    }
+                  </td>
+                  <td style={{display:'flex',gap:4}}>
+                    {puedeOperar && !esPendiente && (
+                      <button className="btn btn-sm" onClick={() => { setUsoId(p.id); setShowForm(false); setForm({}) }}>Registrar uso</button>
                     )}
+                    <button className="btn btn-sm" onClick={()=>setDocInsumo(p)} title="Ver documentos">
+                      <FileText size={13}/>
+                    </button>
                   </td>
                 </tr>
               )
