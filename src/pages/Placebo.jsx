@@ -44,8 +44,8 @@ export default function Placebo() {
         stockUnidades:      parseInt(form.stock) || 0,
         fechaVencimiento:   form.vencimiento || null,
         almacenamiento:     form.almacen || 'Temperatura ambiente',
-        estado:             'ACTIVO',
-      }, user.email)
+        estado:       'Pendiente de aprobación',
+        creadoPorRol: rol,      }, user.email)
       setShowForm(false); setForm({}); setMsg(''); load()
     } catch(e) { setMsg(e.message) }
   }

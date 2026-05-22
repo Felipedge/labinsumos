@@ -1,0 +1,4437 @@
+[
+  {
+    "registroISP": "21104",
+    "producto": "ADROXEF CAPS. 500 mg",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0225",
+        "cantidad": "20mg"
+      },
+      {
+        "codigo": "Std-0222",
+        "cantidad": "10mg"
+      },
+      {
+        "codigo": "Std-0223",
+        "cantidad": "10mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [
+      "LCH-34"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "12082",
+    "producto": "ADROXEF SUSP. ORAL 500mg/5ml",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0225",
+        "cantidad": "100mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [
+      "LCH-34"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "24881",
+    "producto": "Binax 30mg Cáps",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0114",
+        "cantidad": "420mg"
+      },
+      {
+        "codigo": "Std-0131",
+        "cantidad": "10mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [
+      "LCH-7",
+      "LCH-8",
+      "LCH-9"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "24888",
+    "producto": "Binax 60mg Cáps",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0114",
+        "cantidad": "420mg"
+      },
+      {
+        "codigo": "Std-0131",
+        "cantidad": "10mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [
+      "LCH-7",
+      "LCH-8",
+      "LCH-9"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "28125",
+    "producto": "JOVIUS MET 50/1000",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0373",
+        "cantidad": "90mg"
+      },
+      {
+        "codigo": "Std-0431",
+        "cantidad": "90mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [
+      "LCH-91",
+      "LCH-92",
+      "LCH-90"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "18230",
+    "producto": "Micofenolato mofetil cápsula 250mg",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0240",
+        "cantidad": "60mg"
+      },
+      {
+        "codigo": "Std-0245",
+        "cantidad": "5mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [
+      "LCH-41"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "18229",
+    "producto": "Micofenolato mofetil cápsula 500mg",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0240",
+        "cantidad": "60mg"
+      },
+      {
+        "codigo": "Std-0245",
+        "cantidad": "5mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [
+      "LCH-41"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "23431",
+    "producto": "Nuvigil comprimidos 150mg",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0074",
+        "cantidad": "40mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "28330",
+    "producto": "RINODUAL",
+    "cliente": "Laboratorio chile",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "EPT-F-28330-V01",
+    "maVigente": "MA-F-28330-V01",
+    "responsable": "MRZ",
+    "observacion": ""
+  },
+  {
+    "registroISP": "25539",
+    "producto": "Rosuvastatina 10mg",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-139",
+        "cantidad": "170mg"
+      },
+      {
+        "codigo": "Std-0165",
+        "cantidad": "5mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [
+      "LCH-17",
+      "LCH-18"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "25536",
+    "producto": "Rosuvastatina 20mg",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0165",
+        "cantidad": "5mg"
+      },
+      {
+        "codigo": "Std-0139",
+        "cantidad": "130mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [
+      "LCH-18",
+      "LCH-17"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "25589",
+    "producto": "TAMSULOSINA 0,4 MG COMP LIBERACIÓN PROLONGADA",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "std-167",
+        "cantidad": ""
+      },
+      {
+        "codigo": "std-175",
+        "cantidad": "2"
+      },
+      {
+        "codigo": "std-176",
+        "cantidad": "2"
+      }
+    ],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "BA-F-25589-V06",
+    "eptVigente": "EPT-F-25589-V03",
+    "maVigente": "MA-F-25589-V03",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "26617",
+    "producto": "Acido Acetil Salicilico comp. 100mg",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0283",
+        "cantidad": ""
+      }
+    ],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "BA-F-26617-V06",
+    "eptVigente": "EPT-F-26617 V02",
+    "maVigente": "MA-F-26617 V03",
+    "responsable": "MRZ",
+    "observacion": ""
+  },
+  {
+    "registroISP": "8310",
+    "producto": "ADROXEF 250 MG",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "std-225 o 371",
+        "cantidad": "115 mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [
+      "LCH-34"
+    ],
+    "filtros": "HA 0,45",
+    "bachVigente": "BA-8310-V03",
+    "eptVigente": "EPT-F-8310 V05",
+    "maVigente": "MA-F-8310 V05",
+    "responsable": "MRZ",
+    "observacion": ""
+  },
+  {
+    "registroISP": "26126",
+    "producto": "AirDUO Spiromax 113-14",
+    "cliente": "Laboratorio Chile",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "26127",
+    "producto": "AirDUO Spiromax 232-14",
+    "cliente": "Laboratorio Chile",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "25585",
+    "producto": "ALERXO 120 MG",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0218",
+        "cantidad": "5mg"
+      },
+      {
+        "codigo": "Std- 0219",
+        "cantidad": "150mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [
+      "LCH-31",
+      "LCH-32"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "25587",
+    "producto": "ALERXO FORTE 180 MG",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0219",
+        "cantidad": "150mg"
+      },
+      {
+        "codigo": "Std-0218",
+        "cantidad": "5mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [
+      "LCH-31",
+      "LCH-32"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "28305",
+    "producto": "AMBILAN BID COMP",
+    "cliente": "Laboratorio Chile",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "22890",
+    "producto": "AMBILAN BID FORTE",
+    "cliente": "Laboratorio Chile",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "27032",
+    "producto": "AMBILAN BID POLVO SUSP",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0224",
+        "cantidad": "105mg"
+      },
+      {
+        "codigo": "Std-0191",
+        "cantidad": "30mg"
+      },
+      {
+        "codigo": "Std-654",
+        "cantidad": "5mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "28320",
+    "producto": "AMBRISENTAN COMP 10 MG",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0632",
+        "cantidad": "200mg"
+      },
+      {
+        "codigo": "Std-0635",
+        "cantidad": "5mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [
+      "LCH-129",
+      "LCH-130",
+      "LCH-131"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "7126",
+    "producto": "AMOBIOTIC COMPRIMIDOS DISPERSABLES 1 g",
+    "cliente": "laboratorio chile",
+    "estandares": [
+      {
+        "codigo": "Std-0224",
+        "cantidad": "200mg"
+      }
+    ],
+    "placebos": [
+      {
+        "codigo": "SI-0024",
+        "cantidad": ""
+      }
+    ],
+    "columnas": [
+      "LCH-37"
+    ],
+    "filtros": "",
+    "bachVigente": "BA-F-7126-V03",
+    "eptVigente": "EPT-F-7126-V03",
+    "maVigente": "MA-F-7126-V03",
+    "responsable": "MRZ",
+    "observacion": ""
+  },
+  {
+    "registroISP": "28360",
+    "producto": "ARGIUM CAPS 200 MG",
+    "cliente": "Laboratorio Chile",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "27777",
+    "producto": "ARIPRIPAZOL 10 MG",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0412",
+        "cantidad": "200mg"
+      },
+      {
+        "codigo": "Std-0410",
+        "cantidad": "200mg"
+      },
+      {
+        "codigo": "Std-0411",
+        "cantidad": "(*)"
+      }
+    ],
+    "placebos": [],
+    "columnas": [
+      "LCH-71",
+      "LCH-72",
+      "LCH-73"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "27776",
+    "producto": "ARIPRIPAZOL 15 MG",
+    "cliente": "Laboratorio Chile",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "27762",
+    "producto": "ARIPRIPAZOL 5 MG",
+    "cliente": "Laboratorio Chile",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "24474",
+    "producto": "BENDEKA 100 MG",
+    "cliente": "Laboratorio Chile",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "24881",
+    "producto": "BINAX 30 MG",
+    "cliente": "Laboratorio Chile",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "24888",
+    "producto": "BINAX 60 MG",
+    "cliente": "Laboratorio Chile",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "26592",
+    "producto": "BLEXIT COMP 0,5 MG",
+    "cliente": "Laboratorio Chile",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "26592",
+    "producto": "BLEXIT COMP 1,0 MG",
+    "cliente": "Laboratorio Chile",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "26593",
+    "producto": "BLEXIT COMP 2,0 MG",
+    "cliente": "Laboratorio Chile",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "26594",
+    "producto": "BLEXIT COMP 3,0 MG",
+    "cliente": "Laboratorio Chile",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "26595",
+    "producto": "BLEXIT COMP 4,0 MG",
+    "cliente": "Laboratorio Chile",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "25309",
+    "producto": "CARVAS 20 MG (KFS)",
+    "cliente": "Laboratorio Chile",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "26381",
+    "producto": "CARVAS 20 MG (MALTA)",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0166",
+        "cantidad": "200mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [
+      "LCH-24"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "25310",
+    "producto": "CARVAS 40 MG (KFS)",
+    "cliente": "Laboratorio Chile",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "26312",
+    "producto": "CARVAS 40 MG (MALTA)",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0166",
+        "cantidad": "200mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [
+      "LCH-24"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "25529",
+    "producto": "CARVAS D 20/12,5",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0164",
+        "cantidad": "200mg"
+      },
+      {
+        "codigo": "Std-0166",
+        "cantidad": "100mg"
+      },
+      {
+        "codigo": "Std-0188",
+        "cantidad": "5,0 mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [
+      "LCH-21",
+      "LCH-21"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "25530",
+    "producto": "CARVAS D 40-12,5",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0164",
+        "cantidad": "200mg"
+      },
+      {
+        "codigo": "Std-0166",
+        "cantidad": "100mg"
+      },
+      {
+        "codigo": "Std-0188",
+        "cantidad": "5,0 mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [
+      "LCH-21",
+      "LCH-21"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "28655",
+    "producto": "CELECOXIB CAP 200 MG",
+    "cliente": "Laboratorio Chile",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "24604",
+    "producto": "CITALOPRAM 20 MG",
+    "cliente": "Laboratorio Chile",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "28378",
+    "producto": "CORAX COMP 2,5",
+    "cliente": "Laboratorio Chile",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "28377",
+    "producto": "CORAX COMP 5,0",
+    "cliente": "Laboratorio Chile",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "27991",
+    "producto": "COTRIEN (RIVAROXABAN) 10 MG",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0610",
+        "cantidad": "100mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [
+      "LCH-115",
+      "LCH-116",
+      "LCH-117"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "27919",
+    "producto": "COTRIEN (RIVAROXABAN) 15 MG",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0610",
+        "cantidad": "100mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [
+      "LCH-115",
+      "LCH-116",
+      "LCH-117"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "28377",
+    "producto": "COTRIEN (RIVAROXABAN) 20 MG",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0610",
+        "cantidad": "100mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [
+      "LCH-115",
+      "LCH-116",
+      "LCH-117"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "8386",
+    "producto": "DACAM RL 3 ML",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "std-0203",
+        "cantidad": ""
+      },
+      {
+        "codigo": "std-0198",
+        "cantidad": ""
+      },
+      {
+        "codigo": "std-200",
+        "cantidad": ""
+      }
+    ],
+    "placebos": [],
+    "columnas": [
+      "LCH-025",
+      "LCH-026",
+      "LCH-161"
+    ],
+    "filtros": "",
+    "bachVigente": "BA-F-8386 V08",
+    "eptVigente": "EPT-F-8386 V05",
+    "maVigente": "MA-F-8386 V05",
+    "responsable": "CM",
+    "observacion": ""
+  },
+  {
+    "registroISP": "ART 99",
+    "producto": "DEXORRUBICINA",
+    "cliente": "Laboratorio Chile",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "3926",
+    "producto": "Diclofenaco sódico",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0264",
+        "cantidad": "70mg"
+      },
+      {
+        "codigo": "Std-0267",
+        "cantidad": "5mg"
+      }
+    ],
+    "placebos": [
+      {
+        "codigo": "SI-0045",
+        "cantidad": "MA no indica preparacion"
+      }
+    ],
+    "columnas": [
+      "LCH-47"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "",
+    "producto": "DRYOFF OFTALMICO",
+    "cliente": "Laboratorio Chile",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "19099",
+    "producto": "EPRAL 40 MG",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0238",
+        "cantidad": "120mg"
+      },
+      {
+        "codigo": "Std-0244",
+        "cantidad": "1mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [
+      "LCH-38",
+      "LCH-39"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "25046",
+    "producto": "ERVASTIN 10-20 MG",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0143",
+        "cantidad": ""
+      },
+      {
+        "codigo": "Std-0139",
+        "cantidad": ""
+      },
+      {
+        "codigo": "Std-0141",
+        "cantidad": "2.5"
+      }
+    ],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "25045",
+    "producto": "ERVASTIN 10/10 MG",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0143",
+        "cantidad": "80mg"
+      },
+      {
+        "codigo": "Std-0139",
+        "cantidad": "70mg"
+      },
+      {
+        "codigo": "Std-0140",
+        "cantidad": "2,5 mg"
+      },
+      {
+        "codigo": "Std-0141",
+        "cantidad": ""
+      }
+    ],
+    "placebos": [],
+    "columnas": [
+      "LCH-10",
+      "LCH-11",
+      "LCH-12"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "27897",
+    "producto": "JOVIUS COMP 50 MG",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0431",
+        "cantidad": "120mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [
+      "LCH-85",
+      "LCH-86",
+      "LCH-87"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "28125",
+    "producto": "JOVIUS MET 50-1000",
+    "cliente": "Laboratorio Chile",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "28130",
+    "producto": "JOVIUS MET 50/850",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0431",
+        "cantidad": "150mg"
+      },
+      {
+        "codigo": "Std-0373",
+        "cantidad": "150mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [
+      "LCH-91",
+      "LCH-92",
+      "LCH-93"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "2714",
+    "producto": "LONQUEX",
+    "cliente": "Laboratorio Chile",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "24122",
+    "producto": "LOSARTAN POTASICO 50 MG",
+    "cliente": "Laboratorio Chile",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "27871",
+    "producto": "LOSARTAN POTASICO 50 MG ZG",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0259",
+        "cantidad": "100mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "23804",
+    "producto": "Minfel 18mg",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0257",
+        "cantidad": "150mg"
+      },
+      {
+        "codigo": "Std-0258",
+        "cantidad": "60mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [
+      "LCH-43",
+      "LCH-83",
+      "LCH-84"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "23807",
+    "producto": "Minfel 54mg",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0257",
+        "cantidad": "150mg"
+      },
+      {
+        "codigo": "Std-0258",
+        "cantidad": "60mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [
+      "LCH-43",
+      "LCH-83",
+      "LCH-84"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "23806",
+    "producto": "MINFEL COMP. REC DE LIBERACIÓN PROLONGADA 27 mg",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0257",
+        "cantidad": "150mg"
+      },
+      {
+        "codigo": "Std-0258",
+        "cantidad": "60mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [
+      "LCH-43",
+      "LCH-83",
+      "LCH-84"
+    ],
+    "filtros": "",
+    "bachVigente": "BA-F-23806-V05",
+    "eptVigente": "EPT-F-23806-V03",
+    "maVigente": "MA-F-23806-V04",
+    "responsable": "CMV",
+    "observacion": ""
+  },
+  {
+    "registroISP": "23805",
+    "producto": "MINFEL COMP. REC DE LIBERACIÓN PROLONGADA 36 mg",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0257",
+        "cantidad": "150mg"
+      },
+      {
+        "codigo": "Std-0258",
+        "cantidad": "60mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [
+      "LCH-43",
+      "LCH-83",
+      "LCH-84"
+    ],
+    "filtros": "",
+    "bachVigente": "BA-F-23805-V05",
+    "eptVigente": "EPT-F-23805-V03",
+    "maVigente": "MA-F-23805-V04",
+    "responsable": "CMV",
+    "observacion": ""
+  },
+  {
+    "registroISP": "28202",
+    "producto": "Mirtazapian comp. rec. 15mg",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0455",
+        "cantidad": "180mg"
+      },
+      {
+        "codigo": "Std-0456",
+        "cantidad": "5mg"
+      },
+      {
+        "codigo": "Std-0457",
+        "cantidad": "3mg"
+      },
+      {
+        "codigo": "Std-0458",
+        "cantidad": "2,5mg"
+      },
+      {
+        "codigo": "Std-0459",
+        "cantidad": "2,5mg"
+      }
+    ],
+    "placebos": [
+      {
+        "codigo": "SI-0161",
+        "cantidad": "MA no indica preparacion"
+      }
+    ],
+    "columnas": [
+      "LCH-101",
+      "LCH-102",
+      "LCH-103"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "28203",
+    "producto": "Mirtazapian comp. rec. 30mg",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0455",
+        "cantidad": "180mg"
+      },
+      {
+        "codigo": "Std-0456",
+        "cantidad": "5mg"
+      },
+      {
+        "codigo": "Std-0457",
+        "cantidad": "3mg"
+      },
+      {
+        "codigo": "Std-0458",
+        "cantidad": "2,5mg"
+      },
+      {
+        "codigo": "Std-0459",
+        "cantidad": "2,5mg"
+      }
+    ],
+    "placebos": [
+      {
+        "codigo": "SI-0162",
+        "cantidad": "MA no indica preparacion"
+      }
+    ],
+    "columnas": [
+      "LCH-101",
+      "LCH-101",
+      "LCH-101"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "28202",
+    "producto": "Mirtazapina 15 mg",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "std-0455",
+        "cantidad": "122 mg"
+      },
+      {
+        "codigo": "std-0456",
+        "cantidad": "2,5 mg"
+      },
+      {
+        "codigo": "std-0457",
+        "cantidad": "2,5 mg"
+      },
+      {
+        "codigo": "std-0458",
+        "cantidad": ""
+      },
+      {
+        "codigo": "std-0459",
+        "cantidad": ""
+      }
+    ],
+    "placebos": [],
+    "columnas": [
+      "LCH-101"
+    ],
+    "filtros": "FILTRO NYLON 0,46",
+    "bachVigente": "BA-F-28202- V02",
+    "eptVigente": "EPT-F-28202-V01",
+    "maVigente": "MA-F-28202-V01",
+    "responsable": "MRZ",
+    "observacion": ""
+  },
+  {
+    "registroISP": "28203",
+    "producto": "Mirtazapina 30 mg",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "std-0455",
+        "cantidad": "122 mg"
+      },
+      {
+        "codigo": "std-0456",
+        "cantidad": "2,5 mg"
+      },
+      {
+        "codigo": "std-0457",
+        "cantidad": "2,5 mg"
+      },
+      {
+        "codigo": "std-0458",
+        "cantidad": ""
+      },
+      {
+        "codigo": "std-0459",
+        "cantidad": ""
+      }
+    ],
+    "placebos": [],
+    "columnas": [
+      "LCH-101"
+    ],
+    "filtros": "FILTRO NYLON 0,45",
+    "bachVigente": "BA-F-28203- V02",
+    "eptVigente": "EPT-F-28203-V01",
+    "maVigente": "MA-F-28203-V01",
+    "responsable": "MRZ",
+    "observacion": ""
+  },
+  {
+    "registroISP": "27062",
+    "producto": "Neurok Cápsula 20mg",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0405",
+        "cantidad": "30mg"
+      },
+      {
+        "codigo": "Std-0406",
+        "cantidad": "1mg"
+      },
+      {
+        "codigo": "Std-0407",
+        "cantidad": "1,2mg"
+      },
+      {
+        "codigo": "Std-0408",
+        "cantidad": "1,2mg"
+      },
+      {
+        "codigo": "Std-0409",
+        "cantidad": "1,2mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [
+      "LCH-75",
+      "LCH-76",
+      "LCH-79"
+    ],
+    "filtros": "",
+    "bachVigente": "BA-F-27067-V05",
+    "eptVigente": "EPT-F-27067 - V03",
+    "maVigente": "MA-F-27067 -V04",
+    "responsable": "MRZ",
+    "observacion": ""
+  },
+  {
+    "registroISP": "27062",
+    "producto": "Neurok Cápsula 30mg",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0405",
+        "cantidad": "50mg"
+      },
+      {
+        "codigo": "Std-0406",
+        "cantidad": "1mg"
+      },
+      {
+        "codigo": "Std-0407",
+        "cantidad": "1,2mg"
+      },
+      {
+        "codigo": "Std-0408",
+        "cantidad": "1,2mg"
+      },
+      {
+        "codigo": "Std-0409",
+        "cantidad": "1,2mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [
+      "LCH-75",
+      "LCH-76",
+      "LCH-79"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "27066",
+    "producto": "Neurok Cápsula 50mg",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0405",
+        "cantidad": "50mg"
+      },
+      {
+        "codigo": "Std-0406",
+        "cantidad": "1mg"
+      },
+      {
+        "codigo": "Std-0407",
+        "cantidad": "1,2mg"
+      },
+      {
+        "codigo": "Std-0408",
+        "cantidad": "1,2mg"
+      },
+      {
+        "codigo": "Std-0409",
+        "cantidad": "1,2mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [
+      "LCH-75",
+      "LCH-76",
+      "LCH-79"
+    ],
+    "filtros": "",
+    "bachVigente": "BA-F-27066-V05",
+    "eptVigente": "EPT-F-27069 V03",
+    "maVigente": "MA-F-27069 V03",
+    "responsable": "MRZ",
+    "observacion": ""
+  },
+  {
+    "registroISP": "27069",
+    "producto": "Neurok Cápsula 70mg",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0405",
+        "cantidad": "50mg"
+      },
+      {
+        "codigo": "Std-0406",
+        "cantidad": "1mg"
+      },
+      {
+        "codigo": "Std-0407",
+        "cantidad": "1,2mg"
+      },
+      {
+        "codigo": "Std-0408",
+        "cantidad": "1,2mg"
+      },
+      {
+        "codigo": "Std-0409",
+        "cantidad": "1,2mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [
+      "LCH-75",
+      "LCH-76",
+      "LCH-79"
+    ],
+    "filtros": "",
+    "bachVigente": "BA-F-27069-V05",
+    "eptVigente": "EPT-F-27066 V02",
+    "maVigente": "MA-F-27066 V03",
+    "responsable": "MRZ",
+    "observacion": ""
+  },
+  {
+    "registroISP": "25300",
+    "producto": "Numax 150mg",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0156",
+        "cantidad": "200mg"
+      },
+      {
+        "codigo": "Std-0161",
+        "cantidad": "20mg"
+      },
+      {
+        "codigo": "Std-0162",
+        "cantidad": "20mg"
+      },
+      {
+        "codigo": "Std-0163",
+        "cantidad": "12mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [
+      "LCH-14",
+      "LCH-15",
+      "LCH-16"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "21448",
+    "producto": "Omeprazol 30mg",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0237",
+        "cantidad": "200mg"
+      },
+      {
+        "codigo": "Std-0250",
+        "cantidad": "10mg"
+      },
+      {
+        "codigo": "Std-0242",
+        "cantidad": "10mg"
+      },
+      {
+        "codigo": "Std-0243",
+        "cantidad": "10mg"
+      },
+      {
+        "codigo": "Std-0244",
+        "cantidad": ""
+      }
+    ],
+    "placebos": [],
+    "columnas": [
+      "LCH-40"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "25589",
+    "producto": "Tamsulosina  0,4mg",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0167",
+        "cantidad": "45mg"
+      },
+      {
+        "codigo": "Std-0175",
+        "cantidad": "2mg"
+      },
+      {
+        "codigo": "Std-0176",
+        "cantidad": "2mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [
+      "LCH-19"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "24317",
+    "producto": "ABIRAND COMP 250",
+    "cliente": "MSN LAB CHILE",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "25878",
+    "producto": "ATORVASTATINA 10 MG",
+    "cliente": "MSN LAB CHILE",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "26112",
+    "producto": "ATORVASTATINA 20 MG",
+    "cliente": "MSN LAB CHILE",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "26111",
+    "producto": "ATORVASTATINA 40 MG",
+    "cliente": "MSN LAB CHILE",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "26112",
+    "producto": "Atorvastatina Comp Recubiertos 20 mg",
+    "cliente": "MSN LAB CHILE",
+    "estandares": [
+      {
+        "codigo": "STD-270",
+        "cantidad": "500"
+      },
+      {
+        "codigo": "STD-0271",
+        "cantidad": "5 mg"
+      },
+      {
+        "codigo": "STD-0272",
+        "cantidad": "1 mg"
+      },
+      {
+        "codigo": "Std-0314",
+        "cantidad": "1 mg"
+      }
+    ],
+    "placebos": [
+      {
+        "codigo": "SI-0047",
+        "cantidad": ""
+      }
+    ],
+    "columnas": [
+      "MSN-44",
+      "MSN-45"
+    ],
+    "filtros": "",
+    "bachVigente": "BA-F-26112-V06",
+    "eptVigente": "EPT-F-26112-V03",
+    "maVigente": "MA-F-26112-V03",
+    "responsable": "MRZ",
+    "observacion": ""
+  },
+  {
+    "registroISP": "26111",
+    "producto": "ATORVASTATINA COMP RECUBIERTOS 40 mg",
+    "cliente": "MSN LAB CHILE",
+    "estandares": [
+      {
+        "codigo": "STD-270",
+        "cantidad": "500"
+      },
+      {
+        "codigo": "STD-0271",
+        "cantidad": "5 mg"
+      },
+      {
+        "codigo": "STD-0272",
+        "cantidad": "1 mg"
+      },
+      {
+        "codigo": "Std-0314",
+        "cantidad": "1 mg"
+      }
+    ],
+    "placebos": [
+      {
+        "codigo": "SI-0047",
+        "cantidad": ""
+      }
+    ],
+    "columnas": [
+      "MSN-44",
+      "MSN-45"
+    ],
+    "filtros": "",
+    "bachVigente": "BA-F-26111-V06",
+    "eptVigente": "EPT-F-26111-V02",
+    "maVigente": "MA-F-26111-V03",
+    "responsable": "MRZ",
+    "observacion": ""
+  },
+  {
+    "registroISP": "25739",
+    "producto": "AZADUAL INY 100 MG",
+    "cliente": "MSN LAB CHILE",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "26044",
+    "producto": "BASIDEC 10 MG",
+    "cliente": "MSN LAB CHILE",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "26043",
+    "producto": "BLASIDEC 5 MG",
+    "cliente": "MSN LAB CHILE",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "24129",
+    "producto": "BORTEZOMIB LIOF SOL INY",
+    "cliente": "MSN LAB CHILE",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "25816",
+    "producto": "BOSUTINIB COMP 100 MG",
+    "cliente": "MSN LAB CHILE",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "25817",
+    "producto": "BOSUTINIB COMP 500 MG",
+    "cliente": "MSN LAB CHILE",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "26086",
+    "producto": "DABIFIB 110 MG",
+    "cliente": "MSN LAB CHILE",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [
+      "(*)MSN-54"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "25992",
+    "producto": "DABIFIB CAP 150 MG",
+    "cliente": "MSN LAB CHILE",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [
+      "(*)MSN-54"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "27573",
+    "producto": "DECITABINA INY",
+    "cliente": "MSN LAB CHILE",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "28148",
+    "producto": "EPIBALIN CAP 150 MG",
+    "cliente": "MSN LAB CHILE",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "28150",
+    "producto": "EPIBALIN CAP 75 MG",
+    "cliente": "MSN LAB CHILE",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "27268",
+    "producto": "ERLOTINIB 100 MG",
+    "cliente": "MSN LAB CHILE",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "27306",
+    "producto": "ERLOTINIB 150 MG",
+    "cliente": "MSN LAB CHILE",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "27269",
+    "producto": "ERLOTINIB 25 MG",
+    "cliente": "MSN LAB CHILE",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "27481",
+    "producto": "FIGOMS 0,5 MG",
+    "cliente": "MSN LAB CHILE",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "24522",
+    "producto": "LONGRIDE 30 MG",
+    "cliente": "MSN LAB CHILE",
+    "estandares": [
+      {
+        "codigo": "Std-0130",
+        "cantidad": "102mg"
+      }
+    ],
+    "placebos": [
+      {
+        "codigo": "SI-0050",
+        "cantidad": ""
+      }
+    ],
+    "columnas": [
+      "MSN-3",
+      "MSN-4"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "24523",
+    "producto": "LONGRIDE 60 MG",
+    "cliente": "MSN LAB CHILE",
+    "estandares": [
+      {
+        "codigo": "Std-0130",
+        "cantidad": "219mg"
+      }
+    ],
+    "placebos": [
+      {
+        "codigo": "SI-0051",
+        "cantidad": ""
+      }
+    ],
+    "columnas": [
+      "MSN-3",
+      "MSN-4"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "25570",
+    "producto": "MACITENTAN COMP 10 MG",
+    "cliente": "MSN LAB CHILE",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "22171",
+    "producto": "MOXIFLOXACINO COMP 400",
+    "cliente": "MSN LAB CHILE",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "24577",
+    "producto": "NUCLOFAR SOL INY",
+    "cliente": "MSN LAB CHILE",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "26793",
+    "producto": "OSELTAMIVIR CAP 75 MG",
+    "cliente": "MSN LAB CHILE",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "27794",
+    "producto": "PALBOCICLIB 100 MG",
+    "cliente": "MSN LAB CHILE",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "27793",
+    "producto": "PALBOCICLIB 125 MG",
+    "cliente": "MSN LAB CHILE",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "27795",
+    "producto": "PALBOCICLIB 75 MG",
+    "cliente": "MSN LAB CHILE",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "24503",
+    "producto": "PALOHALT SOL INY",
+    "cliente": "MSN LAB CHILE",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "26739",
+    "producto": "PLERIXAFOR",
+    "cliente": "MSN LAB CHILE",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "28149",
+    "producto": "PREGABALINA 150 MG",
+    "cliente": "MSN LAB CHILE",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "28151",
+    "producto": "PREGABALINA 75 MG",
+    "cliente": "MSN LAB CHILE",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "27597",
+    "producto": "PULMOFIB COMP",
+    "cliente": "MSN LAB CHILE",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "24709",
+    "producto": "RAMGIC SOL INY",
+    "cliente": "MSN LAB CHILE",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "28228",
+    "producto": "RIVAROXABAN 10 MG",
+    "cliente": "MSN LAB CHILE",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "25983",
+    "producto": "RIVAROXABAN 20 MG",
+    "cliente": "MSN LAB CHILE",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "27089",
+    "producto": "RIVATHROMB 20 MG",
+    "cliente": "MSN LAB CHILE",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "25675",
+    "producto": "TERIFLUNOMIDA COMP",
+    "cliente": "MSN LAB CHILE",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "27988",
+    "producto": "VILACRET COMP 50 MG",
+    "cliente": "MSN LAB CHILE",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "24461",
+    "producto": "VORICONAZOL COMP 200 MG",
+    "cliente": "MSN LAB CHILE",
+    "estandares": [
+      {
+        "codigo": "Std-0293",
+        "cantidad": "230 mg"
+      }
+    ],
+    "placebos": [
+      {
+        "codigo": "SI-0099",
+        "cantidad": "418 mg"
+      }
+    ],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "BA-F-24461-V06",
+    "eptVigente": "EPT-F-24461 V02",
+    "maVigente": "MA-F-24461 V03",
+    "responsable": "MRZ",
+    "observacion": ""
+  },
+  {
+    "registroISP": "24217",
+    "producto": "VORICONAZOL INY",
+    "cliente": "MSN LAB CHILE",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "25781",
+    "producto": "XATIZA SOL INY",
+    "cliente": "MSN LAB CHILE",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "27378",
+    "producto": "XOMICIB (CARFILZOMIB)",
+    "cliente": "MSN LAB CHILE",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "27299",
+    "producto": "NEVANAC SUSP OFTALMICA  0,1%",
+    "cliente": "NOVARTIS",
+    "estandares": [
+      {
+        "codigo": "Std-0301",
+        "cantidad": "50 mg"
+      },
+      {
+        "codigo": "Std-0664",
+        "cantidad": "50 mg"
+      },
+      {
+        "codigo": "Std-0703",
+        "cantidad": "200 mg"
+      },
+      {
+        "codigo": "B-16",
+        "cantidad": "5 g"
+      }
+    ],
+    "placebos": [],
+    "columnas": [
+      "NOV-56/57",
+      "NOV-33/34",
+      "NOV-61"
+    ],
+    "filtros": "",
+    "bachVigente": "BA-F-27299 V02",
+    "eptVigente": "EPT-F-27299 V 02",
+    "maVigente": "MA-F-27299 V01",
+    "responsable": "MRZ",
+    "observacion": ""
+  },
+  {
+    "registroISP": "27866",
+    "producto": "Vigamox Sol oftalmica",
+    "cliente": "NOVARTIS",
+    "estandares": [
+      {
+        "codigo": "Std-0300",
+        "cantidad": "250mg"
+      },
+      {
+        "codigo": "Std-0324",
+        "cantidad": "50mg"
+      },
+      {
+        "codigo": "Std-0326",
+        "cantidad": ""
+      }
+    ],
+    "placebos": [],
+    "columnas": [
+      "NOV-32"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "28080",
+    "producto": "400/57 POLVO PARA SUSPENSIÓN ORAL",
+    "cliente": "Seven Pharma",
+    "estandares": [
+      {
+        "codigo": "Std-0486",
+        "cantidad": "170 mg"
+      },
+      {
+        "codigo": "Std-0700",
+        "cantidad": "10 mg"
+      },
+      {
+        "codigo": "Std-0578",
+        "cantidad": "200 mg"
+      }
+    ],
+    "placebos": [
+      {
+        "codigo": "SI-0297",
+        "cantidad": "SI-0298"
+      }
+    ],
+    "columnas": [
+      "SPH-119-120-121",
+      "SPH-161"
+    ],
+    "filtros": "",
+    "bachVigente": "BA-F-28080- V02",
+    "eptVigente": "EPT-F-28080-V01",
+    "maVigente": "MA-F-28080-V01",
+    "responsable": "MRZ",
+    "observacion": ""
+  },
+  {
+    "registroISP": "22560",
+    "producto": "Afexdine comp.rec. 180mg",
+    "cliente": "Seven Pharma",
+    "estandares": [
+      {
+        "codigo": "Std-0517",
+        "cantidad": "170mg"
+      },
+      {
+        "codigo": "Std-0546",
+        "cantidad": "10mg"
+      }
+    ],
+    "placebos": [
+      {
+        "codigo": "SI-0249",
+        "cantidad": "410mg"
+      }
+    ],
+    "columnas": [
+      "SPH-30",
+      "SPH-29"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "27485",
+    "producto": "AMOXICILINA SUSPENSIÓN ORAL 500 mg/5mL",
+    "cliente": "Seven Pharma",
+    "estandares": [
+      {
+        "codigo": "Std-0594",
+        "cantidad": "120 mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [
+      "SPH-116"
+    ],
+    "filtros": "",
+    "bachVigente": "BA-F-27485-V03",
+    "eptVigente": "EPT-F-27485 V01",
+    "maVigente": "MA-F-27486 V01",
+    "responsable": "MRZ",
+    "observacion": ""
+  },
+  {
+    "registroISP": "27694",
+    "producto": "AMOXICILINA/ÁCIDO CLAVULÁNICO 400/57 POLVO PARA SUSPENSIÓN ORAL",
+    "cliente": "Seven Pharma",
+    "estandares": [
+      {
+        "codigo": "STD 0659",
+        "cantidad": ""
+      },
+      {
+        "codigo": "STD-0594",
+        "cantidad": ""
+      },
+      {
+        "codigo": "STD-0603",
+        "cantidad": ""
+      }
+    ],
+    "placebos": [
+      {
+        "codigo": "SI-0258",
+        "cantidad": ""
+      }
+    ],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "BA-F-27694-V02",
+    "eptVigente": "EPT-F-27694-V01",
+    "maVigente": "MA-F-27694-V01",
+    "responsable": "MRZ",
+    "observacion": ""
+  },
+  {
+    "registroISP": "22525",
+    "producto": "Anastrozol 1mg",
+    "cliente": "Seven Pharma",
+    "estandares": [
+      {
+        "codigo": "Std-0483",
+        "cantidad": "170mg"
+      },
+      {
+        "codigo": "Std-0588",
+        "cantidad": "10mg"
+      }
+    ],
+    "placebos": [
+      {
+        "codigo": "SI-0191",
+        "cantidad": "5100mg"
+      }
+    ],
+    "columnas": [
+      "SPH-7"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "26933",
+    "producto": "Atenolol comp.rec. 50mg",
+    "cliente": "Seven Pharma",
+    "estandares": [
+      {
+        "codigo": "Std-0541",
+        "cantidad": "40mg"
+      }
+    ],
+    "placebos": [
+      {
+        "codigo": "SI-0259",
+        "cantidad": "107,5mg"
+      }
+    ],
+    "columnas": [
+      "SPH-50",
+      "SPH-54"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "27668",
+    "producto": "BENDAMUSTINA SOLUCIÓN INYECTABLE 100 mg",
+    "cliente": "Seven Pharma",
+    "estandares": [
+      {
+        "codigo": "STD-0699",
+        "cantidad": "95 mg"
+      },
+      {
+        "codigo": "std-0715",
+        "cantidad": "std-0712"
+      },
+      {
+        "codigo": "std-0708",
+        "cantidad": "std-0710"
+      },
+      {
+        "codigo": "std-0709",
+        "cantidad": "std-0711"
+      },
+      {
+        "codigo": "std-0716",
+        "cantidad": "std-0713"
+      },
+      {
+        "codigo": "std-0717",
+        "cantidad": "2 mg"
+      }
+    ],
+    "placebos": [
+      {
+        "codigo": "SI-0277",
+        "cantidad": ""
+      }
+    ],
+    "columnas": [
+      "SPH-139",
+      "SPH-158"
+    ],
+    "filtros": "",
+    "bachVigente": "BA-F-27668-V03",
+    "eptVigente": "EPT-F-27668-V01",
+    "maVigente": "MA-F-27668-V02",
+    "responsable": "MRZ",
+    "observacion": ""
+  },
+  {
+    "registroISP": "27977",
+    "producto": "Bimatoprost",
+    "cliente": "Seven Pharma",
+    "estandares": [
+      {
+        "codigo": "Std-0504",
+        "cantidad": "40mg"
+      },
+      {
+        "codigo": "Std-0666",
+        "cantidad": "0,100g"
+      },
+      {
+        "codigo": "Std-0602",
+        "cantidad": "1,125mg"
+      }
+    ],
+    "placebos": [
+      {
+        "codigo": "SI-0218",
+        "cantidad": "5ml"
+      }
+    ],
+    "columnas": [
+      "SPH-17"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "28286",
+    "producto": "Bisoprolol Fumarato comp rec 10 mg",
+    "cliente": "Seven Pharma",
+    "estandares": [
+      {
+        "codigo": "Std-0738",
+        "cantidad": ""
+      },
+      {
+        "codigo": "Std-0739",
+        "cantidad": ""
+      },
+      {
+        "codigo": "Std-0740",
+        "cantidad": ""
+      }
+    ],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "BA-F-28286-V02",
+    "eptVigente": "EPT-F-28286-V02",
+    "maVigente": "MA-F-28286- V03",
+    "responsable": "MRZ",
+    "observacion": ""
+  },
+  {
+    "registroISP": "22952",
+    "producto": "Bortezonib Liofilizado Sol.Inyec. 3,5mg",
+    "cliente": "Seven Pharma",
+    "estandares": [
+      {
+        "codigo": "Std-0484",
+        "cantidad": "60mg"
+      },
+      {
+        "codigo": "Std-0639",
+        "cantidad": "5mg"
+      },
+      {
+        "codigo": "Std-0640",
+        "cantidad": "5mg"
+      }
+    ],
+    "placebos": [
+      {
+        "codigo": "SI-0192",
+        "cantidad": "20mL"
+      }
+    ],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "22756",
+    "producto": "Capecitabina Comp. Rec. 500mg",
+    "cliente": "Seven Pharma",
+    "estandares": [
+      {
+        "codigo": "Std-0499",
+        "cantidad": "160mg"
+      },
+      {
+        "codigo": "Std-0514",
+        "cantidad": "10mg"
+      },
+      {
+        "codigo": "Std-0515",
+        "cantidad": "10mg"
+      },
+      {
+        "codigo": "Std-0516",
+        "cantidad": "10mg"
+      }
+    ],
+    "placebos": [
+      {
+        "codigo": "SI-0190",
+        "cantidad": "60mg"
+      }
+    ],
+    "columnas": [
+      "SPH-24"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "28705",
+    "producto": "CELECOXIB CAP 200 MG",
+    "cliente": "Seven Pharma",
+    "estandares": [
+      {
+        "codigo": "STD-0558",
+        "cantidad": "240 mg"
+      },
+      {
+        "codigo": "std-0559",
+        "cantidad": "2,5 mg"
+      }
+    ],
+    "placebos": [
+      {
+        "codigo": "SI-0198",
+        "cantidad": "CALCULAR"
+      }
+    ],
+    "columnas": [
+      "SPH-127"
+    ],
+    "filtros": "",
+    "bachVigente": "BA-F-28705- V03",
+    "eptVigente": "EPT-F-28705-V02",
+    "maVigente": "MA-F-28705-V01",
+    "responsable": "MRZ",
+    "observacion": ""
+  },
+  {
+    "registroISP": "25582",
+    "producto": "CELERIUM CÁPSULAS 200 mg",
+    "cliente": "Seven Pharma",
+    "estandares": [
+      {
+        "codigo": "std-558",
+        "cantidad": ""
+      },
+      {
+        "codigo": "std-559",
+        "cantidad": ""
+      }
+    ],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "MA-F-22582-V01",
+    "responsable": "CMV",
+    "observacion": ""
+  },
+  {
+    "registroISP": "22582",
+    "producto": "Celerium cápsulas 20mg",
+    "cliente": "Seven Pharma",
+    "estandares": [
+      {
+        "codigo": "Std-0558",
+        "cantidad": "150mg"
+      },
+      {
+        "codigo": "Std-0559",
+        "cantidad": "5mg"
+      }
+    ],
+    "placebos": [
+      {
+        "codigo": "SI-0198",
+        "cantidad": ""
+      }
+    ],
+    "columnas": [
+      "SPH-19",
+      "SPH-20"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "24030",
+    "producto": "Cinacalcet comp.rec. 30mg",
+    "cliente": "Seven Pharma",
+    "estandares": [
+      {
+        "codigo": "Std-0494",
+        "cantidad": "205mg"
+      }
+    ],
+    "placebos": [
+      {
+        "codigo": "SI-0199",
+        "cantidad": "312.274"
+      }
+    ],
+    "columnas": [
+      "SPH-9"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "24135",
+    "producto": "CISLAN SOL INY 50 mg/50 mL",
+    "cliente": "Seven Pharma",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "BA-F-24135-V01",
+    "eptVigente": "EPT-F-24135-V01",
+    "maVigente": "MA-F-24135-V01",
+    "responsable": "MRZ",
+    "observacion": ""
+  },
+  {
+    "registroISP": "27653",
+    "producto": "Dorzolamida y Timolol",
+    "cliente": "Seven Pharma",
+    "estandares": [
+      {
+        "codigo": "Std-0535",
+        "cantidad": "410mg"
+      },
+      {
+        "codigo": "Std-0543",
+        "cantidad": "160mg"
+      },
+      {
+        "codigo": "Std-0537",
+        "cantidad": "1,1mg"
+      },
+      {
+        "codigo": "Std-0536",
+        "cantidad": "2,2mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [
+      "SPH-43",
+      "SPH-48",
+      "SPH-93"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "23570",
+    "producto": "Erloven comp. rec. 150mg",
+    "cliente": "Seven Pharma",
+    "estandares": [
+      {
+        "codigo": "Std-0490",
+        "cantidad": "110mg"
+      },
+      {
+        "codigo": "Std-0568",
+        "cantidad": "5mg"
+      },
+      {
+        "codigo": "Std-0569",
+        "cantidad": "10mg"
+      }
+    ],
+    "placebos": [
+      {
+        "codigo": "SI-0252",
+        "cantidad": "306mg"
+      }
+    ],
+    "columnas": [
+      "SPH-6",
+      "SPH-8"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "22744",
+    "producto": "Escitalopram comp. rec. 10mg",
+    "cliente": "Seven Pharma",
+    "estandares": [
+      {
+        "codigo": "Std-0527",
+        "cantidad": "190mg"
+      },
+      {
+        "codigo": "Std-0526",
+        "cantidad": "5mg"
+      }
+    ],
+    "placebos": [
+      {
+        "codigo": "SI-0250",
+        "cantidad": "640,6mg"
+      }
+    ],
+    "columnas": [
+      "SPH-34"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "22745",
+    "producto": "Escitalopram comp. Rec. 20mg",
+    "cliente": "Seven Pharma",
+    "estandares": [
+      {
+        "codigo": "Std-0527",
+        "cantidad": "200mg"
+      },
+      {
+        "codigo": "Std-0526",
+        "cantidad": "5mg"
+      }
+    ],
+    "placebos": [
+      {
+        "codigo": "SI-0251",
+        "cantidad": "640,63mg"
+      }
+    ],
+    "columnas": [
+      "SPH-34"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "28766",
+    "producto": "ESOMEPRAZOL CÁPSULAS CON GRÁNULOS CON RECUBRIMIENTO ENTÉRICO 40 mg",
+    "cliente": "Seven Pharma",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "BA-F-28766-V01",
+    "eptVigente": "EPT-F-28766-V01",
+    "maVigente": "MA-F-28766-V01",
+    "responsable": "MRZ",
+    "observacion": ""
+  },
+  {
+    "registroISP": "27532",
+    "producto": "Famotidina 20mg",
+    "cliente": "Seven Pharma",
+    "estandares": [
+      {
+        "codigo": "Std-0683",
+        "cantidad": "100mg"
+      },
+      {
+        "codigo": "Std-0679",
+        "cantidad": "1mg"
+      },
+      {
+        "codigo": "Std-0673",
+        "cantidad": "1mg"
+      },
+      {
+        "codigo": "Std-0675",
+        "cantidad": "1mg"
+      },
+      {
+        "codigo": "Std-0676",
+        "cantidad": "1mg"
+      },
+      {
+        "codigo": "Std-0677",
+        "cantidad": "1mg"
+      },
+      {
+        "codigo": "Std-674",
+        "cantidad": "1mg/1mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [
+      "SPH-109",
+      "SPH-110"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "27533",
+    "producto": "Famotidina 40mg",
+    "cliente": "Seven Pharma",
+    "estandares": [
+      {
+        "codigo": "Std-0683",
+        "cantidad": "100mg"
+      },
+      {
+        "codigo": "Std-0679",
+        "cantidad": "1mg"
+      },
+      {
+        "codigo": "Std-0673",
+        "cantidad": "1mg"
+      },
+      {
+        "codigo": "Std-0675",
+        "cantidad": "1mg"
+      },
+      {
+        "codigo": "Std-0676",
+        "cantidad": "1mg"
+      },
+      {
+        "codigo": "Std-0677",
+        "cantidad": "1mg"
+      },
+      {
+        "codigo": "Std-674",
+        "cantidad": "1mg/1mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [
+      "SPH-109",
+      "SPH-110"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "28000",
+    "producto": "Ibuprofeno Suspension Oral 100mg/5mL",
+    "cliente": "Seven Pharma",
+    "estandares": [
+      {
+        "codigo": "Std-0574",
+        "cantidad": "320mg"
+      },
+      {
+        "codigo": "Std-0575",
+        "cantidad": "5mg"
+      },
+      {
+        "codigo": "Std-0576",
+        "cantidad": "5mg"
+      },
+      {
+        "codigo": "BENZOFENONA",
+        "cantidad": "30 mg"
+      }
+    ],
+    "placebos": [
+      {
+        "codigo": "SI-0209",
+        "cantidad": "10mL"
+      }
+    ],
+    "columnas": [
+      "SPH-85",
+      "SPH-69",
+      "SPH-67"
+    ],
+    "filtros": "",
+    "bachVigente": "BA-F-28000 V02",
+    "eptVigente": "EPT-F-28000 V02",
+    "maVigente": "MA-F-28000 V03",
+    "responsable": "MRZ",
+    "observacion": ""
+  },
+  {
+    "registroISP": "22562",
+    "producto": "LETROZOL COMP RECUBIERTOS 2,5 mg",
+    "cliente": "Seven Pharma",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "BA-F-22562-V02",
+    "eptVigente": "EPT-F-22562-V01",
+    "maVigente": "MA-F-22562-V01",
+    "responsable": "MRZ",
+    "observacion": ""
+  },
+  {
+    "registroISP": "22677",
+    "producto": "Levetiracetam comp.rec. 1000mg",
+    "cliente": "Seven Pharma",
+    "estandares": [
+      {
+        "codigo": "Std-0522",
+        "cantidad": "180mg"
+      }
+    ],
+    "placebos": [
+      {
+        "codigo": "SI-0184",
+        "cantidad": "114,8mg"
+      }
+    ],
+    "columnas": [
+      "SPH-28",
+      "SPH-52"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "22684",
+    "producto": "Levocetirizina 5mg",
+    "cliente": "Seven Pharma",
+    "estandares": [
+      {
+        "codigo": "Std-0554",
+        "cantidad": "210mg"
+      },
+      {
+        "codigo": "Std-0555",
+        "cantidad": "5mg"
+      },
+      {
+        "codigo": "Std-0556",
+        "cantidad": "5mg"
+      }
+    ],
+    "placebos": [
+      {
+        "codigo": "SI-0205",
+        "cantidad": "1035,25mg"
+      }
+    ],
+    "columnas": [
+      "SPH-64",
+      "SPH-64"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "22733",
+    "producto": "Losartan comp.rec.100mg",
+    "cliente": "Seven Pharma",
+    "estandares": [
+      {
+        "codigo": "Std-0479",
+        "cantidad": "210mg"
+      }
+    ],
+    "placebos": [
+      {
+        "codigo": "SI-0194",
+        "cantidad": "77,25mg"
+      }
+    ],
+    "columnas": [
+      "SPH-11",
+      "SPH-12"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "23447",
+    "producto": "Losartan potasico comp. rec. 50mg",
+    "cliente": "Seven Pharma",
+    "estandares": [
+      {
+        "codigo": "Std-0479",
+        "cantidad": "110mg"
+      }
+    ],
+    "placebos": [
+      {
+        "codigo": "SI-0237",
+        "cantidad": "25mg"
+      }
+    ],
+    "columnas": [
+      "SPH-12"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "22600",
+    "producto": "Montelukast 5mg",
+    "cliente": "Seven Pharma",
+    "estandares": [
+      {
+        "codigo": "Std-0521",
+        "cantidad": "190mg"
+      }
+    ],
+    "placebos": [
+      {
+        "codigo": "SI-0179",
+        "cantidad": "6000mg"
+      }
+    ],
+    "columnas": [
+      "SPH-27",
+      "SPH-32"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "22602",
+    "producto": "Montelukast comp. maticables  4mg",
+    "cliente": "Seven Pharma",
+    "estandares": [
+      {
+        "codigo": "Std-0521",
+        "cantidad": "160mg"
+      }
+    ],
+    "placebos": [
+      {
+        "codigo": "SI-0179",
+        "cantidad": "6000mg"
+      }
+    ],
+    "columnas": [
+      "SPH-27",
+      "SPH-32"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "23300",
+    "producto": "Montelukast comp. rec 10mg",
+    "cliente": "Seven Pharma",
+    "estandares": [
+      {
+        "codigo": "Std-0521",
+        "cantidad": "190mg"
+      }
+    ],
+    "placebos": [
+      {
+        "codigo": "SI-0181",
+        "cantidad": "2050mg"
+      }
+    ],
+    "columnas": [
+      "SPH-27",
+      "SPH-32"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "28290",
+    "producto": "Mymof",
+    "cliente": "Seven Pharma",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "27201",
+    "producto": "Pazib 125 mg",
+    "cliente": "Seven Pharma",
+    "estandares": [
+      {
+        "codigo": "std-0551",
+        "cantidad": "128"
+      },
+      {
+        "codigo": "std-0552",
+        "cantidad": "2,5 mg"
+      }
+    ],
+    "placebos": [
+      {
+        "codigo": "SI-0195",
+        "cantidad": "CALCULAR"
+      }
+    ],
+    "columnas": [
+      "SPH-41",
+      "SPH-38"
+    ],
+    "filtros": "",
+    "bachVigente": "BA-F-27201-V03",
+    "eptVigente": "EPT-F-27201-V01",
+    "maVigente": "MA-F-27201-V01",
+    "responsable": "CMV",
+    "observacion": ""
+  },
+  {
+    "registroISP": "23371",
+    "producto": "Pregabalina capsula 150ng",
+    "cliente": "Seven Pharma",
+    "estandares": [
+      {
+        "codigo": "Std-0506",
+        "cantidad": "320mg"
+      }
+    ],
+    "placebos": [
+      {
+        "codigo": "SI-0177",
+        "cantidad": "1000mg"
+      }
+    ],
+    "columnas": [
+      "SPH-22",
+      "SPH-21",
+      "SPH-35"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "22472",
+    "producto": "Pregabalina Capsula 75ng",
+    "cliente": "Seven Pharma",
+    "estandares": [
+      {
+        "codigo": "Std-0506",
+        "cantidad": "3000mg"
+      }
+    ],
+    "placebos": [
+      {
+        "codigo": "SI-0177",
+        "cantidad": "1390 mg"
+      }
+    ],
+    "columnas": [
+      "SPH-21",
+      "SPH-22",
+      "SPH-35"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "22472",
+    "producto": "PREGABALINA CÁPSULAS 75 mg",
+    "cliente": "Seven Pharma",
+    "estandares": [
+      {
+        "codigo": "STD-0506",
+        "cantidad": "200 mg"
+      }
+    ],
+    "placebos": [
+      {
+        "codigo": "SI-0177",
+        "cantidad": ""
+      }
+    ],
+    "columnas": [
+      "SPH-21",
+      "SPH-22",
+      "SPH-35"
+    ],
+    "filtros": "",
+    "bachVigente": "BA-F-22472-V03",
+    "eptVigente": "EPT-F-22472-V01",
+    "maVigente": "MA-F-22472-V01",
+    "responsable": "MRZ",
+    "observacion": ""
+  },
+  {
+    "registroISP": "26986",
+    "producto": "RIVINE 10 MG",
+    "cliente": "Seven Pharma",
+    "estandares": [
+      {
+        "codigo": "Std-0534",
+        "cantidad": ""
+      }
+    ],
+    "placebos": [
+      {
+        "codigo": "SI-0225",
+        "cantidad": ""
+      }
+    ],
+    "columnas": [
+      "SPH-68"
+    ],
+    "filtros": "",
+    "bachVigente": "BA-F-26986-V02",
+    "eptVigente": "EPT-F-26986-V01",
+    "maVigente": "MA-F-26986-V01",
+    "responsable": "CMV",
+    "observacion": ""
+  },
+  {
+    "registroISP": "26964",
+    "producto": "RIVINE 15 MG",
+    "cliente": "Seven Pharma",
+    "estandares": [
+      {
+        "codigo": "Std-0534",
+        "cantidad": ""
+      }
+    ],
+    "placebos": [
+      {
+        "codigo": "SI-0226",
+        "cantidad": ""
+      }
+    ],
+    "columnas": [
+      "SPH-68"
+    ],
+    "filtros": "",
+    "bachVigente": "BA-F-26964-V02",
+    "eptVigente": "EPT-F-26964-V01",
+    "maVigente": "MA-F-26964 V01",
+    "responsable": "MRZ",
+    "observacion": ""
+  },
+  {
+    "registroISP": "26965",
+    "producto": "RIVINE 20 MG",
+    "cliente": "Seven Pharma",
+    "estandares": [
+      {
+        "codigo": "Std-0534",
+        "cantidad": "200 mg"
+      }
+    ],
+    "placebos": [
+      {
+        "codigo": "SI-0200",
+        "cantidad": ""
+      }
+    ],
+    "columnas": [
+      "SPH-68"
+    ],
+    "filtros": "",
+    "bachVigente": "BA-F-26965-V02",
+    "eptVigente": "EPT-F-26965 V01",
+    "maVigente": "MA-F-26965 V01",
+    "responsable": "MRZ",
+    "observacion": ""
+  },
+  {
+    "registroISP": "26780",
+    "producto": "Sunitinib",
+    "cliente": "Seven Pharma",
+    "estandares": [
+      {
+        "codigo": "Std-0597",
+        "cantidad": "200mg"
+      },
+      {
+        "codigo": "Std-0598",
+        "cantidad": "30mg"
+      }
+    ],
+    "placebos": [
+      {
+        "codigo": "SI-0241",
+        "cantidad": "270mg"
+      }
+    ],
+    "columnas": [
+      "SIR-07"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "24021",
+    "producto": "Tezide cápsula 100mg",
+    "cliente": "Seven Pharma",
+    "estandares": [
+      {
+        "codigo": "Std-0476",
+        "cantidad": "140mg"
+      }
+    ],
+    "placebos": [
+      {
+        "codigo": "SI-0197",
+        "cantidad": "calcular"
+      }
+    ],
+    "columnas": [
+      "SPH-1",
+      "SPH2",
+      "SPH.82"
+    ],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "MRZ",
+    "observacion": ""
+  },
+  {
+    "registroISP": "28000",
+    "producto": "Ibuprofeno Suspencion Oral 100mg/5mL",
+    "cliente": "Seven Pharma",
+    "estandares": [
+      {
+        "codigo": "Std-0574",
+        "cantidad": "320mg"
+      },
+      {
+        "codigo": "Std-0575",
+        "cantidad": "5mg"
+      },
+      {
+        "codigo": "Std-0576",
+        "cantidad": "5mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "27032",
+    "producto": "Ambrilan BID polvo para suspención 400/57",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0224",
+        "cantidad": "105mg"
+      },
+      {
+        "codigo": "Std-0191",
+        "cantidad": "30mg"
+      },
+      {
+        "codigo": "Std-654",
+        "cantidad": "5mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "12082",
+    "producto": "Adroxef suspencion oral 500mg/5ml",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0225",
+        "cantidad": "100mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "21104",
+    "producto": "Adroxef capsulas 500mg",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0225",
+        "cantidad": "20mg"
+      },
+      {
+        "codigo": "Std-0222",
+        "cantidad": "10mg"
+      },
+      {
+        "codigo": "Std-0223",
+        "cantidad": "10mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "23805",
+    "producto": "MInfel 27mg",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0257",
+        "cantidad": "150mg"
+      },
+      {
+        "codigo": "Std-0258",
+        "cantidad": "60mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "23806",
+    "producto": "Minfel 36mg",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0257",
+        "cantidad": "150mg"
+      },
+      {
+        "codigo": "Std-0258",
+        "cantidad": "60mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "25585",
+    "producto": "Alerxo 120mg",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0218",
+        "cantidad": "5mg"
+      },
+      {
+        "codigo": "Std- 0219",
+        "cantidad": "150mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "24522",
+    "producto": "Longride 30mg",
+    "cliente": "MSN",
+    "estandares": [
+      {
+        "codigo": "Std-0130",
+        "cantidad": "102mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "24523",
+    "producto": "Longride 60mg",
+    "cliente": "MSN",
+    "estandares": [
+      {
+        "codigo": "Std-0130",
+        "cantidad": "219mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "25587",
+    "producto": "Alerxo 180mg",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0219",
+        "cantidad": "150mg"
+      },
+      {
+        "codigo": "Std-0218",
+        "cantidad": "5mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "25045",
+    "producto": "Ervastin 10/10mg",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0143",
+        "cantidad": "80mg"
+      },
+      {
+        "codigo": "Std-0139",
+        "cantidad": "70mg"
+      },
+      {
+        "codigo": "Std-0140",
+        "cantidad": "2,5 mg"
+      },
+      {
+        "codigo": "Std-0141",
+        "cantidad": ""
+      }
+    ],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "25529",
+    "producto": "Crvas D 20/12,5",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0164",
+        "cantidad": "200mg"
+      },
+      {
+        "codigo": "Std-0166",
+        "cantidad": "100mg"
+      },
+      {
+        "codigo": "Std-0188",
+        "cantidad": "5,0 mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "26312",
+    "producto": "Carvas 40mg",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0166",
+        "cantidad": "200mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "26381",
+    "producto": "Carvas 20mg",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0166",
+        "cantidad": "200mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "27062",
+    "producto": "Neurox Cápsula 30mg",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0405",
+        "cantidad": "50mg"
+      },
+      {
+        "codigo": "Std-0406",
+        "cantidad": "1mg"
+      },
+      {
+        "codigo": "Std-0407",
+        "cantidad": "1,2mg"
+      },
+      {
+        "codigo": "Std-0408",
+        "cantidad": "1,2mg"
+      },
+      {
+        "codigo": "Std-0409",
+        "cantidad": "1,2mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "27066",
+    "producto": "Neurox Cápsula 50mg",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0405",
+        "cantidad": "50mg"
+      },
+      {
+        "codigo": "Std-0406",
+        "cantidad": "1mg"
+      },
+      {
+        "codigo": "Std-0407",
+        "cantidad": "1,2mg"
+      },
+      {
+        "codigo": "Std-0408",
+        "cantidad": "1,2mg"
+      },
+      {
+        "codigo": "Std-0409",
+        "cantidad": "1,2mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "19099",
+    "producto": "Epral 40mg",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0238",
+        "cantidad": "120mg"
+      },
+      {
+        "codigo": "Std-0244",
+        "cantidad": "1mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "27062",
+    "producto": "Neurox Cápsula 20mg",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0405",
+        "cantidad": "30mg"
+      },
+      {
+        "codigo": "Std-0406",
+        "cantidad": "1mg"
+      },
+      {
+        "codigo": "Std-0407",
+        "cantidad": "1,2mg"
+      },
+      {
+        "codigo": "Std-0408",
+        "cantidad": "1,2mg"
+      },
+      {
+        "codigo": "Std-0409",
+        "cantidad": "1,2mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "26086",
+    "producto": "Dabifib  Cápsula 110mg",
+    "cliente": "MSN",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "25992",
+    "producto": "Dabifib  Cápsula 150mg",
+    "cliente": "MSN",
+    "estandares": [],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "27777",
+    "producto": "Aripiprazol 10mg",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0412",
+        "cantidad": "200mg"
+      },
+      {
+        "codigo": "Std-0410",
+        "cantidad": "200mg"
+      },
+      {
+        "codigo": "Std-0411",
+        "cantidad": "(*)"
+      }
+    ],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "27871",
+    "producto": "Losartan potasico  50mg",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0259",
+        "cantidad": "100mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "27991",
+    "producto": "Cotrien 10 mg",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0610",
+        "cantidad": "100mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "27919",
+    "producto": "Cotrien 15 mg",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0610",
+        "cantidad": "100mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "27920",
+    "producto": "Cotrien 20 mg",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0610",
+        "cantidad": "100mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "27897",
+    "producto": "Jovius 50mg",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0431",
+        "cantidad": "120mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "28320",
+    "producto": "Ambrisentan 10mg",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0632",
+        "cantidad": "200mg"
+      },
+      {
+        "codigo": "Std-0635",
+        "cantidad": "5mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  },
+  {
+    "registroISP": "7126",
+    "producto": "Amobiotic 1g",
+    "cliente": "Laboratorio Chile",
+    "estandares": [
+      {
+        "codigo": "Std-0224",
+        "cantidad": "200mg"
+      }
+    ],
+    "placebos": [],
+    "columnas": [],
+    "filtros": "",
+    "bachVigente": "",
+    "eptVigente": "",
+    "maVigente": "",
+    "responsable": "",
+    "observacion": ""
+  }
+]

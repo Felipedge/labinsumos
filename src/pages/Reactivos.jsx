@@ -47,8 +47,8 @@ export default function Reactivos() {
         unidad:        form.unidad || 'mL',
         fechaVencimiento: form.vencimiento || null,
         almacenamiento: form.almacen || '',
-        estado:        'ACTIVO',
-      }, user.email)
+        estado:       'Pendiente de aprobación',
+        creadoPorRol: rol,      }, user.email)
       setShowForm(false); setForm({}); setMsg(''); load()
     } catch(e) { setMsg(e.message) }
   }
