@@ -1,4 +1,3 @@
-
 // src/main.jsx
 import React from 'react'
 import ReactDOM from 'react-dom/client'
@@ -16,6 +15,7 @@ import Alertas from './pages/Alertas'
 import Escanear from './pages/Escanear'
 import Usuarios from './pages/Usuarios'
 import Metodos from './pages/Metodos'
+import Aprobaciones from './pages/Aprobaciones'
 import './index.css'
 
 function ProtectedRoute({ children }) {
@@ -42,17 +42,16 @@ function App() {
               </RoleProvider>
             </ProtectedRoute>
           }>
-            <Route index              element={<Dashboard />} />
-            <Route path="estandares" element={<Estandares />} />
-            <Route path="columnas"   element={<Columnas />} />
-            <Route path="reactivos"  element={<Reactivos />} />
-            <Route path="placebo"    element={<Placebo />} />
-            <Route path="alertas"    element={<Alertas />} />
-            <Route path="escanear"   element={<Escanear />} />
-            <Route path="usuarios"   element={<Usuarios />} />
-            <Route path="metodos"    element={<Metodos />} />
-            
-
+            <Route index                element={<Dashboard />} />
+            <Route path="estandares"    element={<Estandares />} />
+            <Route path="columnas"      element={<Columnas />} />
+            <Route path="reactivos"     element={<Reactivos />} />
+            <Route path="placebo"       element={<Placebo />} />
+            <Route path="alertas"       element={<Alertas />} />
+            <Route path="escanear"      element={<Escanear />} />
+            <Route path="metodos"       element={<Metodos />} />
+            <Route path="aprobaciones"  element={<Aprobaciones />} />
+            <Route path="usuarios"      element={<Usuarios />} />
           </Route>
         </Routes>
       </BrowserRouter>
