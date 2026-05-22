@@ -4,7 +4,8 @@ import { getReactivos, crearReactivo, registrarRetiroReactivo, calcularSemaforo 
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useRole } from '../hooks/useRole.jsx'
 import { puedoHacer } from '../lib/roles'
-import { Plus } from 'lucide-react'
+import { Plus, FileText } from 'lucide-react'
+import DocumentosPanel from '../components/shared/DocumentosPanel.jsx'
 
 const CATEGORIAS = ['HPLC','Solventes','Sales / buffer','Ácidos','Bases','Indicadores','Otro']
 const UNIDADES   = ['mL','L','g','kg','mg','unid']
@@ -15,13 +16,14 @@ export default function Reactivos() {
   const puedeAgregar = puedoHacer(rol, 'agregarInsumo')
   const puedeOperar  = puedoHacer(rol, 'registrarUso')
 
-  const [items, setItems]       = useState([])
-  const [loading, setLoading]   = useState(true)
-  const [showForm, setShowForm] = useState(false)
-  const [retiroId, setRetiroId] = useState(null)
-  const [form, setForm]         = useState({})
-  const [msg, setMsg]           = useState('')
-  const [filtro, setFiltro]     = useState('')
+  const [items, setItems]         = useState([])
+  const [loading, setLoading]     = useState(true)
+  const [showForm, setShowForm]   = useState(false)
+  const [retiroId, setRetiroId]   = useState(null)
+  const [form, setForm]           = useState({})
+  const [msg, setMsg]             = useState('')
+  const [filtro, setFiltro]       = useState('')
+  const [docInsumo, setDocInsumo] = useState(null)
 
   const load = async () => {
     try { setItems(await getReactivos()) }
@@ -47,8 +49,9 @@ export default function Reactivos() {
         unidad:        form.unidad || 'mL',
         fechaVencimiento: form.vencimiento || null,
         almacenamiento: form.almacen || '',
-        estado:       'Pendiente de aprobación',
-        creadoPorRol: rol,      }, user.email)
+        estado:        'Pendiente de aprobación',
+        creadoPorRol:  rol,
+      }, user.email)
       setShowForm(false); setForm({}); setMsg(''); load()
     } catch(e) { setMsg(e.message) }
   }
@@ -74,6 +77,16 @@ export default function Reactivos() {
 
   return (
     <>
+      {/* Modal documentos */}
+      {docInsumo && (
+        <DocumentosPanel
+          insumoId={docInsumo.id}
+          modulo="reactivos"
+          nombreInsumo={`${docInsumo.nombre} — ${docInsumo.codigo}`}
+          onClose={()=>setDocInsumo(null)}
+        />
+      )}
+
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
         <h2 style={{ fontSize:16, fontWeight:600 }}>Reactivos</h2>
         {puedeAgregar && (
@@ -145,7 +158,8 @@ export default function Reactivos() {
               const vence = r.fechaVencimiento?.toDate?.() || (r.fechaVencimiento ? new Date(r.fechaVencimiento) : null)
               const sem   = calcularSemaforo(vence)
               const badgeCls = sem.color==='danger'?'badge-danger':sem.color==='warning'?'badge-warn':sem.color==='success'?'badge-ok':'badge-gray'
-              const estCls = r.estado==='ACTIVO'?'badge-ok':r.estado==='STOCK BAJO'?'badge-warn':'badge-danger'
+              const esPendiente = r.estado === 'Pendiente de aprobación'
+              const estCls = esPendiente ? 'badge-warn' : r.estado==='ACTIVO'?'badge-ok':r.estado==='STOCK BAJO'?'badge-warn':'badge-danger'
               return (
                 <tr key={r.id}>
                   <td className="mono">{r.codigo}</td>
@@ -155,10 +169,13 @@ export default function Reactivos() {
                   <td><strong>{r.stockRestante ?? '—'}</strong> <span style={{ color:'var(--text-3)' }}>{r.unidad}</span></td>
                   <td>{vence ? <span className={`badge ${badgeCls}`}>{sem.texto}</span> : <span style={{color:'var(--text-3)'}}>—</span>}</td>
                   <td><span className={`badge ${estCls}`}>{r.estado}</span></td>
-                  <td>
-                    {puedeOperar && (
+                  <td style={{display:'flex',gap:4}}>
+                    {puedeOperar && !esPendiente && (
                       <button className="btn btn-sm" onClick={() => { setRetiroId(r.id); setShowForm(false); setForm({}) }}>Retirar</button>
                     )}
+                    <button className="btn btn-sm" onClick={()=>setDocInsumo(r)} title="Ver documentos">
+                      <FileText size={13}/>
+                    </button>
                   </td>
                 </tr>
               )
