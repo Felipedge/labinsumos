@@ -59,8 +59,8 @@ export default function Columnas() {
         fabricante:        form.fabricante || '',
         limiteInyecciones: parseInt(form.limite) || 1500,
         fechaPrimerUso:    form.fechaPrimerUso || new Date().toISOString().split('T')[0],
-        estado:            'ACTIVA',
-      }, user.email)
+        estado:       'Pendiente de aprobación',
+        creadoPorRol: rol,      }, user.email)
       setShowForm(false); setForm({}); setMsg(''); load()
     } catch(e) { setMsg(e.message) }
   }

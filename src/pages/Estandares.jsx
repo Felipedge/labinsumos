@@ -277,7 +277,8 @@ export default function Estandares() {
           ultimaRevisionUSP:   null,
           // Vencimiento solo si no es USP
           fechaVencimiento:    !fEsUSP && fVencimiento ? new Date(fVencimiento) : null,
-          estado:              i === 0 ? 'En uso' : 'Cerrado',
+          estado:       'Pendiente de aprobación',
+          creadoPorRol: rol,
           mesIngreso:          fMes || mesAct,
           anioIngreso:         parseInt(fAnio || anioAct),
           creadoPor:           user.email,
