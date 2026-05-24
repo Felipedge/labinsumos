@@ -33,11 +33,13 @@ export default function AppShell() {
   const { rol }          = useRole()
   const navigate         = useNavigate()
 
-  const [pendientes, setPendientes]   = useState(0)
+  const [pendientes, setPendientes]         = useState(0)
   const [editandoNombre, setEditandoNombre] = useState(false)
-  const [nuevoNombre, setNuevoNombre] = useState('')
+  const [nuevoNombre, setNuevoNombre]       = useState('')
   const [nombreMostrado, setNombreMostrado] = useState('')
   const [guardandoNombre, setGuardandoNombre] = useState(false)
+  const [nombreBloqueado, setNombreBloqueado] = useState(false)
+  const [docUsuarioId, setDocUsuarioId]     = useState(null)
 
   const puedeOperar  = puedoHacer(rol, 'registrarUso')
   const puedeAprobar = puedoHacer(rol, 'aprobarInsumos')
@@ -52,7 +54,10 @@ export default function AppShell() {
         )
         if (!snap.empty) {
           const data = snap.docs[0].data()
+          setDocUsuarioId(snap.docs[0].id)
           setNombreMostrado(data.nombrePersonalizado || data.nombre || user.displayName || user.email)
+          // Bloquear si ya editó el nombre antes
+          setNombreBloqueado(!!data.nombrePersonalizado)
         } else {
           setNombreMostrado(user.displayName || user.email)
         }
@@ -84,19 +89,15 @@ export default function AppShell() {
   }, [puedeAprobar])
 
   const guardarNombre = async () => {
-    if (!nuevoNombre.trim()) return
+    if (!nuevoNombre.trim() || !docUsuarioId) return
     setGuardandoNombre(true)
     try {
-      const snap = await getDocs(
-        query(collection(db, 'usuarios'), where('uid', '==', user.uid))
-      )
-      if (!snap.empty) {
-        await updateDoc(doc(db, 'usuarios', snap.docs[0].id), {
-          nombrePersonalizado: nuevoNombre.trim(),
-          nombre: nuevoNombre.trim(),
-        })
-        setNombreMostrado(nuevoNombre.trim())
-      }
+      await updateDoc(doc(db, 'usuarios', docUsuarioId), {
+        nombrePersonalizado: nuevoNombre.trim(),
+        nombre:              nuevoNombre.trim(),
+      })
+      setNombreMostrado(nuevoNombre.trim())
+      setNombreBloqueado(true) // Bloquear para siempre tras la primera edición
       setEditandoNombre(false)
       setNuevoNombre('')
     } catch(e) { console.error(e) }
@@ -104,6 +105,7 @@ export default function AppShell() {
   }
 
   const iniciarEdicion = () => {
+    if (nombreBloqueado) return
     setNuevoNombre(nombreMostrado)
     setEditandoNombre(true)
   }
@@ -194,8 +196,15 @@ export default function AppShell() {
                   <input
                     value={nuevoNombre}
                     onChange={e=>setNuevoNombre(e.target.value)}
-                    onKeyDown={e=>{if(e.key==='Enter')guardarNombre();if(e.key==='Escape')cancelarEdicion()}}
-                    style={{flex:1,fontSize:11,padding:'2px 6px',border:'1px solid var(--accent)',borderRadius:4,background:'var(--surface)',color:'var(--text-1)',minWidth:0}}
+                    onKeyDown={e=>{
+                      if(e.key==='Enter') guardarNombre()
+                      if(e.key==='Escape') cancelarEdicion()
+                    }}
+                    style={{
+                      flex:1, fontSize:11, padding:'2px 6px',
+                      border:'1px solid var(--accent)', borderRadius:4,
+                      background:'var(--surface)', color:'var(--text-1)', minWidth:0
+                    }}
                     autoFocus
                   />
                   <button onClick={guardarNombre} disabled={guardandoNombre}
@@ -209,13 +218,19 @@ export default function AppShell() {
                 </div>
               ) : (
                 <div style={{display:'flex',alignItems:'center',gap:4}}>
-                  <div className="user-name" style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1,fontSize:12}}>
+                  <div className="user-name" style={{
+                    overflow:'hidden', textOverflow:'ellipsis',
+                    whiteSpace:'nowrap', flex:1, fontSize:12
+                  }}>
                     {nombreMostrado}
                   </div>
-                  <button onClick={iniciarEdicion} title="Editar nombre"
-                    style={{padding:2,border:'none',background:'none',cursor:'pointer',color:'var(--text-3)',flexShrink:0}}>
-                    <Pencil size={11}/>
-                  </button>
+                  {/* Lápiz solo si el nombre NO está bloqueado */}
+                  {!nombreBloqueado && (
+                    <button onClick={iniciarEdicion} title="Editar nombre (solo una vez)"
+                      style={{padding:2,border:'none',background:'none',cursor:'pointer',color:'var(--text-3)',flexShrink:0}}>
+                      <Pencil size={11}/>
+                    </button>
+                  )}
                 </div>
               )}
               <div style={{ fontSize:10, fontWeight:500, color: COLORES_ROL[rol] || 'var(--text-3)' }}>
