@@ -17,7 +17,7 @@ const MODULOS = [
 
 function nombreInsumo(item, modulo) {
   if (modulo === 'estandares') return `${item.nombre} — ${item.codigo}`
-  if (modulo === 'columnas')   return `${item.codigo} — ${item.fase} ${item.tamanoParticula}`
+  if (modulo === 'columnas')   return `${item.codigo} — ${item.fase || ''} ${item.tamanoParticula || ''}`
   if (modulo === 'reactivos')  return `${item.nombre} — ${item.codigo}`
   if (modulo === 'placebo')    return `${item.productoReferencia} — ${item.codigo}`
   return item.codigo || item.nombre || '—'
@@ -28,8 +28,8 @@ export default function Aprobaciones() {
   const { rol }   = useRole()
   const puedeAprobar = puedoHacer(rol, 'aprobarInsumos')
 
-  const [pendientes, setPendientes] = useState([])
-  const [loading, setLoading]       = useState(true)
+  const [pendientes, setPendientes]     = useState([])
+  const [loading, setLoading]           = useState(true)
   const [filtroModulo, setFiltroModulo] = useState('')
   const [rechazandoId, setRechazandoId] = useState(null)
   const [razonRechazo, setRazonRechazo] = useState('')
@@ -48,7 +48,6 @@ export default function Aprobaciones() {
           todos.push({ id: d.id, modulo: modulo.id, ...d.data() })
         })
       }
-      // Ordenar por fecha de creación más antigua primero
       todos.sort((a, b) => {
         const fa = a.creadoEn?.toDate?.() || new Date(0)
         const fb = b.creadoEn?.toDate?.() || new Date(0)
@@ -61,9 +60,14 @@ export default function Aprobaciones() {
 
   useEffect(() => { load() }, [])
 
+  // Admin siempre puede aprobar, otros según jerarquía
+  const puedeAprobarItem = (item) => {
+    if (rol === 'admin') return true
+    return puedeAprobarA(rol, item.creadoPorRol || 'encargado')
+  }
+
   const aprobar = async (item) => {
-    // Verificar jerarquía
-    if (!puedeAprobarA(rol, item.creadoPorRol)) {
+    if (!puedeAprobarItem(item)) {
       setMsg('No tienes jerarquía suficiente para aprobar este insumo')
       setTimeout(() => setMsg(''), 3000)
       return
@@ -71,21 +75,23 @@ export default function Aprobaciones() {
     setProcesando(true)
     try {
       // Determinar estado final según módulo
-      const estadoFinal = item.modulo === 'estandares'
-        ? (item.frascoIndex === 0 ? 'En uso' : 'Cerrado')
-        : item.modulo === 'columnas'   ? 'ACTIVA'
-        : item.modulo === 'reactivos'  ? 'ACTIVO'
-        : 'ACTIVO'
+      let estadoFinal
+      if (item.modulo === 'estandares') {
+        estadoFinal = item.frasco === 'A' ? 'En uso' : 'Cerrado'
+      } else if (item.modulo === 'columnas') {
+        estadoFinal = 'ACTIVA'
+      } else {
+        estadoFinal = 'ACTIVO'
+      }
 
       await updateDoc(doc(db, item.modulo, item.id), {
-        estado:          estadoFinal,
-        aprobadoPor:     user.email,
-        aprobadoNombre:  user.displayName || user.email,
-        aprobadoEn:      serverTimestamp(),
-        actualizadoEn:   serverTimestamp(),
+        estado:         estadoFinal,
+        aprobadoPor:    user.email,
+        aprobadoNombre: user.displayName || user.email,
+        aprobadoEn:     serverTimestamp(),
+        actualizadoEn:  serverTimestamp(),
       })
 
-      // Registrar en historial
       await addDoc(collection(db, 'aprobaciones_log'), {
         insumoId:     item.id,
         modulo:       item.modulo,
@@ -109,7 +115,7 @@ export default function Aprobaciones() {
 
   const rechazar = async (item) => {
     if (!razonRechazo.trim()) { setMsg('Ingresa la razón del rechazo'); return }
-    if (!puedeAprobarA(rol, item.creadoPorRol)) {
+    if (!puedeAprobarItem(item)) {
       setMsg('No tienes jerarquía suficiente para rechazar este insumo')
       return
     }
@@ -141,7 +147,7 @@ export default function Aprobaciones() {
 
       setRechazandoId(null)
       setRazonRechazo('')
-      setMsg(`❌ Insumo rechazado. El encargado verá la razón en el inventario.`)
+      setMsg('❌ Insumo rechazado. El encargado verá la razón en el inventario.')
       setTimeout(() => setMsg(''), 4000)
       load()
     } catch(e) { setMsg('Error al rechazar: ' + e.message) }
@@ -212,9 +218,9 @@ export default function Aprobaciones() {
       )}
 
       {filtrados.map(item => {
-        const esRechazando = rechazandoId === item.id
-        const fechaIngreso = item.creadoEn?.toDate?.()
-        const puedeEsteAprobar = puedeAprobarA(rol, item.creadoPorRol || 'encargado')
+        const esRechazando    = rechazandoId === item.id
+        const fechaIngreso    = item.creadoEn?.toDate?.()
+        const puedeEste       = puedeAprobarItem(item)
 
         return (
           <div key={item.id} className="card" style={{marginBottom:12}}>
@@ -228,10 +234,8 @@ export default function Aprobaciones() {
                   <span className="badge badge-warn">
                     <Clock size={10} style={{marginRight:3}}/> Pendiente de aprobación
                   </span>
-                  {!puedeEsteAprobar && (
-                    <span className="badge badge-gray" title="No tienes jerarquía suficiente">
-                      Sin permiso para aprobar
-                    </span>
+                  {!puedeEste && (
+                    <span className="badge badge-gray">Sin permiso para aprobar</span>
                   )}
                 </div>
 
@@ -240,26 +244,26 @@ export default function Aprobaciones() {
                   {nombreInsumo(item, item.modulo)}
                 </p>
                 <div style={{display:'flex',gap:12,fontSize:11,color:'var(--text-2)',flexWrap:'wrap'}}>
-                  {item.cliente && <span>Cliente: {item.cliente}</span>}
-                  {item.sector  && <span>Sector: {item.sector}</span>}
-                  {item.creadoPor && <span>Ingresado por: {item.creadoPor}</span>}
-                  {fechaIngreso && <span>Fecha: {fechaIngreso.toLocaleDateString('es-CL')} {fechaIngreso.toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'})}</span>}
+                  {item.cliente    && <span>Cliente: {item.cliente}</span>}
+                  {item.sector     && <span>Sector: {item.sector}</span>}
+                  {item.creadoPor  && <span>Ingresado por: {item.creadoPor}</span>}
+                  {fechaIngreso    && <span>Fecha: {fechaIngreso.toLocaleDateString('es-CL')} {fechaIngreso.toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'})}</span>}
                 </div>
 
-                {/* Detalles específicos por módulo */}
+                {/* Detalles por módulo */}
                 <div style={{marginTop:8,display:'flex',gap:8,flexWrap:'wrap'}}>
                   {item.modulo === 'estandares' && (
                     <>
                       {item.tipoPotencia && (
                         <span className="badge badge-gray">
-                          {item.tipoPotencia === 'tal_cual'    ? `${item.potencia}% Tal cual`
-                           : item.tipoPotencia === 'base_seca' ? `${item.potencia}% Base seca`
-                           : item.tipoPotencia === 'cualitativo' ? 'Cualitativo'
+                          {item.tipoPotencia === 'tal_cual'     ? `${item.potencia}% Tal cual`
+                           : item.tipoPotencia === 'base_seca'  ? `${item.potencia}% Base seca`
+                           : item.tipoPotencia === 'cualitativo'? 'Cualitativo'
                            : 'Sin potencia'}
                         </span>
                       )}
-                      {item.esUSP && <span className="badge badge-info">🔵 USP</span>}
-                      {item.karlFischer && <span className="badge badge-warn">💧 Karl Fischer</span>}
+                      {item.esUSP        && <span className="badge badge-info">🔵 USP</span>}
+                      {item.karlFischer  && <span className="badge badge-warn">💧 Karl Fischer</span>}
                       {item.secadoPrevio && <span className="badge badge-warn">🌡️ Secado previo</span>}
                       <span className="badge badge-gray">Stock: {item.stockInicial} mg</span>
                       <span className="badge badge-gray">Frasco {item.frasco}</span>
@@ -269,6 +273,7 @@ export default function Aprobaciones() {
                     <>
                       <span className="badge badge-purple">{item.fase} · {item.tamanoParticula}</span>
                       <span className="badge badge-gray">Límite: {item.limiteInyecciones} iny.</span>
+                      {item.fabricante && <span className="badge badge-gray">{item.fabricante}</span>}
                     </>
                   )}
                   {item.modulo === 'reactivos' && (
@@ -311,7 +316,7 @@ export default function Aprobaciones() {
               </div>
 
               {/* Botones de acción */}
-              {!esRechazando && puedeEsteAprobar && (
+              {!esRechazando && puedeEste && (
                 <div style={{display:'flex',gap:6,flexShrink:0}}>
                   <button
                     className="btn btn-sm"
