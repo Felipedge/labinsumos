@@ -16,6 +16,7 @@ import Escanear from './pages/Escanear'
 import Usuarios from './pages/Usuarios'
 import Metodos from './pages/Metodos'
 import Aprobaciones from './pages/Aprobaciones'
+import Aprobaciones from './pages/Aprobaciones'
 import './index.css'
 
 function ProtectedRoute({ children }) {
@@ -51,6 +52,7 @@ function App() {
             <Route path="escanear"      element={<Escanear />} />
             <Route path="metodos"       element={<Metodos />} />
             <Route path="aprobaciones"  element={<Aprobaciones />} />
+            <Route path="reportes" element={<Reportes />} />
             <Route path="usuarios"      element={<Usuarios />} />
           </Route>
         </Routes>
