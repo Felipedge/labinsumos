@@ -3,17 +3,9 @@
 import {
   collection, doc, addDoc, updateDoc, deleteDoc,
   getDocs, getDoc, query, where, orderBy, serverTimestamp,
-  onSnapshot, limit, writeBatch
+  onSnapshot, limit
 } from 'firebase/firestore'
 import { db } from './firebase'
-
-// ── Colecciones ───────────────────────────────────────────────
-// estandares/   → viales de estándares (migrado desde Estándares_.xlsx)
-// columnas/     → columnas cromatográficas por cliente
-// reactivos/    → reactivos e insumos del lab
-// placebo/      → lotes de placebo por producto
-// usos/         → registro unificado de todos los usos (trazabilidad)
-// usuarios/     → perfil y permisos por analista
 
 // ─────────────────────────────────────────────────────────────
 // ESTÁNDARES
@@ -34,47 +26,45 @@ export async function getEstandares(filtros = {}) {
 export async function crearEstandar(data, usuarioEmail) {
   return addDoc(collection(db, 'estandares'), {
     ...data,
-    creadoPor:  usuarioEmail,
-    creadoEn:   serverTimestamp(),
+    creadoPor:     usuarioEmail,
+    creadoEn:      serverTimestamp(),
     actualizadoEn: serverTimestamp(),
   })
 }
 
 export async function registrarPesada({ estandarId, mgPesados, nAnalisis, producto, analista, email }) {
-  const batch = writeBatch(db)
-
-  // 1. Descontar stock del vial
-  const ref = doc(db, 'estandares', estandarId)
+  const ref  = doc(db, 'estandares', estandarId)
   const snap = await getDoc(ref)
   if (!snap.exists()) throw new Error('Estándar no encontrado')
   const actual = snap.data()
-  const nuevoStock = Math.max(0, (actual.stockRestante || 0) - mgPesados)
-  const nuevoEstado = nuevoStock === 0 ? 'SIN STOCK' : actual.estado
 
-  batch.update(ref, {
-    stockRestante:    nuevoStock,
-    estado:           nuevoEstado,
-    ultimoUso:        serverTimestamp(),
-    actualizadoEn:    serverTimestamp(),
+  const nuevoStock  = Math.max(0, (actual.stockRestante || 0) - mgPesados)
+  const nuevoEstado = nuevoStock === 0 ? 'Sin stock' : actual.estado
+
+  // Actualizar stock del estándar
+  await updateDoc(ref, {
+    stockRestante: nuevoStock,
+    estado:        nuevoEstado,
+    ultimoUso:     serverTimestamp(),
+    actualizadoEn: serverTimestamp(),
   })
 
-  // 2. Registrar en historial de usos
-  const usoRef = doc(collection(db, 'usos'))
-  batch.set(usoRef, {
-    tipo:        'estandar',
-    insumoId:    estandarId,
-    insumoNombre: actual.nombre,
-    insumoCode:  actual.codigo,
-    cliente:     actual.cliente,
+  // Registrar en historial de usos
+  await addDoc(collection(db, 'usos_estandares'), {
+    estandarId,
+    codigo:       actual.codigo,
+    nombre:       actual.nombre,
+    cliente:      actual.cliente,
     mgPesados,
-    nAnalisis:   nAnalisis || '',
-    producto:    producto || '',
+    stockAntes:   actual.stockRestante,
+    stockDespues: nuevoStock,
+    nAnalisis:    nAnalisis || '',
+    producto:     producto || '',
     analista,
     email,
-    fecha:       serverTimestamp(),
+    fecha:        serverTimestamp(),
   })
 
-  await batch.commit()
   return { nuevoStock, nuevoEstado }
 }
 
@@ -84,7 +74,7 @@ export async function registrarPesada({ estandarId, mgPesados, nAnalisis, produc
 export async function getColumnas(filtros = {}) {
   let constraints = [orderBy('cliente')]
   if (filtros.cliente) constraints.push(where('cliente', '==', filtros.cliente))
-  if (filtros.estado)  constraints.push(where('estado', '==', filtros.estado))
+  if (filtros.estado)  constraints.push(where('estado',  '==', filtros.estado))
   const q = query(collection(db, 'columnas'), ...constraints)
   const snap = await getDocs(q)
   return snap.docs.map(d => ({ id: d.id, ...d.data() }))
@@ -94,18 +84,16 @@ export async function crearColumna(data, usuarioEmail) {
   return addDoc(collection(db, 'columnas'), {
     ...data,
     inyeccionesAcumuladas: 0,
-    historialClientes: [{ cliente: data.cliente, proyecto: data.producto, desde: new Date().toISOString() }],
-    estado:     'ACTIVA',
-    creadoPor:  usuarioEmail,
-    creadoEn:   serverTimestamp(),
+    historialClientes: [{ cliente: data.cliente, proyecto: data.producto || '', desde: new Date().toISOString() }],
+    creadoPor:     usuarioEmail,
+    creadoEn:      serverTimestamp(),
     actualizadoEn: serverTimestamp(),
   })
 }
 
 export async function registrarUsoColumna({ columnaId, inyecciones, nAnalisis, analista, email }) {
-  const batch = writeBatch(db)
-  const ref   = doc(db, 'columnas', columnaId)
-  const snap  = await getDoc(ref)
+  const ref  = doc(db, 'columnas', columnaId)
+  const snap = await getDoc(ref)
   if (!snap.exists()) throw new Error('Columna no encontrada')
   const actual = snap.data()
 
@@ -114,28 +102,29 @@ export async function registrarUsoColumna({ columnaId, inyecciones, nAnalisis, a
   const pct = nuevasInyecciones / limiteInyecciones
   const nuevoEstado = pct >= 1 ? 'DADA DE BAJA' : pct >= 0.9 ? 'CRÍTICA' : 'ACTIVA'
 
-  batch.update(ref, {
+  // Actualizar columna
+  await updateDoc(ref, {
     inyeccionesAcumuladas: nuevasInyecciones,
     ultimoUso:             serverTimestamp(),
     estado:                nuevoEstado,
     actualizadoEn:         serverTimestamp(),
   })
 
-  const usoRef = doc(collection(db, 'usos'))
-  batch.set(usoRef, {
-    tipo:         'columna',
-    insumoId:     columnaId,
-    insumoNombre: `${actual.fase} ${actual.tamanoParticula} — ${actual.cliente}`,
-    insumoCode:   actual.codigo,
+  // Registrar en historial
+  await addDoc(collection(db, 'usos_columnas'), {
+    columnaId,
+    codigo:       actual.codigo,
+    fase:         actual.fase,
+    tamano:       actual.tamanoParticula,
     cliente:      actual.cliente,
     inyecciones,
+    totalAcum:    nuevasInyecciones,
     nAnalisis:    nAnalisis || '',
     analista,
     email,
     fecha:        serverTimestamp(),
   })
 
-  await batch.commit()
   return { nuevasInyecciones, nuevoEstado }
 }
 
@@ -145,7 +134,12 @@ export async function reasignarColumna(columnaId, { cliente, producto }) {
   const snap = await getDoc(ref)
   const hist = snap.data().historialClientes || []
   hist.push({ cliente, proyecto: producto, desde: new Date().toISOString() })
-  await updateDoc(ref, { cliente, producto, historialClientes: hist, actualizadoEn: serverTimestamp() })
+  await updateDoc(ref, {
+    cliente,
+    producto,
+    historialClientes: hist,
+    actualizadoEn:     serverTimestamp(),
+  })
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -162,46 +156,46 @@ export async function getReactivos(filtros = {}) {
 export async function crearReactivo(data, usuarioEmail) {
   return addDoc(collection(db, 'reactivos'), {
     ...data,
-    creadoPor:  usuarioEmail,
-    creadoEn:   serverTimestamp(),
+    creadoPor:     usuarioEmail,
+    creadoEn:      serverTimestamp(),
     actualizadoEn: serverTimestamp(),
   })
 }
 
 export async function registrarRetiroReactivo({ reactivoId, cantidad, unidad, nAnalisis, analista, email }) {
-  const batch = writeBatch(db)
-  const ref   = doc(db, 'reactivos', reactivoId)
-  const snap  = await getDoc(ref)
+  const ref  = doc(db, 'reactivos', reactivoId)
+  const snap = await getDoc(ref)
   if (!snap.exists()) throw new Error('Reactivo no encontrado')
   const actual = snap.data()
 
-  const nuevoStock = Math.max(0, (actual.stockRestante || 0) - cantidad)
-  const nuevoEstado = nuevoStock === 0 ? 'SIN STOCK'
-    : nuevoStock <= (actual.stockMinimo || 0) ? 'STOCK BAJO'
+  const nuevoStock  = Math.max(0, (actual.stockRestante || 0) - cantidad)
+  const nuevoEstado = nuevoStock === 0           ? 'SIN STOCK'
+    : nuevoStock <= (actual.stockMinimo || 0)    ? 'STOCK BAJO'
     : 'ACTIVO'
 
-  batch.update(ref, {
+  // Actualizar reactivo
+  await updateDoc(ref, {
     stockRestante: nuevoStock,
     estado:        nuevoEstado,
     ultimoUso:     serverTimestamp(),
     actualizadoEn: serverTimestamp(),
   })
 
-  const usoRef = doc(collection(db, 'usos'))
-  batch.set(usoRef, {
-    tipo:         'reactivo',
-    insumoId:     reactivoId,
-    insumoNombre: actual.nombre,
-    insumoCode:   actual.codigo,
+  // Registrar en historial
+  await addDoc(collection(db, 'usos_reactivos'), {
+    reactivoId,
+    codigo:       actual.codigo,
+    nombre:       actual.nombre,
     cantidad,
-    unidad,
+    unidad:       unidad || actual.unidad,
+    stockAntes:   actual.stockRestante,
+    stockDespues: nuevoStock,
     nAnalisis:    nAnalisis || '',
     analista,
     email,
     fecha:        serverTimestamp(),
   })
 
-  await batch.commit()
   return { nuevoStock, nuevoEstado }
 }
 
@@ -219,59 +213,59 @@ export async function getPlacebos(filtros = {}) {
 export async function crearPlacebo(data, usuarioEmail) {
   return addDoc(collection(db, 'placebo'), {
     ...data,
-    creadoPor:  usuarioEmail,
-    creadoEn:   serverTimestamp(),
+    creadoPor:     usuarioEmail,
+    creadoEn:      serverTimestamp(),
     actualizadoEn: serverTimestamp(),
   })
 }
 
 export async function registrarUsoPlacebo({ placeboId, unidades, nAnalisis, analista, email }) {
-  const batch  = writeBatch(db)
-  const ref    = doc(db, 'placebo', placeboId)
-  const snap   = await getDoc(ref)
+  const ref  = doc(db, 'placebo', placeboId)
+  const snap = await getDoc(ref)
   if (!snap.exists()) throw new Error('Placebo no encontrado')
   const actual = snap.data()
 
   const nuevoStock  = Math.max(0, (actual.stockUnidades || 0) - unidades)
   const nuevoEstado = nuevoStock === 0 ? 'SIN STOCK' : actual.estado
 
-  batch.update(ref, {
+  // Actualizar placebo
+  await updateDoc(ref, {
     stockUnidades: nuevoStock,
     ultimoUso:     serverTimestamp(),
     estado:        nuevoEstado,
     actualizadoEn: serverTimestamp(),
   })
 
-  const usoRef = doc(collection(db, 'usos'))
-  batch.set(usoRef, {
-    tipo:         'placebo',
-    insumoId:     placeboId,
-    insumoNombre: actual.productoReferencia,
-    insumoCode:   actual.codigo,
-    cliente:      actual.cliente,
+  // Registrar en historial
+  await addDoc(collection(db, 'usos_placebo'), {
+    placeboId,
+    codigo:             actual.codigo,
+    productoReferencia: actual.productoReferencia,
+    cliente:            actual.cliente,
     unidades,
-    nAnalisis:    nAnalisis || '',
+    stockAntes:         actual.stockUnidades,
+    stockDespues:       nuevoStock,
+    nAnalisis:          nAnalisis || '',
     analista,
     email,
-    fecha:        serverTimestamp(),
+    fecha:              serverTimestamp(),
   })
 
-  await batch.commit()
   return { nuevoStock, nuevoEstado }
 }
 
 // ─────────────────────────────────────────────────────────────
-// ALERTAS (calculadas en cliente, no stored)
+// ALERTAS (calculadas en cliente)
 // ─────────────────────────────────────────────────────────────
 export function calcularSemaforo(fechaVencimiento, diasCritico = 30, diasAdv = 60) {
   if (!fechaVencimiento) return { texto: 'Sin fecha', color: 'gray', dias: null }
-  const hoy  = new Date(); hoy.setHours(0, 0, 0, 0)
+  const hoy   = new Date(); hoy.setHours(0, 0, 0, 0)
   const vence = fechaVencimiento instanceof Date ? fechaVencimiento : new Date(fechaVencimiento)
   const dias  = Math.round((vence - hoy) / 86400000)
-  if (dias < 0)           return { texto: 'Vencido',            color: 'danger', dias }
-  if (dias <= diasCritico) return { texto: `${dias} días`,      color: 'danger', dias }
-  if (dias <= diasAdv)     return { texto: `${dias} días`,      color: 'warning', dias }
-  return                          { texto: `${dias} días`,      color: 'success', dias }
+  if (dias < 0)            return { texto: 'Vencido',       color: 'danger',  dias }
+  if (dias <= diasCritico) return { texto: `${dias} días`,  color: 'danger',  dias }
+  if (dias <= diasAdv)     return { texto: `${dias} días`,  color: 'warning', dias }
+  return                          { texto: `${dias} días`,  color: 'success', dias }
 }
 
 export function calcularSemaforoColumna(inyecciones, limite = 1500) {
@@ -283,11 +277,11 @@ export function calcularSemaforoColumna(inyecciones, limite = 1500) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// HISTORIAL DE USOS (trazabilidad completa)
+// HISTORIAL DE USOS
 // ─────────────────────────────────────────────────────────────
-export async function getUsosPorInsumo(insumoId, limitN = 20) {
+export async function getUsosPorInsumo(insumoId, coleccion = 'usos_estandares', limitN = 20) {
   const q = query(
-    collection(db, 'usos'),
+    collection(db, coleccion),
     where('insumoId', '==', insumoId),
     orderBy('fecha', 'desc'),
     limit(limitN)
@@ -296,8 +290,8 @@ export async function getUsosPorInsumo(insumoId, limitN = 20) {
   return snap.docs.map(d => ({ id: d.id, ...d.data() }))
 }
 
-export async function getUsosRecientes(limitN = 50) {
-  const q = query(collection(db, 'usos'), orderBy('fecha', 'desc'), limit(limitN))
+export async function getUsosRecientes(coleccion = 'usos_estandares', limitN = 50) {
+  const q = query(collection(db, coleccion), orderBy('fecha', 'desc'), limit(limitN))
   const snap = await getDocs(q)
   return snap.docs.map(d => ({ id: d.id, ...d.data() }))
 }
@@ -305,7 +299,7 @@ export async function getUsosRecientes(limitN = 50) {
 // Listener en tiempo real para el dashboard
 export function suscribirAlertas(callback) {
   return onSnapshot(
-    query(collection(db, 'estandares'), where('estado', 'in', ['EN USO', 'CERRADO'])),
+    query(collection(db, 'estandares'), where('estado', 'in', ['En uso', 'Cerrado'])),
     snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() })))
   )
 }
