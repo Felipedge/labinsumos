@@ -218,18 +218,18 @@ function generarPDF(cliente, estandares) {
     doc.setFont('helvetica', 'normal')
 
     const leyenda = [
-      { color: [220, 53, 69],  texto: 'Crítico: vence en ≤30 días o USP con revisión vencida' },
-      { color: [180, 120, 0],  texto: 'Advertencia: vence en 31-60 días' },
-      { color: [40, 167, 69],  texto: 'Vigente: vence en >60 días' },
+      { color: [220, 53, 69],  texto: 'Crítico: vence en 30 días o menos, o USP con revisión vencida' },
+      { color: [180, 120, 0],  texto: 'Advertencia: vence entre 31 y 60 días' },
+      { color: [40, 167, 69],  texto: 'Vigente: vence en más de 60 días' },
       { color: [13, 110, 253], texto: 'USP: estándar con verificación periódica en catálogo USP' },
     ]
 
     leyenda.forEach((l, i) => {
-      const x = 12 + (i * 68)
+      const y = finalY + 4 + (i * 6)
       doc.setFillColor(...l.color)
-      doc.rect(x, finalY + 3, 4, 4, 'F')
+      doc.rect(12, y - 3, 4, 4, 'F')
       doc.setTextColor(...l.color)
-      doc.text(l.texto, x + 6, finalY + 7, { maxWidth: 60 })
+      doc.text(l.texto, 18, y, { maxWidth: 250 })
     })
   }
 
