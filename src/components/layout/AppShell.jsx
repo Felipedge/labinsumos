@@ -9,7 +9,7 @@ import { db } from '../../lib/firebase'
 import {
   LayoutDashboard, FlaskConical, Cylinder, Droplets,
   Pill, Bell, ScanLine, LogOut, Users, BookOpen,
-  ClipboardCheck, Pencil, Check, X, BarChart2
+  ClipboardCheck, Pencil, Check, X, BarChart2, ClipboardList
 } from 'lucide-react'
 
 const ETIQUETAS_ROL = {
@@ -164,6 +164,11 @@ export default function AppShell() {
           {puedoHacer(rol, 'exportar') && (
             <NavLink to="/reportes" className={({ isActive }) => `nav-link${isActive?' active':''}`}>
               <BarChart2 size={16}/> Reportes
+            </NavLink>
+          )}
+          {(rol === 'admin' || rol === 'jefe') && (
+            <NavLink to="/auditlog" className={({ isActive }) => `nav-link${isActive?' active':''}`}>
+              <ClipboardList size={16}/> Auditoría
             </NavLink>
           )}
           {puedeAprobar && (
