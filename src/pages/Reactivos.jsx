@@ -4,7 +4,7 @@ import { getReactivos, crearReactivo, registrarRetiroReactivo, calcularSemaforo 
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useRole } from '../hooks/useRole.jsx'
 import { puedoHacer } from '../lib/roles'
-import { Plus, FileText } from 'lucide-react'
+import { Plus, FileText, Search } from 'lucide-react'
 import DocumentosPanel from '../components/shared/DocumentosPanel.jsx'
 
 const CATEGORIAS = ['HPLC','Solventes','Sales / buffer','Ácidos','Bases','Indicadores','Otro']
@@ -24,6 +24,9 @@ export default function Reactivos() {
   const [msg, setMsg]             = useState('')
   const [filtro, setFiltro]       = useState('')
   const [docInsumo, setDocInsumo] = useState(null)
+  const [search, setSearch]       = useState('')
+  const [ordenCampo, setOrdenCampo] = useState('nombre')
+  const [ordenDir, setOrdenDir]     = useState('asc')
 
   const load = async () => {
     try { setItems(await getReactivos()) }
@@ -71,13 +74,39 @@ export default function Reactivos() {
     } catch(e) { setMsg(e.message) }
   }
 
-  const filtrados = filtro ? items.filter(r => r.categoria === filtro) : items
+  const toggleOrden = (campo) => {
+    if (ordenCampo === campo) setOrdenDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setOrdenCampo(campo); setOrdenDir('asc') }
+  }
+
+  const filtrados = items
+    .filter(r => {
+      const q = search.toLowerCase()
+      const matchQ = !q || r.codigo?.toLowerCase().includes(q) || r.nombre?.toLowerCase().includes(q)
+      const matchC = !filtro || r.categoria === filtro
+      return matchQ && matchC
+    })
+    .sort((a, b) => {
+      let valA, valB
+      if (ordenCampo === 'nombre') {
+        valA = a.nombre?.toLowerCase() || ''
+        valB = b.nombre?.toLowerCase() || ''
+      } else if (ordenCampo === 'codigo') {
+        valA = a.codigo?.toLowerCase() || ''
+        valB = b.codigo?.toLowerCase() || ''
+      } else if (ordenCampo === 'vencimiento') {
+        valA = a.fechaVencimiento?.toDate?.()?.getTime() || (a.fechaVencimiento ? new Date(a.fechaVencimiento).getTime() : 0)
+        valB = b.fechaVencimiento?.toDate?.()?.getTime() || (b.fechaVencimiento ? new Date(b.fechaVencimiento).getTime() : 0)
+      }
+      if (valA < valB) return ordenDir === 'asc' ? -1 : 1
+      if (valA > valB) return ordenDir === 'asc' ? 1 : -1
+      return 0
+    })
 
   if (loading) return <div style={{display:'flex',justifyContent:'center',padding:40}}><div className="spinner"/></div>
 
   return (
     <>
-      {/* Modal documentos */}
       {docInsumo && (
         <DocumentosPanel
           insumoId={docInsumo.id}
@@ -107,7 +136,7 @@ export default function Reactivos() {
             <div className="form-group"><label>Categoría</label>
               <select onChange={f('categoria')}><option value="">Seleccionar...</option>{CATEGORIAS.map(c=><option key={c}>{c}</option>)}</select>
             </div>
-            <div className="form-group"><label>Grado / calidad</label><input placeholder="ej: HPLC, PA, Reactivo" onChange={f('grado')} /></div>
+            <div className="form-group"><label>Grado / calidad</label><input placeholder="ej: HPLC, PA" onChange={f('grado')} /></div>
             <div className="form-group"><label>Fabricante</label><input onChange={f('fabricante')} /></div>
             <div className="form-group"><label>Stock inicial</label><input type="number" step="0.01" onChange={f('stock')} /></div>
             <div className="form-group"><label>Unidad</label>
@@ -115,7 +144,7 @@ export default function Reactivos() {
             </div>
             <div className="form-group"><label>Stock mínimo alerta</label><input type="number" step="0.01" onChange={f('minimo')} /></div>
             <div className="form-group"><label>Fecha vencimiento</label><input type="date" onChange={f('vencimiento')} /></div>
-            <div className="form-group"><label>Almacenamiento</label><input placeholder="ej: Solventes, Ácidos, Freezer" onChange={f('almacen')} /></div>
+            <div className="form-group"><label>Almacenamiento</label><input placeholder="ej: Solventes, Ácidos" onChange={f('almacen')} /></div>
           </div>
           <div style={{ display:'flex', gap:8 }}>
             <button className="btn btn-primary btn-sm" onClick={guardar}>Guardar</button>
@@ -142,11 +171,29 @@ export default function Reactivos() {
         </div>
       )}
 
+      {/* Filtros por categoría */}
       <div style={{ display:'flex', gap:8, marginBottom:12, flexWrap:'wrap' }}>
         {['', ...CATEGORIAS].map(c => (
           <button key={c} className="btn btn-sm"
             style={filtro===c?{background:'var(--accent-lt)',color:'var(--accent)',borderColor:'var(--accent)'}:{}}
             onClick={() => setFiltro(c)}>{c || 'Todos'}</button>
+        ))}
+      </div>
+
+      {/* Barra búsqueda y ordenamiento */}
+      <div className="search-bar">
+        <Search size={16} style={{color:'var(--text-3)',flexShrink:0}}/>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por código o nombre..." style={{flex:1}}/>
+        {[
+          { campo:'nombre',      label:'Nombre' },
+          { campo:'codigo',      label:'Código' },
+          { campo:'vencimiento', label:'Vencimiento' },
+        ].map(o => (
+          <button key={o.campo} className="btn btn-sm"
+            style={ordenCampo===o.campo?{background:'var(--accent-lt)',color:'var(--accent)',borderColor:'var(--accent)'}:{}}
+            onClick={()=>toggleOrden(o.campo)}>
+            {o.label} {ordenCampo===o.campo?(ordenDir==='asc'?'↑':'↓'):'↕'}
+          </button>
         ))}
       </div>
 
@@ -180,6 +227,9 @@ export default function Reactivos() {
                 </tr>
               )
             })}
+            {filtrados.length === 0 && (
+              <tr><td colSpan={8} style={{textAlign:'center',padding:24,color:'var(--text-3)'}}>No hay reactivos que coincidan</td></tr>
+            )}
           </tbody>
         </table>
       </div>
@@ -190,6 +240,4 @@ export default function Reactivos() {
 const DEMO_R = [
   { id:'1', codigo:'REA-041', nombre:'Acetonitrilo', categoria:'HPLC', grado:'HPLC', stockRestante:2.1, unidad:'L', fechaVencimiento:'2026-06-22', estado:'ACTIVO' },
   { id:'2', codigo:'REA-018', nombre:'Metanol', categoria:'HPLC', grado:'HPLC', stockRestante:8.5, unidad:'L', fechaVencimiento:'2027-01-15', estado:'ACTIVO' },
-  { id:'3', codigo:'REA-027', nombre:'Ác. Fosfórico 85%', categoria:'Ácidos', grado:'PA', stockRestante:0.4, unidad:'L', fechaVencimiento:'2026-05-28', estado:'STOCK BAJO' },
-  { id:'4', codigo:'REA-055', nombre:'Fosfato monobásico', categoria:'Sales / buffer', grado:'PA', stockRestante:320, unidad:'g', fechaVencimiento:'2026-09-30', estado:'ACTIVO' },
 ]
