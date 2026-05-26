@@ -796,15 +796,32 @@ export default function Estandares() {
           )}
 
           {/* Barra búsqueda */}
-          <div className="search-bar">
-            <Search size={16} style={{color:'var(--text-3)',flexShrink:0}}/>
-            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por código, nombre o cliente..." style={{flex:1}}/>
-            {!verPapelera && (
-              <select value={filtroEst} onChange={e=>setFiltroEst(e.target.value)}>
-                <option value="">Todos los estados</option>
-                {ESTADOS.filter(e=>e!=='Dado de baja').map(e=><option key={e}>{e}</option>)}
-              </select>
-            )}
+          {/* Barra búsqueda y ordenamiento */}
+          <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:12}}>
+            <div className="search-bar">
+              <Search size={16} style={{color:'var(--text-3)',flexShrink:0}}/>
+              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por código, nombre o cliente..." style={{flex:1}}/>
+              {!verPapelera && (
+                <select value={filtroEst} onChange={e=>setFiltroEst(e.target.value)}>
+                  <option value="">Todos los estados</option>
+                  {ESTADOS.filter(e=>e!=='Dado de baja').map(e=><option key={e}>{e}</option>)}
+                </select>
+              )}
+            </div>
+            <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+              <span style={{fontSize:11,color:'var(--text-2)',alignSelf:'center'}}>Ordenar por:</span>
+              {[
+                { campo:'nombre',      label:'Nombre' },
+                { campo:'codigo',      label:'Código' },
+                { campo:'vencimiento', label:'Vencimiento' },
+              ].map(o => (
+                <button key={o.campo} className="btn btn-sm"
+                  style={ordenCampo===o.campo?{background:'var(--accent-lt)',color:'var(--accent)',borderColor:'var(--accent)'}:{}}
+                  onClick={()=>toggleOrden(o.campo)}>
+                  {o.label} {ordenCampo===o.campo?(ordenDir==='asc'?'↑':'↓'):'↕'}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Tabla */}
