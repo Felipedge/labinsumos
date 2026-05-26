@@ -4,7 +4,7 @@ import { getPlacebos, crearPlacebo, registrarUsoPlacebo, calcularSemaforo } from
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useRole } from '../hooks/useRole.jsx'
 import { puedoHacer } from '../lib/roles'
-import { Plus, FileText } from 'lucide-react'
+import { Plus, FileText, Search } from 'lucide-react'
 import DocumentosPanel from '../components/shared/DocumentosPanel.jsx'
 
 const CLIENTES   = ['Ascend','Galenicum','Grunenthal','Laboratorio Chile','Novartis','Seven Pharma','Emcure','Otro']
@@ -23,6 +23,9 @@ export default function Placebo() {
   const [form, setForm]           = useState({})
   const [msg, setMsg]             = useState('')
   const [docInsumo, setDocInsumo] = useState(null)
+  const [search, setSearch]       = useState('')
+  const [ordenCampo, setOrdenCampo] = useState('productoReferencia')
+  const [ordenDir, setOrdenDir]     = useState('asc')
 
   const load = async () => {
     try { setItems(await getPlacebos()) }
@@ -37,17 +40,13 @@ export default function Placebo() {
     if (!form.codigo || !form.productoReferencia || !form.cliente) { setMsg('Código, producto y cliente son obligatorios'); return }
     try {
       await crearPlacebo({
-        codigo:             form.codigo,
-        productoReferencia: form.productoReferencia,
-        cliente:            form.cliente,
-        lote:               form.lote || '',
-        formaFarmaceutica:  form.forma || '',
-        dosis:              form.dosis || '',
-        stockUnidades:      parseInt(form.stock) || 0,
-        fechaVencimiento:   form.vencimiento || null,
-        almacenamiento:     form.almacen || 'Temperatura ambiente',
-        estado:             'Pendiente de aprobación',
-        creadoPorRol:       rol,
+        codigo: form.codigo, productoReferencia: form.productoReferencia,
+        cliente: form.cliente, lote: form.lote || '',
+        formaFarmaceutica: form.forma || '', dosis: form.dosis || '',
+        stockUnidades: parseInt(form.stock) || 0,
+        fechaVencimiento: form.vencimiento || null,
+        almacenamiento: form.almacen || 'Temperatura ambiente',
+        estado: 'Pendiente de aprobación', creadoPorRol: rol,
       }, user.email)
       setShowForm(false); setForm({}); setMsg(''); load()
     } catch(e) { setMsg(e.message) }
@@ -57,28 +56,53 @@ export default function Placebo() {
     if (!usoId || !form.unidades) { setMsg('Ingresa las unidades'); return }
     try {
       await registrarUsoPlacebo({
-        placeboId: usoId,
-        unidades:  parseInt(form.unidades),
+        placeboId: usoId, unidades: parseInt(form.unidades),
         nAnalisis: form.nAnalisis || '',
-        analista:  user.displayName || user.email,
-        email:     user.email,
+        analista: user.displayName || user.email, email: user.email,
       })
       setUsoId(null); setForm({}); setMsg(''); load()
     } catch(e) { setMsg(e.message) }
   }
 
+  const toggleOrden = (campo) => {
+    if (ordenCampo === campo) setOrdenDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setOrdenCampo(campo); setOrdenDir('asc') }
+  }
+
+  const filtrados = items
+    .filter(p => {
+      const q = search.toLowerCase()
+      return !q ||
+        p.codigo?.toLowerCase().includes(q) ||
+        p.productoReferencia?.toLowerCase().includes(q) ||
+        p.cliente?.toLowerCase().includes(q)
+    })
+    .sort((a, b) => {
+      let valA, valB
+      if (ordenCampo === 'productoReferencia') {
+        valA = a.productoReferencia?.toLowerCase() || ''
+        valB = b.productoReferencia?.toLowerCase() || ''
+      } else if (ordenCampo === 'codigo') {
+        valA = a.codigo?.toLowerCase() || ''
+        valB = b.codigo?.toLowerCase() || ''
+      } else if (ordenCampo === 'vencimiento') {
+        valA = a.fechaVencimiento?.toDate?.()?.getTime() || (a.fechaVencimiento ? new Date(a.fechaVencimiento).getTime() : 9999999999999)
+        valB = b.fechaVencimiento?.toDate?.()?.getTime() || (b.fechaVencimiento ? new Date(b.fechaVencimiento).getTime() : 9999999999999)
+        return ordenDir === 'asc' ? valA - valB : valB - valA
+      }
+      if (valA < valB) return ordenDir === 'asc' ? -1 : 1
+      if (valA > valB) return ordenDir === 'asc' ? 1 : -1
+      return 0
+    })
+
   if (loading) return <div style={{display:'flex',justifyContent:'center',padding:40}}><div className="spinner"/></div>
 
   return (
     <>
-      {/* Modal documentos */}
       {docInsumo && (
-        <DocumentosPanel
-          insumoId={docInsumo.id}
-          modulo="placebo"
+        <DocumentosPanel insumoId={docInsumo.id} modulo="placebo"
           nombreInsumo={`${docInsumo.productoReferencia} — ${docInsumo.codigo}`}
-          onClose={()=>setDocInsumo(null)}
-        />
+          onClose={()=>setDocInsumo(null)} />
       )}
 
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
@@ -107,7 +131,7 @@ export default function Placebo() {
             <div className="form-group"><label>Dosis</label><input placeholder="ej: 100 mg" onChange={f('dosis')} /></div>
             <div className="form-group"><label>Stock inicial (unidades)</label><input type="number" onChange={f('stock')} /></div>
             <div className="form-group"><label>Fecha vencimiento</label><input type="date" onChange={f('vencimiento')} /></div>
-            <div className="form-group"><label>Almacenamiento</label><input placeholder="ej: Temperatura ambiente, Refrigerador" onChange={f('almacen')} /></div>
+            <div className="form-group"><label>Almacenamiento</label><input placeholder="ej: Temperatura ambiente" onChange={f('almacen')} /></div>
           </div>
           <div style={{ display:'flex', gap:8 }}>
             <button className="btn btn-primary btn-sm" onClick={guardar}>Guardar lote</button>
@@ -131,11 +155,28 @@ export default function Placebo() {
         </div>
       )}
 
+      {/* Barra búsqueda y ordenamiento */}
+      <div className="search-bar">
+        <Search size={16} style={{color:'var(--text-3)',flexShrink:0}}/>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por código, producto o cliente..." style={{flex:1}}/>
+        {[
+          { campo:'productoReferencia', label:'Nombre' },
+          { campo:'codigo',             label:'Código' },
+          { campo:'vencimiento',        label:'Vencimiento' },
+        ].map(o => (
+          <button key={o.campo} className="btn btn-sm"
+            style={ordenCampo===o.campo?{background:'var(--accent-lt)',color:'var(--accent)',borderColor:'var(--accent)'}:{}}
+            onClick={()=>toggleOrden(o.campo)}>
+            {o.label} {ordenCampo===o.campo?(ordenDir==='asc'?'↑':'↓'):'↕'}
+          </button>
+        ))}
+      </div>
+
       <div className="table-wrap">
         <table>
           <thead><tr><th>Código</th><th>Producto</th><th>Cliente</th><th>Forma farm.</th><th>Stock (unid.)</th><th>Vencimiento</th><th>Estado</th><th></th></tr></thead>
           <tbody>
-            {items.map(p => {
+            {filtrados.map(p => {
               const vence = p.fechaVencimiento?.toDate?.() || (p.fechaVencimiento ? new Date(p.fechaVencimiento) : null)
               const sem   = calcularSemaforo(vence)
               const badgeCls = sem.color==='danger'?'badge-danger':sem.color==='warning'?'badge-warn':sem.color==='success'?'badge-ok':'badge-gray'
@@ -150,7 +191,7 @@ export default function Placebo() {
                   <td>{vence ? <span className={`badge ${badgeCls}`}>{sem.texto}</span> : <span style={{color:'var(--text-3)'}}>—</span>}</td>
                   <td>
                     {esPendiente
-                      ? <span className="badge badge-warn">Pendiente de aprobación</span>
+                      ? <span className="badge badge-warn">Pendiente</span>
                       : <span className={p.estado==='ACTIVO'?'badge badge-ok':'badge badge-danger'}>{p.estado}</span>
                     }
                   </td>
@@ -165,6 +206,9 @@ export default function Placebo() {
                 </tr>
               )
             })}
+            {filtrados.length === 0 && (
+              <tr><td colSpan={8} style={{textAlign:'center',padding:24,color:'var(--text-3)'}}>No hay lotes que coincidan</td></tr>
+            )}
           </tbody>
         </table>
       </div>
@@ -175,6 +219,4 @@ export default function Placebo() {
 const DEMO_P = [
   { id:'1', codigo:'PL-018', productoReferencia:'Cilosvitae 100 mg', cliente:'Galenicum', formaFarmaceutica:'Comprimido', stockUnidades:80, fechaVencimiento:'2026-07-10', estado:'ACTIVO' },
   { id:'2', codigo:'PL-024', productoReferencia:'Irbevitae 150 mg', cliente:'Galenicum', formaFarmaceutica:'Comprimido', stockUnidades:200, fechaVencimiento:'2027-03-30', estado:'ACTIVO' },
-  { id:'3', codigo:'PL-031', productoReferencia:'Heparina 5.000 UI', cliente:'Ascend', formaFarmaceutica:'Inyectable', stockUnidades:24, fechaVencimiento:'2026-09-15', estado:'ACTIVO' },
-  { id:'4', codigo:'PL-009', productoReferencia:'Amoxicilina 500 mg', cliente:'Seven Pharma', formaFarmaceutica:'Cápsula', stockUnidades:6, fechaVencimiento:'2026-05-28', estado:'ACTIVO' },
 ]

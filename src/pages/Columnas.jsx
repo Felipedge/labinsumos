@@ -4,7 +4,7 @@ import { getColumnas, crearColumna, registrarUsoColumna, calcularSemaforoColumna
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useRole } from '../hooks/useRole.jsx'
 import { puedoHacer } from '../lib/roles'
-import { Plus, FileText } from 'lucide-react'
+import { Plus, FileText, Search } from 'lucide-react'
 import DocumentosPanel from '../components/shared/DocumentosPanel.jsx'
 
 const CLIENTES  = ['Ascend','Galenicum','Grunenthal','Bamberg','Labomed','Laboratorio Chile','Novartis','Seven Pharma','Emcure','Prater','Otro']
@@ -14,13 +14,11 @@ const TAMANOS   = ['1.8µm','3µm','3.5µm','5µm','10µm']
 function ProgBar({ pct }) {
   const cls = pct >= 0.9 ? 'danger' : pct >= 0.75 ? 'warn' : 'ok'
   return (
-    <div>
-      <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-        <div className="prog" style={{ flex:1 }}>
-          <div className={`prog-fill ${cls}`} style={{ width:`${Math.min(100, Math.round(pct*100))}%` }} />
-        </div>
-        <span style={{ fontSize:11, color:'var(--text-2)', minWidth:32 }}>{Math.round(pct*100)}%</span>
+    <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+      <div className="prog" style={{ flex:1 }}>
+        <div className={`prog-fill ${cls}`} style={{ width:`${Math.min(100, Math.round(pct*100))}%` }} />
       </div>
+      <span style={{ fontSize:11, color:'var(--text-2)', minWidth:32 }}>{Math.round(pct*100)}%</span>
     </div>
   )
 }
@@ -38,6 +36,9 @@ export default function Columnas() {
   const [form, setForm]           = useState({})
   const [msg, setMsg]             = useState('')
   const [docInsumo, setDocInsumo] = useState(null)
+  const [search, setSearch]       = useState('')
+  const [ordenCampo, setOrdenCampo] = useState('codigo')
+  const [ordenDir, setOrdenDir]     = useState('asc')
 
   const load = async () => {
     try { setColumnas(await getColumnas()) }
@@ -82,11 +83,41 @@ export default function Columnas() {
     } catch(e) { setMsg(e.message) }
   }
 
+  // Filtrado y ordenamiento
+  const filtradas = columnas
+    .filter(c => {
+      const q = search.toLowerCase()
+      return !q ||
+        c.codigo?.toLowerCase().includes(q) ||
+        c.cliente?.toLowerCase().includes(q) ||
+        c.fase?.toLowerCase().includes(q)
+    })
+    .sort((a, b) => {
+      let valA, valB
+      if (ordenCampo === 'codigo') {
+        valA = a.codigo?.toLowerCase() || ''
+        valB = b.codigo?.toLowerCase() || ''
+      } else if (ordenCampo === 'cliente') {
+        valA = a.cliente?.toLowerCase() || ''
+        valB = b.cliente?.toLowerCase() || ''
+      } else if (ordenCampo === 'vencimiento') {
+        valA = a.fechaPrimerUso || ''
+        valB = b.fechaPrimerUso || ''
+      }
+      if (valA < valB) return ordenDir === 'asc' ? -1 : 1
+      if (valA > valB) return ordenDir === 'asc' ? 1 : -1
+      return 0
+    })
+
+  const toggleOrden = (campo) => {
+    if (ordenCampo === campo) setOrdenDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setOrdenCampo(campo); setOrdenDir('asc') }
+  }
+
   if (loading) return <div style={{display:'flex',justifyContent:'center',padding:40}}><div className="spinner"/></div>
 
   return (
     <>
-      {/* Modal documentos */}
       {docInsumo && (
         <DocumentosPanel
           insumoId={docInsumo.id}
@@ -114,7 +145,7 @@ export default function Columnas() {
             <div className="form-group"><label>Cliente *</label>
               <select onChange={f('cliente')}><option value="">Seleccionar...</option>{CLIENTES.map(c=><option key={c}>{c}</option>)}</select>
             </div>
-            <div className="form-group"><label>Producto / método</label><input placeholder="ej: Cilosvitae 100 — Valoración" onChange={f('producto')} /></div>
+            <div className="form-group"><label>Producto / método</label><input placeholder="ej: Cilosvitae 100" onChange={f('producto')} /></div>
             <div className="form-group"><label>Fase estacionaria *</label>
               <select onChange={f('fase')}><option value="">Seleccionar...</option>{FASES.map(f=><option key={f}>{f}</option>)}</select>
             </div>
@@ -122,7 +153,7 @@ export default function Columnas() {
               <select onChange={f('tamano')}>{TAMANOS.map(t=><option key={t}>{t}</option>)}</select>
             </div>
             <div className="form-group"><label>Dimensiones (mm)</label><input placeholder="ej: 150 x 4.6" onChange={f('dimensiones')} /></div>
-            <div className="form-group"><label>Fabricante</label><input placeholder="ej: Waters, Agilent, Phenomenex" onChange={f('fabricante')} /></div>
+            <div className="form-group"><label>Fabricante</label><input placeholder="ej: Waters, Agilent" onChange={f('fabricante')} /></div>
             <div className="form-group"><label>Límite de inyecciones</label><input type="number" defaultValue={1500} onChange={f('limite')} /></div>
             <div className="form-group"><label>Fecha primer uso</label><input type="date" onChange={f('fechaPrimerUso')} /></div>
           </div>
@@ -148,6 +179,23 @@ export default function Columnas() {
         </div>
       )}
 
+      {/* Barra búsqueda y ordenamiento */}
+      <div className="search-bar">
+        <Search size={16} style={{color:'var(--text-3)',flexShrink:0}}/>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por código, cliente o fase..." style={{flex:1}}/>
+        {[
+          { campo:'codigo',      label:'Código' },
+          { campo:'cliente',     label:'Cliente' },
+          { campo:'vencimiento', label:'Fecha uso' },
+        ].map(o => (
+          <button key={o.campo} className="btn btn-sm"
+            style={ordenCampo===o.campo?{background:'var(--accent-lt)',color:'var(--accent)',borderColor:'var(--accent)'}:{}}
+            onClick={()=>toggleOrden(o.campo)}>
+            {o.label} {ordenCampo===o.campo?(ordenDir==='asc'?'↑':'↓'):'↕'}
+          </button>
+        ))}
+      </div>
+
       <div className="table-wrap">
         <table>
           <thead>
@@ -158,7 +206,7 @@ export default function Columnas() {
             </tr>
           </thead>
           <tbody>
-            {columnas.map(c => {
+            {filtradas.map(c => {
               const sem = calcularSemaforoColumna(c.inyeccionesAcumuladas || 0, c.limiteInyecciones || 1500)
               const badgeCls = sem.color === 'danger' ? 'badge-danger' : sem.color === 'warning' ? 'badge-warn' : 'badge-ok'
               const esPendiente = c.estado === 'Pendiente de aprobación'
@@ -178,7 +226,7 @@ export default function Columnas() {
                   </td>
                   <td>
                     {esPendiente
-                      ? <span className="badge badge-warn">Pendiente de aprobación</span>
+                      ? <span className="badge badge-warn">Pendiente</span>
                       : <span className={`badge ${badgeCls}`}>{c.estado}</span>
                     }
                   </td>
@@ -195,6 +243,11 @@ export default function Columnas() {
                 </tr>
               )
             })}
+            {filtradas.length === 0 && (
+              <tr><td colSpan={8} style={{textAlign:'center',padding:24,color:'var(--text-3)'}}>
+                No hay columnas que coincidan
+              </td></tr>
+            )}
           </tbody>
         </table>
       </div>
@@ -205,6 +258,4 @@ export default function Columnas() {
 const DEMO = [
   { id:'1', codigo:'COL-007', fase:'C18', tamanoParticula:'5µm', cliente:'Galenicum', fechaPrimerUso:'2025-01-12', inyeccionesAcumuladas:1240, limiteInyecciones:1500, estado:'CRÍTICA' },
   { id:'2', codigo:'COL-012', fase:'C8',  tamanoParticula:'3.5µm', cliente:'Ascend', fechaPrimerUso:'2024-08-03', inyeccionesAcumuladas:890, limiteInyecciones:1500, estado:'ACTIVA' },
-  { id:'3', codigo:'COL-019', fase:'NH2', tamanoParticula:'5µm', cliente:'Laboratorio Chile', fechaPrimerUso:'2025-03-21', inyeccionesAcumuladas:340, limiteInyecciones:1500, estado:'ACTIVA' },
-  { id:'4', codigo:'COL-023', fase:'C18', tamanoParticula:'1.8µm', cliente:'Novartis', fechaPrimerUso:'2025-11-07', inyeccionesAcumuladas:180, limiteInyecciones:1500, estado:'ACTIVA' },
 ]
