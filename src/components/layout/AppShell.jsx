@@ -153,6 +153,9 @@ export default function AppShell() {
           <NavLink to="/placebo" className={({ isActive }) => `nav-link${isActive?' active':''}`}>
             <Pill size={16}/> Placebo
           </NavLink>
+          <NavLink to="/apis" className={({ isActive }) => `nav-link${isActive?' active':''}`}>
+            <FlaskConical size={16}/> APIs
+          </NavLink>
 
           <div className="nav-section">Sistema</div>
           <NavLink to="/alertas" className={({ isActive }) => `nav-link${isActive?' active':''}`}>
