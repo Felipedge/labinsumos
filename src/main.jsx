@@ -17,6 +17,7 @@ import Usuarios from './pages/Usuarios'
 import Metodos from './pages/Metodos'
 import Aprobaciones from './pages/Aprobaciones'
 import Reportes from './pages/Reportes'
+import APIs from './pages/APIs'
 import AuditLog from './pages/AuditLog'
 import './index.css'
 
@@ -49,6 +50,7 @@ function App() {
             <Route path="columnas"      element={<Columnas />} />
             <Route path="reactivos"     element={<Reactivos />} />
             <Route path="placebo"       element={<Placebo />} />
+            <Route path="apis" element={<APIs />} />
             <Route path="alertas"       element={<Alertas />} />
             <Route path="escanear"      element={<Escanear />} />
             <Route path="metodos"       element={<Metodos />} />
