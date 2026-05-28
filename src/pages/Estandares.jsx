@@ -706,7 +706,7 @@ export default function Estandares() {
             </div>
           )}
 
-                           {/* Barra búsqueda y ordenamiento */}
+          {/* Barra búsqueda y ordenamiento */}
           <div className="search-bar">
             <Search size={16} style={{color:'var(--text-3)',flexShrink:0}}/>
             <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por código, nombre o cliente..." style={{flex:1}}/>
@@ -716,10 +716,6 @@ export default function Estandares() {
                 {ESTADOS.filter(e=>e!=='Dado de baja').map(e=><option key={e}>{e}</option>)}
               </select>
             )}
-            <select value={filtroCliente} onChange={e=>setFiltroCliente(e.target.value)}>
-              <option value="">Todos los clientes</option>
-              {listaClientes.map(c=><option key={c}>{c}</option>)}
-            </select>
             {[
               { campo:'nombre',      label:'Nombre' },
               { campo:'codigo',      label:'Código' },
@@ -861,7 +857,23 @@ export default function Estandares() {
                       <td style={{fontWeight:500}}>{p.nombre||p.insumoNombre||'—'}</td>
                       <td>
                         {p.tipo==='verificacion_usp'
-                          ?<span style={{fontSize
-
-
-         
+                          ?<span style={{fontSize:12,color:p.resultado?.includes('No')?'var(--danger)':'var(--ok)',fontWeight:500}}>{p.resultado}</span>
+                          :<strong style={{color:'var(--accent)'}}>{p.mgPesados} mg</strong>}
+                      </td>
+                      <td style={{color:'var(--text-2)'}}>{p.stockAntes?.toFixed(2)??'—'} {p.stockAntes?'mg':''}</td>
+                      <td style={{color:'var(--text-2)'}}>{p.stockDespues?.toFixed(2)??'—'} {p.stockDespues?'mg':''}</td>
+                      <td style={{color:'var(--text-2)'}}>{p.nAnalisis||p.fechaVerif||'—'}</td>
+                    </tr>
+                  ))}
+                  {pesadasFiltradas.length===0 && (
+                    <tr><td colSpan={9} style={{textAlign:'center',padding:24,color:'var(--text-3)'}}>No hay registros que coincidan</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
+    </>
+  )
+}
