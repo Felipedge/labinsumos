@@ -9,6 +9,7 @@ import { useRole } from '../hooks/useRole.jsx'
 import { puedoHacer } from '../lib/roles'
 import { Plus, Search, FileText } from 'lucide-react'
 import DocumentosPanel from '../components/shared/DocumentosPanel.jsx'
+import { useClientes } from '../hooks/useClientes.jsx'
 
 const LABORATORIOS = ['Lab. Chile', 'Novartis', 'MSN', 'Ascend', 'Galenicum', 'Grunenthal', 'BPH', 'Otro']
 const UBICACIONES  = ['Desecador', 'Refrigerador', 'Freezer', 'Refrigerador controlado', 'Desecador Validaciones', 'Otro']
@@ -21,6 +22,7 @@ function capitalizar(str) {
 export default function APIs() {
   const { user } = useAuth()
   const { rol }  = useRole()
+  const { clientes: listaClientes } = useClientes()
   const puedeAgregar = puedoHacer(rol, 'agregarInsumo')
   const puedeOperar  = puedoHacer(rol, 'registrarUso')
   const puedeBaja    = puedoHacer(rol, 'darDeBaja')
@@ -35,6 +37,7 @@ export default function APIs() {
   const [ordenCampo, setOrdenCampo] = useState('nombre')
   const [ordenDir, setOrdenDir]     = useState('asc')
   const [docInsumo, setDocInsumo]   = useState(null)
+  const [filtroCliente, setFiltroCliente] = useState('')
   const [verPapelera, setVerPapelera] = useState(false)
 
   const load = async () => {
@@ -108,11 +111,10 @@ export default function APIs() {
   const filtrados = (verPapelera ? papelera : activos)
     .filter(i => {
       const q = search.toLowerCase()
-      const matchQ = !q || i.codigo?.toLowerCase().includes(q) ||
-        i.nombre?.toLowerCase().includes(q) ||
-        i.laboratorio?.toLowerCase().includes(q)
+      const matchQ = !q || i.codigo?.toLowerCase().includes(q) || i.nombre?.toLowerCase().includes(q) || i.laboratorio?.toLowerCase().includes(q)
       const matchE = !filtroEst || i.estado === filtroEst
-      return matchQ && matchE
+      const matchC = !filtroCliente || i.laboratorio === filtroCliente
+      return matchQ && matchE && matchC
     })
     .sort((a, b) => {
       let valA, valB
@@ -180,7 +182,7 @@ export default function APIs() {
             <div className="form-group"><label>Laboratorio *</label>
               <select onChange={f('laboratorio')}>
                 <option value="">Seleccionar...</option>
-                {LABORATORIOS.map(l=><option key={l}>{l}</option>)}
+                {listaClientes.map(l=><option key={l}>{l}</option>)}
               </select>
             </div>
             <div className="form-group"><label>Lote</label>
@@ -214,6 +216,10 @@ export default function APIs() {
           <Search size={16} style={{color:'var(--text-3)',flexShrink:0}}/>
           <input value={search} onChange={e=>setSearch(e.target.value)}
             placeholder="Buscar por código, nombre o laboratorio..." style={{flex:1}}/>
+          <select value={filtroCliente} onChange={e=>setFiltroCliente(e.target.value)}>
+            <option value="">Todos los laboratorios</option>
+            {listaClientes.map(c=><option key={c}>{c}</option>)}
+          </select>
           {!verPapelera && (
             <select value={filtroEst} onChange={e=>setFiltroEst(e.target.value)}>
               <option value="">Todos los estados</option>

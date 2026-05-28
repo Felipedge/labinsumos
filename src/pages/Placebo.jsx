@@ -6,6 +6,7 @@ import { useRole } from '../hooks/useRole.jsx'
 import { puedoHacer } from '../lib/roles'
 import { Plus, FileText, Search } from 'lucide-react'
 import DocumentosPanel from '../components/shared/DocumentosPanel.jsx'
+import { useClientes } from '../hooks/useClientes.jsx'
 
 const CLIENTES   = ['Ascend','Galenicum','Grunenthal','Laboratorio Chile','Novartis','Seven Pharma','Emcure','Otro']
 const FORMAS     = ['Comprimido','Cápsula','Inyectable','Solución oral','Crema / ungüento','Otro']
@@ -13,6 +14,7 @@ const FORMAS     = ['Comprimido','Cápsula','Inyectable','Solución oral','Crema
 export default function Placebo() {
   const { user } = useAuth()
   const { rol }  = useRole()
+  const { clientes: listaClientes } = useClientes()
   const puedeAgregar = puedoHacer(rol, 'agregarInsumo')
   const puedeOperar  = puedoHacer(rol, 'registrarUso')
 
@@ -23,6 +25,7 @@ export default function Placebo() {
   const [form, setForm]           = useState({})
   const [msg, setMsg]             = useState('')
   const [docInsumo, setDocInsumo] = useState(null)
+  const [filtroCliente, setFiltroCliente] = useState('')
   const [search, setSearch]       = useState('')
   const [ordenCampo, setOrdenCampo] = useState('productoReferencia')
   const [ordenDir, setOrdenDir]     = useState('asc')
@@ -72,10 +75,9 @@ export default function Placebo() {
   const filtrados = items
     .filter(p => {
       const q = search.toLowerCase()
-      return !q ||
-        p.codigo?.toLowerCase().includes(q) ||
-        p.productoReferencia?.toLowerCase().includes(q) ||
-        p.cliente?.toLowerCase().includes(q)
+      const matchQ = !q || p.codigo?.toLowerCase().includes(q) || p.productoReferencia?.toLowerCase().includes(q) || p.cliente?.toLowerCase().includes(q)
+      const matchC = !filtroCliente || p.cliente === filtroCliente
+      return matchQ && matchC
     })
     .sort((a, b) => {
       let valA, valB
@@ -122,7 +124,7 @@ export default function Placebo() {
             <div className="form-group"><label>Código interno *</label><input placeholder="ej: PL-038" onChange={f('codigo')} /></div>
             <div className="form-group"><label>Producto de referencia *</label><input placeholder="ej: Cilosvitae 100 mg" onChange={f('productoReferencia')} /></div>
             <div className="form-group"><label>Cliente *</label>
-              <select onChange={f('cliente')}><option value="">Seleccionar...</option>{CLIENTES.map(c=><option key={c}>{c}</option>)}</select>
+              <select onChange={f('cliente')}><option value="">Seleccionar...</option>{listaClientes.map(c=><option key={c}>{c}</option>)}</select>
             </div>
             <div className="form-group"><label>Lote</label><input onChange={f('lote')} /></div>
             <div className="form-group"><label>Forma farmacéutica</label>
@@ -159,6 +161,10 @@ export default function Placebo() {
       <div className="search-bar">
         <Search size={16} style={{color:'var(--text-3)',flexShrink:0}}/>
         <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por código, producto o cliente..." style={{flex:1}}/>
+        <select value={filtroCliente} onChange={e=>setFiltroCliente(e.target.value)}>
+          <option value="">Todos los clientes</option>
+          {listaClientes.map(c=><option key={c}>{c}</option>)}
+        </select>
         {[
           { campo:'productoReferencia', label:'Nombre' },
           { campo:'codigo',             label:'Código' },
