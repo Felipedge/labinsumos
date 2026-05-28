@@ -109,7 +109,6 @@ export default function Estandares() {
   const puedeAgregar = puedoHacer(rol, 'agregarInsumo')
   const puedePesada  = puedoHacer(rol, 'registrarUso')
   const puedeBaja    = puedoHacer(rol, 'darDeBaja')
-
   const [tab, setTab] = useState('inventario')
 
   const [items, setItems]         = useState([])
@@ -135,6 +134,7 @@ export default function Estandares() {
   const [uspObs, setUspObs]                   = useState('')
   const [guardandoUSP, setGuardandoUSP]       = useState(false)
 
+  
   const [fNombre, setFNombre]             = useState('')
   const [fCliente, setFCliente]           = useState('')
   const [fLote, setFLote]                 = useState('')
