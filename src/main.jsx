@@ -18,6 +18,7 @@ import Metodos from './pages/Metodos'
 import Aprobaciones from './pages/Aprobaciones'
 import Reportes from './pages/Reportes'
 import APIs from './pages/APIs'
+import Clientes from './pages/Clientes'
 import AuditLog from './pages/AuditLog'
 import './index.css'
 
@@ -50,7 +51,8 @@ function App() {
             <Route path="columnas"      element={<Columnas />} />
             <Route path="reactivos"     element={<Reactivos />} />
             <Route path="placebo"       element={<Placebo />} />
-            <Route path="apis" element={<APIs />} />
+            <Route path="apis"          element={<APIs />} />
+            <Route path="clientes"      element={<Clientes />} />
             <Route path="alertas"       element={<Alertas />} />
             <Route path="escanear"      element={<Escanear />} />
             <Route path="metodos"       element={<Metodos />} />

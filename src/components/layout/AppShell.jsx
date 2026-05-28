@@ -9,9 +9,9 @@ import { db } from '../../lib/firebase'
 import {
   LayoutDashboard, FlaskConical, Cylinder, Droplets,
   Pill, Bell, ScanLine, LogOut, Users, BookOpen,
-  ClipboardCheck, Pencil, Check, X, BarChart2, ClipboardList
+  ClipboardCheck, Pencil, Check, X, BarChart2, ClipboardList, Building2
 } from 'lucide-react'
-
+ 
 const ETIQUETAS_ROL = {
   admin:     'Administrador',
   jefe:      'Jefe de laboratorio',
@@ -19,7 +19,7 @@ const ETIQUETAS_ROL = {
   analista:  'Analista',
   lectura:   'Solo lectura',
 }
-
+ 
 const COLORES_ROL = {
   admin:     '#A32D2D',
   jefe:      '#185FA5',
@@ -27,12 +27,12 @@ const COLORES_ROL = {
   analista:  '#3C3489',
   lectura:   '#6b6860',
 }
-
+ 
 export default function AppShell() {
   const { user, logout } = useAuth()
   const { rol }          = useRole()
   const navigate         = useNavigate()
-
+ 
   const [pendientes, setPendientes]         = useState(0)
   const [editandoNombre, setEditandoNombre] = useState(false)
   const [nuevoNombre, setNuevoNombre]       = useState('')
@@ -40,10 +40,10 @@ export default function AppShell() {
   const [guardandoNombre, setGuardandoNombre] = useState(false)
   const [nombreBloqueado, setNombreBloqueado] = useState(false)
   const [docUsuarioId, setDocUsuarioId]     = useState(null)
-
+ 
   const puedeOperar  = puedoHacer(rol, 'registrarUso')
   const puedeAprobar = puedoHacer(rol, 'aprobarInsumos')
-
+ 
   // Cargar nombre del usuario desde Firestore
   useEffect(() => {
     if (!user) return
@@ -67,7 +67,7 @@ export default function AppShell() {
     }
     cargarNombre()
   }, [user])
-
+ 
   // Contar aprobaciones pendientes
   useEffect(() => {
     if (!puedeAprobar) return
@@ -87,7 +87,7 @@ export default function AppShell() {
     const interval = setInterval(contarPendientes, 60000)
     return () => clearInterval(interval)
   }, [puedeAprobar])
-
+ 
   const guardarNombre = async () => {
     if (!nuevoNombre.trim() || !docUsuarioId) return
     setGuardandoNombre(true)
@@ -103,24 +103,24 @@ export default function AppShell() {
     } catch(e) { console.error(e) }
     finally { setGuardandoNombre(false) }
   }
-
+ 
   const iniciarEdicion = () => {
     if (nombreBloqueado) return
     setNuevoNombre(nombreMostrado)
     setEditandoNombre(true)
   }
-
+ 
   const cancelarEdicion = () => {
     setEditandoNombre(false)
     setNuevoNombre('')
   }
-
+ 
   const initials = nombreMostrado
     ? nombreMostrado.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
     : user?.email?.[0]?.toUpperCase() ?? 'U'
-
+ 
   const handleLogout = async () => { await logout(); navigate('/login') }
-
+ 
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -128,7 +128,7 @@ export default function AppShell() {
           <img src="/logo_qualy.png" alt="Qualyserv" style={{ width:'100%', maxWidth:160, marginBottom:6 }} />
           <p style={{ fontSize:10 }}>Laboratorio de Análisis Químico</p>
         </div>
-
+ 
         <nav>
           <div className="nav-section">Principal</div>
           <NavLink to="/" end className={({ isActive }) => `nav-link${isActive?' active':''}`}>
@@ -139,7 +139,7 @@ export default function AppShell() {
               <ScanLine size={16}/> Escanear
             </NavLink>
           )}
-
+ 
           <div className="nav-section">Módulos</div>
           <NavLink to="/estandares" className={({ isActive }) => `nav-link${isActive?' active':''}`}>
             <FlaskConical size={16}/> Estándares
@@ -156,7 +156,7 @@ export default function AppShell() {
           <NavLink to="/apis" className={({ isActive }) => `nav-link${isActive?' active':''}`}>
             <FlaskConical size={16}/> APIs
           </NavLink>
-
+ 
           <div className="nav-section">Sistema</div>
           <NavLink to="/alertas" className={({ isActive }) => `nav-link${isActive?' active':''}`}>
             <Bell size={16}/> Alertas
@@ -189,13 +189,18 @@ export default function AppShell() {
               )}
             </NavLink>
           )}
+          {(rol === 'admin' || rol === 'jefe') && (
+            <NavLink to="/clientes" className={({ isActive }) => `nav-link${isActive?' active':''}`}>
+              <Building2 size={16}/> Clientes
+            </NavLink>
+          )}
           {puedoHacer(rol, 'gestionarUsuarios') && (
             <NavLink to="/usuarios" className={({ isActive }) => `nav-link${isActive?' active':''}`}>
               <Users size={16}/> Usuarios
             </NavLink>
           )}
         </nav>
-
+ 
         <div className="sidebar-footer">
           <div className="user-row">
             <div className="avatar">
@@ -257,7 +262,7 @@ export default function AppShell() {
           </div>
         </div>
       </aside>
-
+ 
       <div className="main-area">
         <header className="topbar">
           <span className="topbar-title">Gestión de insumos</span>

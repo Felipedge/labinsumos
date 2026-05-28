@@ -9,54 +9,12 @@ import { puedoHacer } from '../lib/roles'
 import { Plus, FileText, Search } from 'lucide-react'
 import DocumentosPanel from '../components/shared/DocumentosPanel.jsx'
 
-// ── Siglas por cliente ────────────────────────────────────────
-const SIGLAS_CLIENTE = {
-  'Alembic':               'AL',
-  'Andrómaco':             'AN',
-  'Andrómaco/Grünenthal':  'AN',
-  'Grünenthal':            'AN',
-  'Grunenthal':            'AN',
-  'Ascend':                'ASC',
-  'Bamberg':               'BM',
-  'Bayer':                 'BY',
-  'Bbraun':                'BB',
-  'BBraun':                'BB',
-  'Biotec':                'BIO',
-  'BPH SA.':               'BP',
-  'BPH':                   'BP',
-  'C Y D Pharma':          'CD',
-  'C y D Pharma':          'CD',
-  'Diversey':              'DIV',
-  'Emcure':                'EMC',
-  'Ferre':                 'FE',
-  'Fresenius Kabi':        'FS',
-  'Fresenius':             'FS',
-  'Galenicum':             'GL',
-  'ITF Labomed':           'ITF',
-  'Labomed':               'ITF',
-  'Laboratorio Chile':     'LCH',
-  'Laboratorio Chile/Teva':'LCH',
-  'Teva':                  'LCH',
-  'Laboratorio Fleming':   'LFL',
-  'Fleming':               'LFL',
-  'LKM':                   'LKM',
-  'MSN':                   'MSN',
-  'Novartis':              'NOV',
-  'Prater':                'PR',
-  'Qualyserv':             'QS',
-  'Richmond':              'RCH',
-  'Sanitas':               'SA',
-  'Saval':                 'SAV',
-  'Seven Pharma':          'SPH',
-  'Siron Pharma':          'SIR',
-  'Siron':                 'SIR',
-  'SIAA Vida Farma':       'SVF',
-  'Sandoz':                'SZ',
-  'Unifarma':              'UNI',
-  'Otro':                  'OTR',
-}
-
-const CLIENTES = Object.keys(SIGLAS_CLIENTE).filter((v, i, a) => a.indexOf(v) === i).sort()
+// Clientes se cargan desde Firestore
+const CLIENTES_FALLBACK = [
+  { nombre:'Ascend', sigla:'ASC' }, { nombre:'Galenicum', sigla:'GL' },
+  { nombre:'Laboratorio Chile', sigla:'LCH' }, { nombre:'Novartis', sigla:'NOV' },
+  { nombre:'Otro', sigla:'OTR' },
+]
 
 const FASES   = ['C18','C8','C4','NH2','CN','Silica','RP-18','Phenyl','Otro']
 const TAMANOS = ['1.8µm','3µm','3.5µm','5µm','10µm']
@@ -100,6 +58,7 @@ export default function Columnas() {
   const puedeAgregar = puedoHacer(rol, 'agregarInsumo')
   const puedeOperar  = puedoHacer(rol, 'registrarUso')
 
+  const [clientesDB, setClientesDB] = useState(CLIENTES_FALLBACK)
   const [columnas, setColumnas]     = useState([])
   const [loading, setLoading]       = useState(true)
   const [showForm, setShowForm]     = useState(false)
@@ -419,3 +378,9 @@ export default function Columnas() {
     </>
   )
 }
+
+const DEMO = [
+  { id:'1', codigo:'GL-007', fase:'C18', largo:150, diametro:4.6, micra:5, tamanoParticula:'5µm', cliente:'Galenicum', fechaPrimerUso:'2025-01-12', inyeccionesAcumuladas:1240, limiteInyecciones:1500, estado:'CRÍTICA' },
+  { id:'2', codigo:'ASC-012', fase:'C8', largo:150, diametro:4.6, micra:3.5, tamanoParticula:'3.5µm', cliente:'Ascend', fechaPrimerUso:'2024-08-03', inyeccionesAcumuladas:890, limiteInyecciones:1500, estado:'ACTIVA' },
+  { id:'3', codigo:'LCH-019', fase:'NH2', largo:250, diametro:4.6, micra:5, tamanoParticula:'5µm', cliente:'Laboratorio Chile', fechaPrimerUso:'2025-03-21', inyeccionesAcumuladas:340, limiteInyecciones:1500, estado:'ACTIVA' },
+]

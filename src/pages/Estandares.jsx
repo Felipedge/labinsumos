@@ -9,6 +9,7 @@ import { useRole } from '../hooks/useRole.jsx'
 import { puedoHacer } from '../lib/roles'
 import { Plus, Search, FlaskConical, History, Package, ExternalLink, CheckCircle, XCircle, FileText } from 'lucide-react'
 import DocumentosPanel from '../components/shared/DocumentosPanel.jsx'
+import { useClientes } from '../hooks/useClientes.jsx'
 
 const CLIENTES  = ['Ascend','Galenicum','Grunenthal','Bamberg','Labomed','Laboratorio Chile','Novartis','Seven Pharma','Emcure','Prater','MSN','Otro']
 const SECTORES  = ['Fq','Val','Fq/val','Mb','T-r']
@@ -105,6 +106,7 @@ function BadgeRevisionUSP({ proximaRevision }) {
 export default function Estandares() {
   const { user } = useAuth()
   const { rol }  = useRole()
+  const { clientes: listaClientes } = useClientes()
   const puedeAgregar = puedoHacer(rol, 'agregarInsumo')
   const puedePesada  = puedoHacer(rol, 'registrarUso')
   const puedeBaja    = puedoHacer(rol, 'darDeBaja')
@@ -123,6 +125,7 @@ export default function Estandares() {
   const [guardando, setGuardando] = useState(false)
   const [verPapelera, setVerPapelera] = useState(false)
   const [docInsumo, setDocInsumo]     = useState(null)
+  const [filtroCliente, setFiltroCliente] = useState('')
   const [ordenCampo, setOrdenCampo]   = useState('nombre')
   const [ordenDir, setOrdenDir]       = useState('asc')
 
@@ -538,7 +541,7 @@ export default function Estandares() {
                 <div className="form-group"><label>Cliente *</label>
                   <select value={fCliente} onChange={e=>setFCliente(e.target.value)}>
                     <option value="">Seleccionar...</option>
-                    {CLIENTES.map(c=><option key={c}>{c}</option>)}
+                    {listaClientes.map(c=><option key={c}>{c}</option>)}
                   </select>
                 </div>
                 <div className="form-group"><label>N° Lote *</label><input value={fLote} onChange={e=>setFLote(e.target.value.toUpperCase())} placeholder="ej: LRAD4238"/></div>
@@ -705,32 +708,30 @@ export default function Estandares() {
           )}
 
           {/* Barra búsqueda y ordenamiento */}
-          {/* Barra búsqueda y ordenamiento */}
-          <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:12}}>
-            <div className="search-bar">
-              <Search size={16} style={{color:'var(--text-3)',flexShrink:0}}/>
-              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por código, nombre o cliente..." style={{flex:1}}/>
-              {!verPapelera && (
-                <select value={filtroEst} onChange={e=>setFiltroEst(e.target.value)}>
-                  <option value="">Todos los estados</option>
-                  {ESTADOS.filter(e=>e!=='Dado de baja').map(e=><option key={e}>{e}</option>)}
-                </select>
-              )}
-            </div>
-            <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-              <span style={{fontSize:11,color:'var(--text-2)',alignSelf:'center'}}>Ordenar por:</span>
-              {[
-                { campo:'nombre',      label:'Nombre' },
-                { campo:'codigo',      label:'Código' },
-                { campo:'vencimiento', label:'Vencimiento' },
-              ].map(o => (
-                <button key={o.campo} className="btn btn-sm"
-                  style={ordenCampo===o.campo?{background:'var(--accent-lt)',color:'var(--accent)',borderColor:'var(--accent)'}:{}}
-                  onClick={()=>toggleOrden(o.campo)}>
-                  {o.label} {ordenCampo===o.campo?(ordenDir==='asc'?'↑':'↓'):'↕'}
-                </button>
-              ))}
-            </div>
+          <div className="search-bar">
+            <Search size={16} style={{color:'var(--text-3)',flexShrink:0}}/>
+            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por código, nombre o cliente..." style={{flex:1}}/>
+            {!verPapelera && (
+              <select value={filtroEst} onChange={e=>setFiltroEst(e.target.value)}>
+                <option value="">Todos los estados</option>
+                {ESTADOS.filter(e=>e!=='Dado de baja').map(e=><option key={e}>{e}</option>)}
+              </select>
+            )}
+            <select value={filtroCliente} onChange={e=>setFiltroCliente(e.target.value)}>
+              <option value="">Todos los clientes</option>
+              {listaClientes.map(c=><option key={c}>{c}</option>)}
+            </select>
+            {[
+              { campo:'nombre',      label:'Nombre' },
+              { campo:'codigo',      label:'Código' },
+              { campo:'vencimiento', label:'Vencimiento' },
+            ].map(o => (
+              <button key={o.campo} className="btn btn-sm"
+                style={ordenCampo===o.campo?{background:'var(--accent-lt)',color:'var(--accent)',borderColor:'var(--accent)'}:{}}
+                onClick={()=>toggleOrden(o.campo)}>
+                {o.label} {ordenCampo===o.campo?(ordenDir==='asc'?'↑':'↓'):'↕'}
+              </button>
+            ))}
           </div>
 
           <div className="table-wrap">
