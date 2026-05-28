@@ -1,3 +1,4 @@
+
 // src/pages/Estandares.jsx
 import { useState, useEffect } from 'react'
 import { collection, getDocs, addDoc, updateDoc, doc,
@@ -9,7 +10,6 @@ import { useRole } from '../hooks/useRole.jsx'
 import { puedoHacer } from '../lib/roles'
 import { Plus, Search, FlaskConical, History, Package, ExternalLink, CheckCircle, XCircle, FileText } from 'lucide-react'
 import DocumentosPanel from '../components/shared/DocumentosPanel.jsx'
-import { useClientes } from '../hooks/useClientes.jsx'
 
 const CLIENTES  = ['Ascend','Galenicum','Grunenthal','Bamberg','Labomed','Laboratorio Chile','Novartis','Seven Pharma','Emcure','Prater','MSN','Otro']
 const SECTORES  = ['Fq','Val','Fq/val','Mb','T-r']
@@ -106,7 +106,6 @@ function BadgeRevisionUSP({ proximaRevision }) {
 export default function Estandares() {
   const { user } = useAuth()
   const { rol }  = useRole()
-  const { clientes: listaClientes } = useClientes()
   const puedeAgregar = puedoHacer(rol, 'agregarInsumo')
   const puedePesada  = puedoHacer(rol, 'registrarUso')
   const puedeBaja    = puedoHacer(rol, 'darDeBaja')
@@ -125,7 +124,6 @@ export default function Estandares() {
   const [guardando, setGuardando] = useState(false)
   const [verPapelera, setVerPapelera] = useState(false)
   const [docInsumo, setDocInsumo]     = useState(null)
-  const [filtroCliente, setFiltroCliente] = useState('')
   const [ordenCampo, setOrdenCampo]   = useState('nombre')
   const [ordenDir, setOrdenDir]       = useState('asc')
 
@@ -367,7 +365,8 @@ export default function Estandares() {
       const q = search.toLowerCase()
       const matchQ = !q || i.codigo?.toLowerCase().includes(q) || i.nombre?.toLowerCase().includes(q) || i.cliente?.toLowerCase().includes(q)
       const matchE = !filtroEst || i.estado === filtroEst
-      return matchQ && matchE
+      const matchC = !filtroCliente || i.cliente === filtroCliente
+      return matchQ && matchE && matchC
     })
     .sort((a, b) => {
       let valA, valB
@@ -541,7 +540,7 @@ export default function Estandares() {
                 <div className="form-group"><label>Cliente *</label>
                   <select value={fCliente} onChange={e=>setFCliente(e.target.value)}>
                     <option value="">Seleccionar...</option>
-                    {listaClientes.map(c=><option key={c}>{c}</option>)}
+                    {CLIENTES.map(c=><option key={c}>{c}</option>)}
                   </select>
                 </div>
                 <div className="form-group"><label>N° Lote *</label><input value={fLote} onChange={e=>setFLote(e.target.value.toUpperCase())} placeholder="ej: LRAD4238"/></div>
@@ -717,10 +716,6 @@ export default function Estandares() {
                 {ESTADOS.filter(e=>e!=='Dado de baja').map(e=><option key={e}>{e}</option>)}
               </select>
             )}
-            <select value={filtroCliente} onChange={e=>setFiltroCliente(e.target.value)}>
-              <option value="">Todos los clientes</option>
-              {listaClientes.map(c=><option key={c}>{c}</option>)}
-            </select>
             {[
               { campo:'nombre',      label:'Nombre' },
               { campo:'codigo',      label:'Código' },
@@ -882,9 +877,3 @@ export default function Estandares() {
     </>
   )
 }
-
-const DEMO_E = [
-  { id:'1', codigo:'STD-0025/MAR24/LRAD4238/A', nombre:'Cilostazol', frasco:'A', cliente:'Galenicum', tipoPotencia:'tal_cual', potencia:99.5, karlFischer:false, secadoPrevio:true, tempSecado:'105', tiempoSecado:'2 horas', stockRestante:440.69, fechaVencimiento:'2026-11-30', estado:'En uso', esUSP:false },
-  { id:'2', codigo:'STD-0040/NOV23/R11500/A', nombre:'Irbesartan', frasco:'A', cliente:'Galenicum', tipoPotencia:'base_seca', potencia:98.2, karlFischer:true, secadoPrevio:false, stockRestante:184.71, fechaVencimiento:'2025-11-12', estado:'En uso', esUSP:false },
-  { id:'3', codigo:'STD-0053/MAY24/USP001/A', nombre:'Paracetamol usp', frasco:'A', cliente:'Ascend', tipoPotencia:'tal_cual', potencia:100.0, karlFischer:false, secadoPrevio:false, stockRestante:500, fechaVencimiento:null, estado:'En uso', esUSP:true, frecuenciaRevUSP:12, proximaRevisionUSP:'2026-06-01' },
-]
