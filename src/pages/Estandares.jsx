@@ -1,4 +1,3 @@
-
 // src/pages/Estandares.jsx
 import { useState, useEffect } from 'react'
 import { collection, getDocs, addDoc, updateDoc, doc,
@@ -109,6 +108,7 @@ export default function Estandares() {
   const puedeAgregar = puedoHacer(rol, 'agregarInsumo')
   const puedePesada  = puedoHacer(rol, 'registrarUso')
   const puedeBaja    = puedoHacer(rol, 'darDeBaja')
+
   const [tab, setTab] = useState('inventario')
 
   const [items, setItems]         = useState([])
@@ -121,10 +121,11 @@ export default function Estandares() {
   const [filtroEst, setFiltroEst] = useState('')
   const [sigNum, setSigNum]       = useState(null)
   const [guardando, setGuardando] = useState(false)
-  const [verPapelera, setVerPapelera] = useState(false)
-  const [docInsumo, setDocInsumo]     = useState(null)
-  const [ordenCampo, setOrdenCampo]   = useState('nombre')
-  const [ordenDir, setOrdenDir]       = useState('asc')
+  const [verPapelera, setVerPapelera]     = useState(false)
+  const [docInsumo, setDocInsumo]         = useState(null)
+  const [filtroCliente, setFiltroCliente] = useState('')
+  const [ordenCampo, setOrdenCampo]       = useState('nombre')
+  const [ordenDir, setOrdenDir]           = useState('asc')
 
   const [uspModalId, setUspModalId]           = useState(null)
   const [uspResultado, setUspResultado]       = useState('vigente')
@@ -134,7 +135,6 @@ export default function Estandares() {
   const [uspObs, setUspObs]                   = useState('')
   const [guardandoUSP, setGuardandoUSP]       = useState(false)
 
-  
   const [fNombre, setFNombre]             = useState('')
   const [fCliente, setFCliente]           = useState('')
   const [fLote, setFLote]                 = useState('')
