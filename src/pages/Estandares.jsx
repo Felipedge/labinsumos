@@ -1,3 +1,6 @@
+
+raw
+Estandares final · JSX
 // src/pages/Estandares.jsx
 import { useState, useEffect } from 'react'
 import { collection, getDocs, addDoc, updateDoc, doc,
@@ -7,28 +10,29 @@ import { calcularSemaforo } from '../lib/db'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useRole } from '../hooks/useRole.jsx'
 import { puedoHacer } from '../lib/roles'
+import { useClientes } from '../hooks/useClientes.jsx'
 import { Plus, Search, FlaskConical, History, Package, ExternalLink, CheckCircle, XCircle, FileText } from 'lucide-react'
 import DocumentosPanel from '../components/shared/DocumentosPanel.jsx'
-
+ 
 const CLIENTES  = ['Ascend','Galenicum','Grunenthal','Bamberg','Labomed','Laboratorio Chile','Novartis','Seven Pharma','Emcure','Prater','MSN','Otro']
 const SECTORES  = ['Fq','Val','Fq/val','Mb','T-r']
 const ESTADOS   = ['En uso','Cerrado','Vencido','Sin stock','Dado de baja']
 const ALMACENES = ['Desecador','Refrigerador','Freezer','Desecador-oncológico','Refrigerador-oncológico','Refrigerador-controlado']
 const MESES     = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
 const MESES_NUM = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC']
-
+ 
 const TIPO_POTENCIA = [
   { value: 'tal_cual',     label: 'Tal cual' },
   { value: 'base_seca',    label: 'Base seca' },
   { value: 'sin_potencia', label: 'Sin potencia' },
   { value: 'cualitativo',  label: 'Estándar cualitativo' },
 ]
-
+ 
 function capitalizar(str) {
   if (!str) return ''
   return str.charAt(0).toUpperCase() + str.slice(1)
 }
-
+ 
 function onChangeCapitalizar(setter) {
   return (e) => {
     const val = e.target.value
@@ -36,7 +40,7 @@ function onChangeCapitalizar(setter) {
     setter(val.charAt(0).toUpperCase() + val.slice(1))
   }
 }
-
+ 
 async function getSiguienteNumero(db) {
   try {
     const q    = query(collection(db, 'estandares'), orderBy('numeroStd', 'desc'), limit(1))
@@ -45,33 +49,33 @@ async function getSiguienteNumero(db) {
     return (snap.docs[0].data().numeroStd || 0) + 1
   } catch { return 1 }
 }
-
+ 
 function generarCodigo(numero, mes, anio, lote, frasco) {
   const num     = String(numero).padStart(4, '0')
   const mesStr  = MESES_NUM[parseInt(mes) - 1]
   const anioStr = String(anio).slice(-2)
   return `STD-${num}/${mesStr}${anioStr}/${lote}/${frasco}`
 }
-
+ 
 function formatFecha(ts) {
   if (!ts) return '—'
   const d = ts.toDate ? ts.toDate() : new Date(ts)
   return d.toLocaleDateString('es-CL') + ' ' + d.toLocaleTimeString('es-CL', { hour:'2-digit', minute:'2-digit' })
 }
-
+ 
 function calcularProximaRevision(fechaBase, meses) {
   const d = new Date(fechaBase)
   d.setMonth(d.getMonth() + parseInt(meses))
   return d.toISOString().split('T')[0]
 }
-
+ 
 function diasHastaRevision(fechaRevision) {
   if (!fechaRevision) return null
   const hoy  = new Date(); hoy.setHours(0,0,0,0)
   const rev  = new Date(fechaRevision)
   return Math.round((rev - hoy) / 86400000)
 }
-
+ 
 function BadgePotencia({ tipoPotencia, potencia }) {
   if (tipoPotencia === 'cualitativo')  return <span className="badge badge-purple">Cualitativo</span>
   if (tipoPotencia === 'sin_potencia') return <span className="badge badge-gray">Sin potencia</span>
@@ -79,7 +83,7 @@ function BadgePotencia({ tipoPotencia, potencia }) {
   if (tipoPotencia === 'tal_cual')     return <span className="badge badge-ok">{potencia}% Tal cual</span>
   return potencia ? <span className="badge badge-gray">{potencia}%</span> : <span style={{color:'var(--text-3)'}}>—</span>
 }
-
+ 
 function BadgesCondiciones({ karlFischer, secadoPrevio, tempSecado, tiempoSecado }) {
   return (
     <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
@@ -92,7 +96,7 @@ function BadgesCondiciones({ karlFischer, secadoPrevio, tempSecado, tiempoSecado
     </div>
   )
 }
-
+ 
 function BadgeRevisionUSP({ proximaRevision }) {
   const dias = diasHastaRevision(proximaRevision)
   if (dias === null) return <span className="badge badge-gray">USP — Sin fecha</span>
@@ -101,16 +105,16 @@ function BadgeRevisionUSP({ proximaRevision }) {
   if (dias <= 60)    return <span className="badge badge-warn">🟡 USP — Revisar en {dias}d</span>
   return <span className="badge badge-info">🔵 USP — Revisar en {dias}d</span>
 }
-
+ 
 export default function Estandares() {
   const { user } = useAuth()
   const { rol }  = useRole()
+  const { clientes: listaClientes } = useClientes()
   const puedeAgregar = puedoHacer(rol, 'agregarInsumo')
   const puedePesada  = puedoHacer(rol, 'registrarUso')
   const puedeBaja    = puedoHacer(rol, 'darDeBaja')
-
+ 
   const [tab, setTab] = useState('inventario')
-
   const [items, setItems]         = useState([])
   const [loading, setLoading]     = useState(true)
   const [showForm, setShowForm]   = useState(false)
@@ -119,14 +123,14 @@ export default function Estandares() {
   const [msg, setMsg]             = useState('')
   const [search, setSearch]       = useState('')
   const [filtroEst, setFiltroEst] = useState('')
+  const [filtroCliente, setFiltroCliente] = useState('')
   const [sigNum, setSigNum]       = useState(null)
   const [guardando, setGuardando] = useState(false)
-  const [verPapelera, setVerPapelera]     = useState(false)
-  const [docInsumo, setDocInsumo]         = useState(null)
-  const [filtroCliente, setFiltroCliente] = useState('')
-  const [ordenCampo, setOrdenCampo]       = useState('nombre')
-  const [ordenDir, setOrdenDir]           = useState('asc')
-
+  const [verPapelera, setVerPapelera] = useState(false)
+  const [docInsumo, setDocInsumo]     = useState(null)
+  const [ordenCampo, setOrdenCampo]   = useState('nombre')
+  const [ordenDir, setOrdenDir]       = useState('asc')
+ 
   const [uspModalId, setUspModalId]           = useState(null)
   const [uspResultado, setUspResultado]       = useState('vigente')
   const [uspFechaVerif, setUspFechaVerif]     = useState('')
@@ -134,7 +138,7 @@ export default function Estandares() {
   const [uspFrecuencia, setUspFrecuencia]     = useState('')
   const [uspObs, setUspObs]                   = useState('')
   const [guardandoUSP, setGuardandoUSP]       = useState(false)
-
+ 
   const [fNombre, setFNombre]             = useState('')
   const [fCliente, setFCliente]           = useState('')
   const [fLote, setFLote]                 = useState('')
@@ -160,7 +164,7 @@ export default function Estandares() {
   const [fMg, setFMg]                     = useState('')
   const [fNAnalisis, setFNAnalisis]       = useState('')
   const [fProducto2, setFProducto2]       = useState('')
-
+ 
   const [pesadas, setPesadas]             = useState([])
   const [loadingH, setLoadingH]           = useState(false)
   const [searchH, setSearchH]             = useState('')
@@ -168,11 +172,11 @@ export default function Estandares() {
   const [filtroStd, setFiltroStd]         = useState('')
   const [fechaDesde, setFechaDesde]       = useState('')
   const [fechaHasta, setFechaHasta]       = useState('')
-
+ 
   const hoy     = new Date()
   const mesAct  = String(hoy.getMonth() + 1).padStart(2, '0')
   const anioAct = hoy.getFullYear()
-
+ 
   const load = async () => {
     try {
       const snap = await getDocs(query(collection(db, 'estandares'), orderBy('creadoEn', 'desc')))
@@ -180,7 +184,7 @@ export default function Estandares() {
     } catch { setItems(DEMO_E) }
     finally { setLoading(false) }
   }
-
+ 
   const loadHistorial = async () => {
     setLoadingH(true)
     try {
@@ -189,7 +193,7 @@ export default function Estandares() {
     } catch { setPesadas([]) }
     finally { setLoadingH(false) }
   }
-
+ 
   useEffect(() => { load() }, [])
   useEffect(() => { if (tab === 'historial' && pesadas.length === 0) loadHistorial() }, [tab])
   useEffect(() => {
@@ -197,7 +201,7 @@ export default function Estandares() {
       setFProxRevisionUSP(calcularProximaRevision(new Date().toISOString().split('T')[0], fFrecuenciaUSP))
     }
   }, [fEsUSP, fFrecuenciaUSP])
-
+ 
   const abrirFormulario = async () => {
     if (!showForm) {
       const n = await getSiguienteNumero(db)
@@ -216,7 +220,7 @@ export default function Estandares() {
     setShowForm(!showForm)
     setPesadaId(null)
   }
-
+ 
   const agregarFrasco = () => {
     const letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
     const sig = letras[frascos.length]
@@ -224,7 +228,7 @@ export default function Estandares() {
   }
   const quitarFrasco = (i) => { if (frascos.length > 1) setFrascos(p => p.filter((_,idx)=>idx!==i)) }
   const updateFrasco = (i, valor) => setFrascos(p => p.map((fr,idx)=>idx===i?{...fr,stock:valor}:fr))
-
+ 
   const guardar = async () => {
     if (!fLote || !fNombre || !fCliente) { setMsg('Nombre, cliente y lote son obligatorios'); return }
     if (frascos.some(fr => !fr.stock || isNaN(fr.stock))) { setMsg('Ingresa el stock de cada frasco'); return }
@@ -265,7 +269,7 @@ export default function Estandares() {
     } catch(e) { setMsg('Error al guardar: ' + e.message) }
     finally { setGuardando(false) }
   }
-
+ 
   const pesada = async () => {
     if (!pesadaId || !fMg) { setMsg('Ingresa la cantidad pesada'); return }
     try {
@@ -278,7 +282,7 @@ export default function Estandares() {
       setPesadaId(null); setFMg(''); setFNAnalisis(''); setFProducto2(''); setMsg(''); load()
     } catch(e) { setMsg(e.message) }
   }
-
+ 
   const darDeBaja = async (id, codigo) => {
     const razon = window.prompt(`Razón para dar de baja ${codigo}:`)
     if (!razon) return
@@ -290,7 +294,7 @@ export default function Estandares() {
       load()
     } catch(e) { alert('Error: ' + e.message) }
   }
-
+ 
   const restaurar = async (id) => {
     try {
       await updateDoc(doc(db, 'estandares', id), {
@@ -300,7 +304,7 @@ export default function Estandares() {
       load()
     } catch(e) { alert('Error: ' + e.message) }
   }
-
+ 
   const abrirVerificacionUSP = (item) => {
     setUspModalId(item.id)
     setUspResultado('vigente')
@@ -309,7 +313,7 @@ export default function Estandares() {
     setUspProxRevision(calcularProximaRevision(new Date().toISOString().split('T')[0], item.frecuenciaRevUSP || 12))
     setUspObs('')
   }
-
+ 
   const guardarVerificacionUSP = async () => {
     if (!uspModalId) return
     setGuardandoUSP(true)
@@ -351,15 +355,15 @@ export default function Estandares() {
     } catch(e) { alert('Error: ' + e.message) }
     finally { setGuardandoUSP(false) }
   }
-
+ 
   const toggleOrden = (campo) => {
     if (ordenCampo === campo) setOrdenDir(d => d === 'asc' ? 'desc' : 'asc')
     else { setOrdenCampo(campo); setOrdenDir('asc') }
   }
-
+ 
   const activos  = items.filter(i => i.estado !== 'Dado de baja')
   const papelera = items.filter(i => i.estado === 'Dado de baja')
-
+ 
   const filtrados = (verPapelera ? papelera : activos)
     .filter(i => {
       const q = search.toLowerCase()
@@ -390,10 +394,10 @@ export default function Estandares() {
       if (valA > valB) return ordenDir === 'asc' ? 1 : -1
       return 0
     })
-
+ 
   const usuariosUnicos = [...new Set(pesadas.map(p => p.analista || p.email).filter(Boolean))]
   const stdsUnicos     = [...new Set(pesadas.map(p => p.codigo).filter(Boolean))]
-
+ 
   const pesadasFiltradas = pesadas.filter(p => {
     const q = searchH.toLowerCase()
     const matchQ = !q || p.codigo?.toLowerCase().includes(q) || p.nombre?.toLowerCase().includes(q) || p.nAnalisis?.toLowerCase().includes(q)
@@ -404,12 +408,12 @@ export default function Estandares() {
     const matchH = !fechaHasta || (fecha && fecha <= new Date(fechaHasta + 'T23:59:59'))
     return matchQ && matchU && matchS && matchD && matchH
   })
-
+ 
   const totalMg = pesadasFiltradas.reduce((acc, p) => acc + (parseFloat(p.mgPesados) || 0), 0)
   const needsPotencia = fTipoPotencia === 'tal_cual' || fTipoPotencia === 'base_seca'
-
+ 
   if (loading) return <div style={{display:'flex',justifyContent:'center',padding:40}}><div className="spinner"/></div>
-
+ 
   return (
     <>
       {docInsumo && (
@@ -417,7 +421,7 @@ export default function Estandares() {
           nombreInsumo={`${docInsumo.nombre} · ${docInsumo.codigo}`}
           onClose={()=>setDocInsumo(null)} />
       )}
-
+ 
       {uspModalId && (() => {
         const item = items.find(i => i.id === uspModalId)
         if (!item) return null
@@ -487,14 +491,14 @@ export default function Estandares() {
           </div>
         )
       })()}
-
+ 
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
         <h2 style={{fontSize:16,fontWeight:600}}>Estándares</h2>
         <div style={{display:'flex',gap:8}}>
           {tab==='inventario' && puedeBaja && (
             <button className="btn btn-sm"
               style={verPapelera?{background:'var(--danger-lt)',color:'var(--danger)',borderColor:'var(--danger)'}:{}}
-              onClick={()=>{setVerPapelera(!verPapelera);setSearch('');setFiltroEst('')}}>
+              onClick={()=>{setVerPapelera(!verPapelera);setSearch('');setFiltroEst('');setFiltroCliente('')}}>
               🗑 Papelera {papelera.length>0&&`(${papelera.length})`}
             </button>
           )}
@@ -506,7 +510,7 @@ export default function Estandares() {
           {tab==='historial' && <button className="btn btn-sm" onClick={loadHistorial}>↻ Actualizar</button>}
         </div>
       </div>
-
+ 
       <div style={{display:'flex',gap:4,marginBottom:16,borderBottom:'1px solid var(--border)'}}>
         {[
           { id:'inventario', label:'Inventario', count:activos.length },
@@ -525,7 +529,7 @@ export default function Estandares() {
           </button>
         ))}
       </div>
-
+ 
       {tab==='inventario' && (
         <>
           {showForm && puedeAgregar && !verPapelera && (
@@ -540,7 +544,7 @@ export default function Estandares() {
                 <div className="form-group"><label>Cliente *</label>
                   <select value={fCliente} onChange={e=>setFCliente(e.target.value)}>
                     <option value="">Seleccionar...</option>
-                    {CLIENTES.map(c=><option key={c}>{c}</option>)}
+                    {listaClientes.map(c=><option key={c}>{c}</option>)}
                   </select>
                 </div>
                 <div className="form-group"><label>N° Lote *</label><input value={fLote} onChange={e=>setFLote(e.target.value.toUpperCase())} placeholder="ej: LRAD4238"/></div>
@@ -565,7 +569,7 @@ export default function Estandares() {
                 <div className="form-group"><label>Fabricante</label><input value={fFabricante} onChange={onChangeCapitalizar(setFabricante)} placeholder="ej: Sigma-aldrich"/></div>
                 <div className="form-group"><label>Cant. por análisis (mg)</label><input type="number" step="0.01" value={fXAnalisis} onChange={e=>setFXAnalisis(e.target.value)}/></div>
               </div>
-
+ 
               <div style={{background:'var(--accent-lt)',borderRadius:'var(--radius-md)',padding:'12px 14px',marginBottom:14,border:'1px solid var(--border)'}}>
                 <label style={{display:'flex',alignItems:'center',gap:10,cursor:'pointer',fontSize:13,fontWeight:500}}>
                   <input type="checkbox" checked={fEsUSP} onChange={e=>setFEsUSP(e.target.checked)}/>
@@ -589,14 +593,14 @@ export default function Estandares() {
                   </div>
                 )}
               </div>
-
+ 
               {!fEsUSP && (
                 <div className="form-group" style={{marginBottom:14,maxWidth:200}}>
                   <label>Fecha vencimiento</label>
                   <input type="date" value={fVencimiento} onChange={e=>setFVencimiento(e.target.value)}/>
                 </div>
               )}
-
+ 
               <div style={{background:'var(--bg)',borderRadius:'var(--radius-md)',padding:'12px 14px',marginBottom:14}}>
                 <p style={{fontSize:11,fontWeight:600,color:'var(--text-2)',marginBottom:10}}>POTENCIA</p>
                 <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:10}}>
@@ -614,7 +618,7 @@ export default function Estandares() {
                   </div>
                 )}
               </div>
-
+ 
               <div style={{background:'var(--warn-lt)',borderRadius:'var(--radius-md)',padding:'12px 14px',marginBottom:14}}>
                 <p style={{fontSize:11,fontWeight:600,color:'var(--text-2)',marginBottom:10}}>CONDICIONES ESPECIALES PREVIAS</p>
                 <div style={{display:'flex',gap:12,flexWrap:'wrap',marginBottom:10}}>
@@ -638,12 +642,12 @@ export default function Estandares() {
                   </div>
                 )}
               </div>
-
+ 
               <div className="form-group" style={{marginBottom:14}}>
                 <label>Observaciones</label>
                 <input value={fObservacion} onChange={onChangeCapitalizar(setFObservacion)} placeholder="Observaciones adicionales"/>
               </div>
-
+ 
               <div style={{marginBottom:14}}>
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
                   <label style={{fontSize:11,fontWeight:600,color:'var(--text-2)'}}>FRASCOS DEL ENVÍO</label>
@@ -670,7 +674,7 @@ export default function Estandares() {
                   </div>
                 )}
               </div>
-
+ 
               <div style={{display:'flex',gap:8}}>
                 <button className="btn btn-primary btn-sm" onClick={guardar} disabled={guardando}>
                   {guardando?<div className="spinner" style={{width:14,height:14,borderWidth:2}}/>:<FlaskConical size={14}/>}
@@ -680,7 +684,7 @@ export default function Estandares() {
               </div>
             </div>
           )}
-
+ 
           {pesadaId && puedePesada && (
             <div className="card">
               <div className="card-title">Registrar pesada — {items.find(i=>i.id===pesadaId)?.nombre} · Frasco {items.find(i=>i.id===pesadaId)?.frasco}</div>
@@ -705,30 +709,40 @@ export default function Estandares() {
               </div>
             </div>
           )}
-
+ 
           {/* Barra búsqueda y ordenamiento */}
-          <div className="search-bar">
-            <Search size={16} style={{color:'var(--text-3)',flexShrink:0}}/>
-            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por código, nombre o cliente..." style={{flex:1}}/>
-            {!verPapelera && (
-              <select value={filtroEst} onChange={e=>setFiltroEst(e.target.value)}>
-                <option value="">Todos los estados</option>
-                {ESTADOS.filter(e=>e!=='Dado de baja').map(e=><option key={e}>{e}</option>)}
+          <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:12}}>
+            <div className="search-bar">
+              <Search size={16} style={{color:'var(--text-3)',flexShrink:0}}/>
+              <input value={search} onChange={e=>setSearch(e.target.value)}
+                placeholder="Buscar por código, nombre o cliente..." style={{flex:1}}/>
+              {!verPapelera && (
+                <select value={filtroEst} onChange={e=>setFiltroEst(e.target.value)}>
+                  <option value="">Todos los estados</option>
+                  {ESTADOS.filter(e=>e!=='Dado de baja').map(e=><option key={e}>{e}</option>)}
+                </select>
+              )}
+              <select value={filtroCliente} onChange={e=>setFiltroCliente(e.target.value)}>
+                <option value="">Todos los clientes</option>
+                {listaClientes.map(c=><option key={c}>{c}</option>)}
               </select>
-            )}
-            {[
-              { campo:'nombre',      label:'Nombre' },
-              { campo:'codigo',      label:'Código' },
-              { campo:'vencimiento', label:'Vencimiento' },
-            ].map(o => (
-              <button key={o.campo} className="btn btn-sm"
-                style={ordenCampo===o.campo?{background:'var(--accent-lt)',color:'var(--accent)',borderColor:'var(--accent)'}:{}}
-                onClick={()=>toggleOrden(o.campo)}>
-                {o.label} {ordenCampo===o.campo?(ordenDir==='asc'?'↑':'↓'):'↕'}
-              </button>
-            ))}
+            </div>
+            <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+              <span style={{fontSize:11,color:'var(--text-2)',alignSelf:'center'}}>Ordenar por:</span>
+              {[
+                { campo:'nombre',      label:'Nombre' },
+                { campo:'codigo',      label:'Código' },
+                { campo:'vencimiento', label:'Vencimiento' },
+              ].map(o => (
+                <button key={o.campo} className="btn btn-sm"
+                  style={ordenCampo===o.campo?{background:'var(--accent-lt)',color:'var(--accent)',borderColor:'var(--accent)'}:{}}
+                  onClick={()=>toggleOrden(o.campo)}>
+                  {o.label} {ordenCampo===o.campo?(ordenDir==='asc'?'↑':'↓'):'↕'}
+                </button>
+              ))}
+            </div>
           </div>
-
+ 
           <div className="table-wrap">
             <table>
               <thead>
@@ -807,7 +821,7 @@ export default function Estandares() {
           </div>
         </>
       )}
-
+ 
       {tab==='historial' && (
         <>
           <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10,marginBottom:16}}>
