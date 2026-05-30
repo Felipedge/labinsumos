@@ -1,6 +1,4 @@
 
-raw
-Estandares final · JSX
 // src/pages/Estandares.jsx
 import { useState, useEffect } from 'react'
 import { collection, getDocs, addDoc, updateDoc, doc,
