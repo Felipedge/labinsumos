@@ -153,7 +153,7 @@ export async function registrarUsoColumna({ columnaId, analisis = [], totalInyec
 }
  
 // Retiro de columna: el cliente solicita la devolución del insumo.
-// La columna pasa a estado DADA DE BAJA (no se elimina de la base).
+// La columna pasa a estado "Dada de baja" (no se elimina de la base).
 export async function retirarColumna({ columnaId, fechaRetiro, motivo, usuario, email }) {
   const ref  = doc(db, 'columnas', columnaId)
   const snap = await getDoc(ref)
@@ -161,7 +161,8 @@ export async function retirarColumna({ columnaId, fechaRetiro, motivo, usuario, 
   const actual = snap.data()
  
   await updateDoc(ref, {
-    estado: 'DADA DE BAJA',
+    estado: 'Dada de baja',
+    motivoBaja: 'Retirada por cliente',
     fechaRetiro,
     motivoRetiro: motivo || 'Cliente solicitó devolución del insumo',
     retiradoPor: usuario || '',
@@ -172,11 +173,62 @@ export async function retirarColumna({ columnaId, fechaRetiro, motivo, usuario, 
   await registrarAudit({
     coleccion: 'columnas', documentoId: columnaId, accion: 'dar_de_baja',
     antes:   { estado: actual.estado },
-    despues: { estado: 'DADA DE BAJA', fechaRetiro },
+    despues: { estado: 'Dada de baja', fechaRetiro },
     detalle: `Columna ${actual.codigo} retirada el ${fechaRetiro}. Motivo: ${motivo || 'Cliente solicitó devolución del insumo'}`,
   })
  
-  return { estado: 'DADA DE BAJA' }
+  return { estado: 'Dada de baja' }
+}
+ 
+// Poner columna en uso (Encargado/Jefe). Solo desde estado "Nueva".
+export async function ponerEnUsoColumna({ columnaId, usuario, email }) {
+  const ref  = doc(db, 'columnas', columnaId)
+  const snap = await getDoc(ref)
+  if (!snap.exists()) throw new Error('Columna no encontrada')
+  const actual = snap.data()
+ 
+  await updateDoc(ref, {
+    estado: 'En uso',
+    fechaInicioUso: actual.fechaInicioUso || new Date().toISOString().split('T')[0],
+    puestaEnUsoPor: usuario || '',
+    actualizadoEn: serverTimestamp(),
+  })
+ 
+  await registrarAudit({
+    coleccion: 'columnas', documentoId: columnaId, accion: 'poner_en_uso',
+    antes:   { estado: actual.estado },
+    despues: { estado: 'En uso' },
+    detalle: `Columna ${actual.codigo} puesta en uso por ${usuario || email}`,
+  })
+ 
+  return { estado: 'En uso' }
+}
+ 
+// Dar de baja por falla de System Suitability (no es retiro del cliente).
+export async function darBajaColumnaSST({ columnaId, motivo, usuario, email }) {
+  const ref  = doc(db, 'columnas', columnaId)
+  const snap = await getDoc(ref)
+  if (!snap.exists()) throw new Error('Columna no encontrada')
+  const actual = snap.data()
+ 
+  await updateDoc(ref, {
+    estado: 'Dada de baja',
+    motivoBaja: 'No cumple System Suitability',
+    motivoRetiro: motivo || 'No cumple System Suitability',
+    retiradoPor: usuario || '',
+    retiradoPorEmail: email || '',
+    fechaBaja: new Date().toISOString().split('T')[0],
+    actualizadoEn: serverTimestamp(),
+  })
+ 
+  await registrarAudit({
+    coleccion: 'columnas', documentoId: columnaId, accion: 'dar_de_baja',
+    antes:   { estado: actual.estado },
+    despues: { estado: 'Dada de baja' },
+    detalle: `Columna ${actual.codigo} dada de baja por falla de System Suitability. ${motivo || ''}`.trim(),
+  })
+ 
+  return { estado: 'Dada de baja' }
 }
  
 export async function reasignarColumna(columnaId, { cliente, producto }) {
