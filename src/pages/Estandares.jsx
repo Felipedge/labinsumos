@@ -119,7 +119,6 @@ export default function Estandares() {
   const [pesadaId, setPesadaId]   = useState(null)
   const [frascos, setFrascos]     = useState([{ letra: 'A', stock: '' }])
   const [retiroItem, setRetiroItem]     = useState(null)
-  const [motivoBaja, setMotivoBaja]     = useState('retiro_cliente')
   const [retiroFecha, setRetiroFecha]   = useState('')
   const [retiroMotivo, setRetiroMotivo] = useState('')
   const [msg, setMsg]             = useState('')
@@ -294,18 +293,13 @@ export default function Estandares() {
   }
 
   const confirmarRetiro = async () => {
-    if (motivoBaja === 'retiro_cliente' && !retiroFecha) {
-      alert('Indica la fecha en que el cliente retiró el insumo'); return
-    }
+    if (!retiroFecha) { alert('Indica la fecha de retiro'); return }
     try {
-      const motivo = motivoBaja === 'retiro_cliente'
-        ? (retiroMotivo || 'Cliente solicitó devolución del insumo')
-        : (retiroMotivo || 'Insumo vencido')
-      const fechaRetiro = motivoBaja === 'retiro_cliente' ? retiroFecha : ''
       await retirarInsumo({ coleccion:'estandares', insumoId:retiroItem.id,
-        fechaRetiro, motivo,
+        fechaRetiro: retiroFecha,
+        motivo: retiroMotivo || 'Cliente solicitó devolución del insumo',
         usuario: user.displayName || user.email, email: user.email })
-      setRetiroItem(null); setRetiroFecha(''); setRetiroMotivo(''); setMotivoBaja('retiro_cliente'); load()
+      setRetiroItem(null); setRetiroFecha(''); setRetiroMotivo(''); load()
     } catch(e) { alert('Error: ' + e.message) }
   }
 
@@ -465,58 +459,21 @@ export default function Estandares() {
       {retiroItem && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:1000,
           display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
-          <div style={{background:'var(--surface)',borderRadius:'var(--radius-lg)',padding:24,width:'100%',maxWidth:460}}>
-            <p style={{fontSize:15,fontWeight:600,marginBottom:4}}>Dar de baja — {retiroItem.codigo}</p>
-            <p style={{fontSize:12,color:'var(--text-2)',marginBottom:16}}>{retiroItem.nombre}</p>
-
-            {/* Selector de motivo */}
-            <div style={{display:'flex',gap:8,marginBottom:16}}>
-              {[
-                { val:'retiro_cliente', label:'Retiro de cliente' },
-                { val:'vencimiento',    label:'Vencimiento' },
-              ].map(op => (
-                <button key={op.val}
-                  onClick={() => { setMotivoBaja(op.val); setRetiroFecha(''); setRetiroMotivo('') }}
-                  className="btn btn-sm"
-                  style={{
-                    flex:1, padding:'8px 4px', fontSize:12,
-                    background: motivoBaja===op.val ? 'var(--accent-lt)' : '',
-                    color:      motivoBaja===op.val ? 'var(--accent)' : 'var(--text-2)',
-                    borderColor:motivoBaja===op.val ? 'var(--accent)' : 'var(--border-md)',
-                    fontWeight: motivoBaja===op.val ? 600 : 400,
-                  }}>
-                  {op.label}
-                </button>
-              ))}
+          <div style={{background:'var(--surface)',borderRadius:'var(--radius-lg)',padding:24,width:'100%',maxWidth:440}}>
+            <p style={{fontSize:15,fontWeight:600,marginBottom:4}}>Retirar por cliente</p>
+            <p style={{fontSize:12,color:'var(--text-2)',marginBottom:16}}>{retiroItem.codigo} — {retiroItem.nombre}</p>
+            <div className="form-group" style={{marginBottom:10}}>
+              <label>Fecha de retiro *</label>
+              <input type="date" value={retiroFecha} onChange={e=>setRetiroFecha(e.target.value)}/>
             </div>
-
-            {/* Fecha solo para retiro de cliente */}
-            {motivoBaja === 'retiro_cliente' && (
-              <div className="form-group" style={{marginBottom:12}}>
-                <label>Fecha en que el cliente retiró el insumo *</label>
-                <input type="date" value={retiroFecha}
-                  onChange={e => setRetiroFecha(e.target.value)} />
-                <p style={{fontSize:11,color:'var(--text-3)',marginTop:4}}>
-                  Puede ser distinta a la fecha de hoy.
-                </p>
-              </div>
-            )}
-
             <div className="form-group" style={{marginBottom:16}}>
-              <label>{motivoBaja === 'vencimiento' ? 'Observación (opcional)' : 'Motivo / observación (opcional)'}</label>
-              <input value={retiroMotivo} onChange={e => setRetiroMotivo(e.target.value)}
-                placeholder={motivoBaja === 'vencimiento'
-                  ? 'ej: Insumo vencido el dd/mm/aaaa'
-                  : 'ej: Cliente solicitó devolución el dd/mm/aaaa'} />
+              <label>Motivo / observación</label>
+              <input value={retiroMotivo} onChange={e=>setRetiroMotivo(e.target.value)}
+                placeholder="ej: Cliente solicitó devolución del insumo"/>
             </div>
-
             <div style={{display:'flex',gap:8}}>
-              <button className="btn btn-primary btn-sm" onClick={confirmarRetiro}>
-                Confirmar y dar de baja
-              </button>
-              <button className="btn btn-sm" onClick={()=>{
-                setRetiroItem(null); setRetiroFecha(''); setRetiroMotivo(''); setMotivoBaja('retiro_cliente')
-              }}>Cancelar</button>
+              <button className="btn btn-primary btn-sm" onClick={confirmarRetiro}>Confirmar retiro</button>
+              <button className="btn btn-sm" onClick={()=>{setRetiroItem(null);setRetiroFecha('');setRetiroMotivo('')}}>Cancelar</button>
             </div>
           </div>
         </div>
