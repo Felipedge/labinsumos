@@ -379,8 +379,3 @@ export default function Columnas() {
   )
 }
 
-const DEMO = [
-  { id:'1', codigo:'GL-007', fase:'C18', largo:150, diametro:4.6, micra:5, tamanoParticula:'5µm', cliente:'Galenicum', fechaPrimerUso:'2025-01-12', inyeccionesAcumuladas:1240, limiteInyecciones:1500, estado:'CRÍTICA' },
-  { id:'2', codigo:'ASC-012', fase:'C8', largo:150, diametro:4.6, micra:3.5, tamanoParticula:'3.5µm', cliente:'Ascend', fechaPrimerUso:'2024-08-03', inyeccionesAcumuladas:890, limiteInyecciones:1500, estado:'ACTIVA' },
-  { id:'3', codigo:'LCH-019', fase:'NH2', largo:250, diametro:4.6, micra:5, tamanoParticula:'5µm', cliente:'Laboratorio Chile', fechaPrimerUso:'2025-03-21', inyeccionesAcumuladas:340, limiteInyecciones:1500, estado:'ACTIVA' },
-]
