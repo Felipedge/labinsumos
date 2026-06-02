@@ -100,7 +100,7 @@ export async function getColumnas(filtros = {}) {
 export async function crearColumna(data, usuarioEmail) {
   const ref = await addDoc(collection(db, 'columnas'), {
     ...data,
-    inyeccionesAcumuladas: 0,
+    inyeccionesAcumuladas: data.inyeccionesAcumuladas ?? 0,
     historialClientes: [{ cliente: data.cliente, proyecto: data.producto || '', desde: new Date().toISOString() }],
     creadoPor: usuarioEmail, creadoEn: serverTimestamp(), actualizadoEn: serverTimestamp(),
   })
@@ -112,36 +112,71 @@ export async function crearColumna(data, usuarioEmail) {
   return ref
 }
  
-export async function registrarUsoColumna({ columnaId, inyecciones, nAnalisis, analista, email }) {
+// Registro de uso: suma inyecciones al acumulado y guarda el detalle de
+// uno o más números de análisis. Ya NO modifica el estado por límite —
+// la baja de la columna es manual (ver retirarColumna).
+export async function registrarUsoColumna({ columnaId, analisis = [], totalInyecciones, analista, email }) {
   const ref  = doc(db, 'columnas', columnaId)
   const snap = await getDoc(ref)
   if (!snap.exists()) throw new Error('Columna no encontrada')
   const actual = snap.data()
  
-  const nuevasInyecciones = (actual.inyeccionesAcumuladas || 0) + inyecciones
-  const limiteInyecciones = actual.limiteInyecciones || 1500
-  const pct = nuevasInyecciones / limiteInyecciones
-  const nuevoEstado = pct >= 1 ? 'DADA DE BAJA' : pct >= 0.9 ? 'CRÍTICA' : 'ACTIVA'
+  const total = totalInyecciones != null
+    ? totalInyecciones
+    : analisis.reduce((s, a) => s + (parseInt(a.inyecciones) || 0), 0)
+ 
+  const nuevasInyecciones = (actual.inyeccionesAcumuladas || 0) + total
  
   await updateDoc(ref, {
-    inyeccionesAcumuladas: nuevasInyecciones, ultimoUso: serverTimestamp(),
-    estado: nuevoEstado, actualizadoEn: serverTimestamp(),
+    inyeccionesAcumuladas: nuevasInyecciones,
+    ultimoUso: serverTimestamp(), actualizadoEn: serverTimestamp(),
   })
  
   await addDoc(collection(db, 'usos_columnas'), {
     columnaId, codigo: actual.codigo, fase: actual.fase, tamano: actual.tamanoParticula,
-    cliente: actual.cliente, inyecciones, totalAcum: nuevasInyecciones,
-    nAnalisis: nAnalisis || '', analista, email, fecha: serverTimestamp(),
+    cliente: actual.cliente,
+    analisis,                       // [{ nAnalisis, inyecciones }]
+    inyecciones: total,             // total de este registro
+    totalAcum: nuevasInyecciones,
+    analista, email, fecha: serverTimestamp(),
+  })
+ 
+  const detalleAnalisis = analisis.map(a => `${a.nAnalisis || '—'} (${a.inyecciones || 0})`).join(', ')
+  await registrarAudit({
+    coleccion: 'columnas', documentoId: columnaId, accion: 'uso',
+    antes:   { inyeccionesAcumuladas: actual.inyeccionesAcumuladas || 0 },
+    despues: { inyeccionesAcumuladas: nuevasInyecciones },
+    detalle: `${total} inyecciones registradas por ${analista}. Análisis: ${detalleAnalisis || '—'}. Total acumulado: ${nuevasInyecciones}`,
+  })
+ 
+  return { nuevasInyecciones }
+}
+ 
+// Retiro de columna: el cliente solicita la devolución del insumo.
+// La columna pasa a estado DADA DE BAJA (no se elimina de la base).
+export async function retirarColumna({ columnaId, fechaRetiro, motivo, usuario, email }) {
+  const ref  = doc(db, 'columnas', columnaId)
+  const snap = await getDoc(ref)
+  if (!snap.exists()) throw new Error('Columna no encontrada')
+  const actual = snap.data()
+ 
+  await updateDoc(ref, {
+    estado: 'DADA DE BAJA',
+    fechaRetiro,
+    motivoRetiro: motivo || 'Cliente solicitó devolución del insumo',
+    retiradoPor: usuario || '',
+    retiradoPorEmail: email || '',
+    actualizadoEn: serverTimestamp(),
   })
  
   await registrarAudit({
-    coleccion: 'columnas', documentoId: columnaId, accion: 'uso',
-    antes:   { inyeccionesAcumuladas: actual.inyeccionesAcumuladas, estado: actual.estado },
-    despues: { inyeccionesAcumuladas: nuevasInyecciones, estado: nuevoEstado },
-    detalle: `${inyecciones} inyecciones registradas por ${analista}. Total: ${nuevasInyecciones}/${limiteInyecciones}`,
+    coleccion: 'columnas', documentoId: columnaId, accion: 'dar_de_baja',
+    antes:   { estado: actual.estado },
+    despues: { estado: 'DADA DE BAJA', fechaRetiro },
+    detalle: `Columna ${actual.codigo} retirada el ${fechaRetiro}. Motivo: ${motivo || 'Cliente solicitó devolución del insumo'}`,
   })
  
-  return { nuevasInyecciones, nuevoEstado }
+  return { estado: 'DADA DE BAJA' }
 }
  
 export async function reasignarColumna(columnaId, { cliente, producto }) {
@@ -318,14 +353,6 @@ export function calcularSemaforo(fechaVencimiento, diasCritico = 30, diasAdv = 6
   if (dias <= diasCritico) return { texto: `${dias} días`, color: 'danger',  dias }
   if (dias <= diasAdv)     return { texto: `${dias} días`, color: 'warning', dias }
   return                          { texto: `${dias} días`, color: 'success', dias }
-}
- 
-export function calcularSemaforoColumna(inyecciones, limite = 1500) {
-  const pct = inyecciones / limite
-  if (pct >= 1)    return { texto: 'Límite alcanzado', color: 'danger',  pct }
-  if (pct >= 0.9)  return { texto: 'Crítica (>90%)',   color: 'danger',  pct }
-  if (pct >= 0.75) return { texto: 'Advertencia',      color: 'warning', pct }
-  return                  { texto: 'Vigente',           color: 'success', pct }
 }
  
 // ─────────────────────────────────────────────────────────────
