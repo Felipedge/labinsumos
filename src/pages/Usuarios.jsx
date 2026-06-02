@@ -3,39 +3,33 @@ import { useState, useEffect } from 'react'
 import { collection, getDocs, updateDoc, doc } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useRole } from '../hooks/useRole.jsx'
-import { ROLES, puedoHacer } from '../lib/roles'
+import { ROLES, ETIQUETAS_ROL, COLORES_ROL, puedoHacer } from '../lib/roles'
 import { Users, Shield } from 'lucide-react'
-
-const ETIQUETAS = {
-  admin:     'Administrador',
-  jefe:      'Jefe de laboratorio',
-  encargado: 'Encargado de insumos',
-  analista:  'Analista',
-  lectura:   'Solo lectura',
-}
-
-const COLORES = {
+ 
+const COLORES_BADGE = {
   admin:     'badge-danger',
   jefe:      'badge-info',
   encargado: 'badge-ok',
   analista:  'badge-purple',
+  recepcion: 'badge-warn',
   lectura:   'badge-gray',
 }
-
+ 
 const DESCRIPCIONES = {
   admin:     'Acceso total + gestión de usuarios',
-  jefe:      'Aprueba insumos, exporta reportes, da de baja',
-  encargado: 'Agrega insumos, registra usos, exporta reportes',
-  analista:  'Registra pesadas y usos, ve documentación',
+  jefe:      'Aprueba insumos, exporta reportes, da de baja con autorización Admin',
+  encargado: 'Agrega insumos, aprueba a Recepción, da de baja con autorización Jefe, ve auditoría',
+  analista:  'Registra pesadas y usos — único rol con esta capacidad',
+  recepcion: 'Ingresa insumos nuevos (quedan pendientes de aprobación)',
   lectura:   'Solo visualiza, sin acciones',
 }
-
+ 
 export default function Usuarios() {
   const { rol } = useRole()
   const [usuarios, setUsuarios] = useState([])
   const [loading, setLoading]   = useState(true)
   const [msg, setMsg]           = useState('')
-
+ 
   const load = async () => {
     try {
       const snap = await getDocs(collection(db, 'usuarios'))
@@ -43,9 +37,9 @@ export default function Usuarios() {
     } catch(e) { console.error(e) }
     finally { setLoading(false) }
   }
-
+ 
   useEffect(() => { load() }, [])
-
+ 
   const cambiarRol = async (uid, nuevoRol) => {
     try {
       await updateDoc(doc(db, 'usuarios', uid), { rol: nuevoRol })
@@ -54,7 +48,7 @@ export default function Usuarios() {
       load()
     } catch(e) { setMsg('Error al actualizar rol') }
   }
-
+ 
   if (!puedoHacer(rol, 'gestionarUsuarios')) {
     return (
       <div className="empty">
@@ -63,35 +57,35 @@ export default function Usuarios() {
       </div>
     )
   }
-
+ 
   if (loading) return <div style={{display:'flex',justifyContent:'center',padding:40}}><div className="spinner"/></div>
-
+ 
   return (
     <>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
         <h2 style={{fontSize:16,fontWeight:600}}>Gestión de usuarios</h2>
         <span className="badge badge-info">{usuarios.length} usuarios registrados</span>
       </div>
-
+ 
       {/* Leyenda de roles */}
       <div className="card" style={{marginBottom:16}}>
         <div className="card-title">Roles disponibles</div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:8}}>
-          {Object.entries(ETIQUETAS).map(([k,v]) => (
+          {Object.entries(ETIQUETAS_ROL).map(([k,v]) => (
             <div key={k} style={{padding:'8px 12px',background:'var(--bg)',borderRadius:'var(--radius-sm)',border:'1px solid var(--border)'}}>
-              <div style={{marginBottom:4}}><span className={`badge ${COLORES[k]}`}>{v}</span></div>
+              <div style={{marginBottom:4}}><span className={`badge ${COLORES_BADGE[k]}`}>{v}</span></div>
               <div style={{fontSize:11,color:'var(--text-2)'}}>{DESCRIPCIONES[k]}</div>
             </div>
           ))}
         </div>
       </div>
-
+ 
       {msg && (
         <div className="alert-item" style={{background:'var(--ok-lt)',border:'1px solid var(--ok)',marginBottom:12}}>
           {msg}
         </div>
       )}
-
+ 
       <div className="table-wrap">
         <table>
           <thead>
@@ -118,7 +112,7 @@ export default function Usuarios() {
                   </div>
                 </td>
                 <td style={{color:'var(--text-2)',fontSize:12}}>{u.email}</td>
-                <td><span className={`badge ${COLORES[u.rol]||'badge-gray'}`}>{ETIQUETAS[u.rol]||u.rol}</span></td>
+                <td><span className={`badge ${COLORES_BADGE[u.rol]||'badge-gray'}`}>{ETIQUETAS_ROL[u.rol]||u.rol}</span></td>
                 <td style={{color:'var(--text-3)',fontSize:11}}>
                   {u.creadoEn ? new Date(u.creadoEn).toLocaleDateString('es-CL') : '—'}
                 </td>
@@ -128,8 +122,8 @@ export default function Usuarios() {
                     onChange={e => cambiarRol(u.id, e.target.value)}
                     style={{fontSize:12,padding:'4px 8px'}}
                   >
-                    {Object.entries(ROLES).map(([k,v]) => (
-                      <option key={v} value={v}>{ETIQUETAS[v]}</option>
+                    {Object.entries(ETIQUETAS_ROL).map(([v,label]) => (
+                      <option key={v} value={v}>{label}</option>
                     ))}
                   </select>
                 </td>

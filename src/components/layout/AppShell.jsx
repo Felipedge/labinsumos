@@ -2,7 +2,7 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth.jsx'
 import { useRole } from '../../hooks/useRole.jsx'
-import { puedoHacer } from '../../lib/roles'
+import { puedoHacer, ETIQUETAS_ROL, COLORES_ROL } from '../../lib/roles'
 import { useState, useEffect } from 'react'
 import { collection, getDocs, query, where, doc, updateDoc } from 'firebase/firestore'
 import { db } from '../../lib/firebase'
@@ -12,37 +12,22 @@ import {
   ClipboardCheck, Pencil, Check, X, BarChart2, ClipboardList, Building2
 } from 'lucide-react'
  
-const ETIQUETAS_ROL = {
-  admin:     'Administrador',
-  jefe:      'Jefe de laboratorio',
-  encargado: 'Encargado de insumos',
-  analista:  'Analista',
-  lectura:   'Solo lectura',
-}
- 
-const COLORES_ROL = {
-  admin:     '#A32D2D',
-  jefe:      '#185FA5',
-  encargado: '#3B6D11',
-  analista:  '#3C3489',
-  lectura:   '#6b6860',
-}
- 
 export default function AppShell() {
   const { user, logout } = useAuth()
   const { rol }          = useRole()
   const navigate         = useNavigate()
  
-  const [pendientes, setPendientes]         = useState(0)
-  const [editandoNombre, setEditandoNombre] = useState(false)
-  const [nuevoNombre, setNuevoNombre]       = useState('')
-  const [nombreMostrado, setNombreMostrado] = useState('')
+  const [pendientes, setPendientes]           = useState(0)
+  const [editandoNombre, setEditandoNombre]   = useState(false)
+  const [nuevoNombre, setNuevoNombre]         = useState('')
+  const [nombreMostrado, setNombreMostrado]   = useState('')
   const [guardandoNombre, setGuardandoNombre] = useState(false)
   const [nombreBloqueado, setNombreBloqueado] = useState(false)
-  const [docUsuarioId, setDocUsuarioId]     = useState(null)
+  const [docUsuarioId, setDocUsuarioId]       = useState(null)
  
   const puedeOperar  = puedoHacer(rol, 'registrarUso')
   const puedeAprobar = puedoHacer(rol, 'aprobarInsumos')
+  const puedeAuditoria = puedoHacer(rol, 'verAuditoria')
  
   // Cargar nombre del usuario desde Firestore
   useEffect(() => {
@@ -56,7 +41,6 @@ export default function AppShell() {
           const data = snap.docs[0].data()
           setDocUsuarioId(snap.docs[0].id)
           setNombreMostrado(data.nombrePersonalizado || data.nombre || user.displayName || user.email)
-          // Bloquear si ya editó el nombre antes
           setNombreBloqueado(!!data.nombrePersonalizado)
         } else {
           setNombreMostrado(user.displayName || user.email)
@@ -74,7 +58,7 @@ export default function AppShell() {
     async function contarPendientes() {
       try {
         let total = 0
-        for (const col of ['estandares','columnas','reactivos','placebo']) {
+        for (const col of ['estandares','columnas','reactivos','placebo','apis']) {
           const snap = await getDocs(
             query(collection(db, col), where('estado', '==', 'Pendiente de aprobación'))
           )
@@ -97,7 +81,7 @@ export default function AppShell() {
         nombre:              nuevoNombre.trim(),
       })
       setNombreMostrado(nuevoNombre.trim())
-      setNombreBloqueado(true) // Bloquear para siempre tras la primera edición
+      setNombreBloqueado(true)
       setEditandoNombre(false)
       setNuevoNombre('')
     } catch(e) { console.error(e) }
@@ -126,7 +110,7 @@ export default function AppShell() {
       <aside className="sidebar">
         <div className="sidebar-header">
           <div className="sidebar-header-logo">
-            <img src={`${import.meta.env.BASE_URL}Logo.jpeg`} />
+            <img src="/Logo.jpeg" alt="Qualyserv"/>
           </div>
           <p style={{ fontSize:10, color:'rgba(255,255,255,0.45)', marginTop:8 }}>Laboratorio de Análisis Químico</p>
         </div>
@@ -171,7 +155,7 @@ export default function AppShell() {
               <BarChart2 size={16}/> Reportes
             </NavLink>
           )}
-          {(rol === 'admin' || rol === 'jefe') && (
+          {puedeAuditoria && (
             <NavLink to="/auditlog" className={({ isActive }) => `nav-link${isActive?' active':''}`}>
               <ClipboardList size={16}/> Auditoría
             </NavLink>
@@ -191,7 +175,7 @@ export default function AppShell() {
               )}
             </NavLink>
           )}
-          {(rol === 'admin' || rol === 'jefe') && (
+          {puedoHacer(rol, 'gestionarClientes') && (
             <NavLink to="/clientes" className={({ isActive }) => `nav-link${isActive?' active':''}`}>
               <Building2 size={16}/> Clientes
             </NavLink>
@@ -223,7 +207,7 @@ export default function AppShell() {
                     style={{
                       flex:1, fontSize:11, padding:'2px 6px',
                       border:'1px solid var(--accent)', borderRadius:4,
-                      background:'var(--surface)', color:'var(--text-1)', minWidth:0
+                      background:'rgba(255,255,255,0.15)', color:'#fff', minWidth:0
                     }}
                     autoFocus
                   />
@@ -244,21 +228,20 @@ export default function AppShell() {
                   }}>
                     {nombreMostrado}
                   </div>
-                  {/* Lápiz solo si el nombre NO está bloqueado */}
                   {!nombreBloqueado && (
                     <button onClick={iniciarEdicion} title="Editar nombre (solo una vez)"
-                      style={{padding:2,border:'none',background:'none',cursor:'pointer',color:'var(--text-3)',flexShrink:0}}>
+                      style={{padding:2,border:'none',background:'none',cursor:'pointer',color:'rgba(255,255,255,0.4)',flexShrink:0}}>
                       <Pencil size={11}/>
                     </button>
                   )}
                 </div>
               )}
-              <div style={{ fontSize:10, fontWeight:500, color: COLORES_ROL[rol] || 'var(--text-3)' }}>
+              <div style={{ fontSize:10, fontWeight:500, color: COLORES_ROL[rol] || 'rgba(255,255,255,0.5)' }}>
                 {ETIQUETAS_ROL[rol] || 'Cargando...'}
               </div>
             </div>
             <button onClick={handleLogout} className="btn btn-sm" title="Cerrar sesión"
-              style={{ padding:'5px', border:'none', flexShrink:0 }}>
+              style={{ padding:'5px', border:'none', background:'none', color:'rgba(255,255,255,0.5)', flexShrink:0 }}>
               <LogOut size={14}/>
             </button>
           </div>
