@@ -1,24 +1,29 @@
 // src/pages/APIs.jsx
 import { useState, useEffect } from 'react'
 import { collection, getDocs, addDoc, updateDoc, doc,
-         serverTimestamp, query, orderBy } from 'firebase/firestore'
+         serverTimestamp, query, orderBy, limit } from 'firebase/firestore'
 import { db } from '../lib/firebase'
-import { calcularSemaforo } from '../lib/db'
+import { calcularSemaforo, registrarPesadaAPI } from '../lib/db'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useRole } from '../hooks/useRole.jsx'
 import { puedoHacer } from '../lib/roles'
-import { Plus, Search, FileText } from 'lucide-react'
+import { Plus, Search, FileText, Package, History } from 'lucide-react'
 import DocumentosPanel from '../components/shared/DocumentosPanel.jsx'
 import { useClientes } from '../hooks/useClientes.jsx'
-
-const LABORATORIOS = ['Lab. Chile', 'Novartis', 'MSN', 'Ascend', 'Galenicum', 'Grunenthal', 'BPH', 'Otro']
-const UBICACIONES  = ['Desecador', 'Refrigerador', 'Freezer', 'Refrigerador controlado', 'Desecador Validaciones', 'Otro']
-
+ 
+const UBICACIONES = ['Desecador', 'Refrigerador', 'Freezer', 'Refrigerador controlado', 'Desecador Validaciones', 'Otro']
+ 
 function capitalizar(str) {
   if (!str) return ''
   return str.charAt(0).toUpperCase() + str.slice(1)
 }
-
+ 
+function formatFecha(ts) {
+  if (!ts) return '—'
+  const d = ts.toDate ? ts.toDate() : new Date(ts)
+  return d.toLocaleDateString('es-CL') + ' ' + d.toLocaleTimeString('es-CL', { hour:'2-digit', minute:'2-digit' })
+}
+ 
 export default function APIs() {
   const { user } = useAuth()
   const { rol }  = useRole()
@@ -26,10 +31,12 @@ export default function APIs() {
   const puedeAgregar = puedoHacer(rol, 'agregarInsumo')
   const puedeOperar  = puedoHacer(rol, 'registrarUso')
   const puedeBaja    = puedoHacer(rol, 'darDeBaja')
-
+ 
+  const [tab, setTab]             = useState('inventario')
   const [items, setItems]         = useState([])
   const [loading, setLoading]     = useState(true)
   const [showForm, setShowForm]   = useState(false)
+  const [pesadaId, setPesadaId]   = useState(null)
   const [form, setForm]           = useState({})
   const [msg, setMsg]             = useState('')
   const [search, setSearch]       = useState('')
@@ -39,7 +46,15 @@ export default function APIs() {
   const [docInsumo, setDocInsumo]   = useState(null)
   const [filtroCliente, setFiltroCliente] = useState('')
   const [verPapelera, setVerPapelera] = useState(false)
-
+ 
+  // Historial
+  const [pesadas, setPesadas]         = useState([])
+  const [loadingH, setLoadingH]       = useState(false)
+  const [searchH, setSearchH]         = useState('')
+  const [filtroUsuario, setFiltroUsuario] = useState('')
+  const [fechaDesde, setFechaDesde]   = useState('')
+  const [fechaHasta, setFechaHasta]   = useState('')
+ 
   const load = async () => {
     try {
       const snap = await getDocs(query(collection(db, 'apis'), orderBy('creadoEn', 'desc')))
@@ -47,11 +62,21 @@ export default function APIs() {
     } catch { setItems(DEMO) }
     finally { setLoading(false) }
   }
-
+ 
+  const loadHistorial = async () => {
+    setLoadingH(true)
+    try {
+      const snap = await getDocs(query(collection(db, 'usos_apis'), orderBy('fecha', 'desc'), limit(500)))
+      setPesadas(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+    } catch { setPesadas([]) }
+    finally { setLoadingH(false) }
+  }
+ 
   useEffect(() => { load() }, [])
-
+  useEffect(() => { if (tab === 'historial' && pesadas.length === 0) loadHistorial() }, [tab])
+ 
   const f = k => e => setForm(p => ({ ...p, [k]: e.target.value }))
-
+ 
   const guardar = async () => {
     if (!form.codigo || !form.nombre || !form.laboratorio) {
       setMsg('Código, nombre y laboratorio son obligatorios'); return
@@ -65,6 +90,7 @@ export default function APIs() {
         ubicacion:        form.ubicacion || 'Desecador',
         fechaVencimiento: form.vencimiento ? new Date(form.vencimiento) : null,
         cantidadRecibida: form.cantidad || '',
+        stockRestante:    parseFloat(form.stock) || 0,
         observacion:      capitalizar(form.observacion || ''),
         stock:            true,
         estado:           'Pendiente de aprobación',
@@ -76,7 +102,22 @@ export default function APIs() {
       setShowForm(false); setForm({}); setMsg(''); load()
     } catch(e) { setMsg(e.message) }
   }
-
+ 
+  const registrarPesada = async () => {
+    if (!pesadaId || !form.mg) { setMsg('Ingresa la cantidad pesada'); return }
+    try {
+      await registrarPesadaAPI({
+        apiId:    pesadaId,
+        mgPesados: parseFloat(form.mg),
+        nAnalisis: form.nAnalisis || '',
+        producto:  capitalizar(form.producto || ''),
+        analista:  user.displayName || user.email,
+        email:     user.email,
+      })
+      setPesadaId(null); setForm({}); setMsg(''); load()
+    } catch(e) { setMsg(e.message) }
+  }
+ 
   const darDeBaja = async (id, codigo) => {
     const razon = window.prompt(`Razón para dar de baja ${codigo}:`)
     if (!razon) return
@@ -89,7 +130,7 @@ export default function APIs() {
       load()
     } catch(e) { alert('Error: ' + e.message) }
   }
-
+ 
   const restaurar = async (id) => {
     try {
       await updateDoc(doc(db, 'apis', id), {
@@ -99,15 +140,15 @@ export default function APIs() {
       load()
     } catch(e) { alert('Error: ' + e.message) }
   }
-
+ 
   const toggleOrden = (campo) => {
     if (ordenCampo === campo) setOrdenDir(d => d === 'asc' ? 'desc' : 'asc')
     else { setOrdenCampo(campo); setOrdenDir('asc') }
   }
-
+ 
   const activos  = items.filter(i => i.estado !== 'Dado de baja')
   const papelera = items.filter(i => i.estado === 'Dado de baja')
-
+ 
   const filtrados = (verPapelera ? papelera : activos)
     .filter(i => {
       const q = search.toLowerCase()
@@ -136,200 +177,321 @@ export default function APIs() {
       if (valA > valB) return ordenDir === 'asc' ? 1 : -1
       return 0
     })
-
+ 
+  const usuariosUnicos = [...new Set(pesadas.map(p => p.analista || p.email).filter(Boolean))]
+ 
+  const pesadasFiltradas = pesadas.filter(p => {
+    const q = searchH.toLowerCase()
+    const matchQ = !q || p.codigo?.toLowerCase().includes(q) || p.nombre?.toLowerCase().includes(q) || p.nAnalisis?.toLowerCase().includes(q)
+    const matchU = !filtroUsuario || (p.analista || p.email) === filtroUsuario
+    const fecha  = p.fecha?.toDate ? p.fecha.toDate() : null
+    const matchD = !fechaDesde || (fecha && fecha >= new Date(fechaDesde))
+    const matchH = !fechaHasta || (fecha && fecha <= new Date(fechaHasta + 'T23:59:59'))
+    return matchQ && matchU && matchD && matchH
+  })
+ 
+  const totalMg = pesadasFiltradas.reduce((acc, p) => acc + (parseFloat(p.mgPesados) || 0), 0)
+ 
   if (loading) return <div style={{display:'flex',justifyContent:'center',padding:40}}><div className="spinner"/></div>
-
+ 
   return (
     <>
       {docInsumo && (
         <DocumentosPanel
-          insumoId={docInsumo.id}
-          modulo="apis"
+          insumoId={docInsumo.id} modulo="apis"
           nombreInsumo={`${docInsumo.nombre} — ${docInsumo.codigo}`}
           onClose={()=>setDocInsumo(null)}
         />
       )}
-
+ 
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
         <h2 style={{fontSize:16,fontWeight:600}}>APIs — Principios Activos</h2>
         <div style={{display:'flex',gap:8}}>
-          {puedeBaja && (
-            <button className="btn btn-sm"
-              style={verPapelera?{background:'var(--danger-lt)',color:'var(--danger)',borderColor:'var(--danger)'}:{}}
-              onClick={()=>{setVerPapelera(!verPapelera);setSearch('');setFiltroEst('')}}>
-              🗑 Papelera {papelera.length>0&&`(${papelera.length})`}
-            </button>
-          )}
-          {puedeAgregar && !verPapelera && (
-            <button className="btn btn-primary btn-sm" onClick={()=>setShowForm(!showForm)}>
-              <Plus size={14}/> Nuevo API
-            </button>
+          {tab==='historial' && <button className="btn btn-sm" onClick={loadHistorial}>↻ Actualizar</button>}
+          {tab==='inventario' && (
+            <>
+              {puedeBaja && (
+                <button className="btn btn-sm"
+                  style={verPapelera?{background:'var(--danger-lt)',color:'var(--danger)',borderColor:'var(--danger)'}:{}}
+                  onClick={()=>{setVerPapelera(!verPapelera);setSearch('');setFiltroEst('')}}>
+                  🗑 Papelera {papelera.length>0&&`(${papelera.length})`}
+                </button>
+              )}
+              {puedeAgregar && !verPapelera && (
+                <button className="btn btn-primary btn-sm" onClick={()=>setShowForm(!showForm)}>
+                  <Plus size={14}/> Nuevo API
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>
-
-      {showForm && puedeAgregar && !verPapelera && (
-        <div className="card">
-          <div className="card-title">Registrar nuevo API</div>
-          {msg && <div className="alert-item danger" style={{marginBottom:10}}>{msg}</div>}
-          <div className="form-grid">
-            <div className="form-group"><label>Código *</label>
-              <input placeholder="ej: API-034" onChange={f('codigo')} style={{textTransform:'uppercase'}}/>
-            </div>
-            <div className="form-group"><label>Nombre *</label>
-              <input placeholder="ej: Metilfenidato HCl" onChange={e=>setForm(p=>({...p,nombre:capitalizar(e.target.value)}))}/>
-            </div>
-            <div className="form-group"><label>Laboratorio *</label>
-              <select onChange={f('laboratorio')}>
-                <option value="">Seleccionar...</option>
-                {listaClientes.map(l=><option key={l}>{l}</option>)}
-              </select>
-            </div>
-            <div className="form-group"><label>Lote</label>
-              <input onChange={f('lote')}/>
-            </div>
-            <div className="form-group"><label>Fecha vencimiento</label>
-              <input type="date" onChange={f('vencimiento')}/>
-            </div>
-            <div className="form-group"><label>Ubicación</label>
-              <select onChange={f('ubicacion')}>
-                {UBICACIONES.map(u=><option key={u}>{u}</option>)}
-              </select>
-            </div>
-            <div className="form-group"><label>Cantidad recibida</label>
-              <input placeholder="ej: 20 g" onChange={f('cantidad')}/>
-            </div>
-            <div className="form-group"><label>Observaciones</label>
-              <input onChange={e=>setForm(p=>({...p,observacion:capitalizar(e.target.value)}))}/>
-            </div>
-          </div>
-          <div style={{display:'flex',gap:8}}>
-            <button className="btn btn-primary btn-sm" onClick={guardar}>Guardar API</button>
-            <button className="btn btn-sm" onClick={()=>{setShowForm(false);setForm({});setMsg('')}}>Cancelar</button>
-          </div>
-        </div>
-      )}
-
-      {/* Barra búsqueda y ordenamiento */}
-      <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:12}}>
-        <div className="search-bar">
-          <Search size={16} style={{color:'var(--text-3)',flexShrink:0}}/>
-          <input value={search} onChange={e=>setSearch(e.target.value)}
-            placeholder="Buscar por código, nombre o laboratorio..." style={{flex:1}}/>
-          <select value={filtroCliente} onChange={e=>setFiltroCliente(e.target.value)}>
-            <option value="">Todos los laboratorios</option>
-            {listaClientes.map(c=><option key={c}>{c}</option>)}
-          </select>
-          {!verPapelera && (
-            <select value={filtroEst} onChange={e=>setFiltroEst(e.target.value)}>
-              <option value="">Todos los estados</option>
-              <option value="ACTIVO">Activo</option>
-              <option value="VENCIDO">Vencido</option>
-              <option value="SIN STOCK">Sin stock</option>
-              <option value="RETIRADO">Retirado</option>
-              <option value="Pendiente de aprobación">Pendiente</option>
-            </select>
-          )}
-        </div>
-        <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-          <span style={{fontSize:11,color:'var(--text-2)',alignSelf:'center'}}>Ordenar por:</span>
-          {[
-            { campo:'nombre',      label:'Nombre' },
-            { campo:'codigo',      label:'Código' },
-            { campo:'vencimiento', label:'Vencimiento' },
-          ].map(o => (
-            <button key={o.campo} className="btn btn-sm"
-              style={ordenCampo===o.campo?{background:'var(--accent-lt)',color:'var(--accent)',borderColor:'var(--accent)'}:{}}
-              onClick={()=>toggleOrden(o.campo)}>
-              {o.label} {ordenCampo===o.campo?(ordenDir==='asc'?'↑':'↓'):'↕'}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* KPIs */}
-      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10,marginBottom:14}}>
+ 
+      {/* Tabs */}
+      <div style={{display:'flex',gap:4,marginBottom:16,borderBottom:'1px solid var(--border)'}}>
         {[
-          { label:'Total', valor: activos.length, color:'var(--accent)' },
-          { label:'Activos', valor: activos.filter(i=>i.estado==='ACTIVO').length, color:'var(--ok)' },
-          { label:'Vencidos', valor: activos.filter(i=>i.estado==='VENCIDO').length, color:'var(--danger)' },
-          { label:'Pendientes', valor: activos.filter(i=>i.estado==='Pendiente de aprobación').length, color:'var(--warn)' },
-        ].map(k=>(
-          <div key={k.label} className="kpi-card">
-            <div className="kpi-label">{k.label}</div>
-            <div className="kpi-value" style={{color:k.color}}>{k.valor}</div>
-          </div>
+          { id:'inventario', label:'Inventario', count:activos.length },
+          { id:'historial',  label:'Historial de pesadas', count:pesadas.length },
+        ].map(t => (
+          <button key={t.id} onClick={()=>setTab(t.id)} style={{
+            display:'flex',alignItems:'center',gap:6,padding:'8px 16px',
+            fontSize:13,cursor:'pointer',border:'none',background:'none',
+            color:tab===t.id?'var(--accent)':'var(--text-2)',
+            borderBottom:tab===t.id?'2px solid var(--accent)':'2px solid transparent',
+            fontWeight:tab===t.id?500:400,marginBottom:-1,
+          }}>
+            {t.id==='inventario'?<Package size={14}/>:<History size={14}/>}
+            {t.label}
+            {t.count>0&&<span style={{fontSize:11,padding:'1px 6px',borderRadius:10,background:'var(--bg)',color:'var(--text-2)'}}>{t.count}</span>}
+          </button>
         ))}
       </div>
-
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Código</th><th>Nombre</th><th>Laboratorio</th>
-              <th>Lote</th><th>Ubicación</th><th>Cantidad</th>
-              <th>Vencimiento</th><th>Estado</th><th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtrados.map(i => {
-              const vence    = i.fechaVencimiento?.toDate?.() || (i.fechaVencimiento ? new Date(i.fechaVencimiento) : null)
-              const sem      = calcularSemaforo(vence)
-              const badgeCls = sem.color==='danger'?'badge-danger':sem.color==='warning'?'badge-warn':sem.color==='success'?'badge-ok':'badge-gray'
-              const estCls   = {
-                'ACTIVO':                  'badge-ok',
-                'VENCIDO':                 'badge-danger',
-                'SIN STOCK':               'badge-warn',
-                'RETIRADO':                'badge-gray',
-                'Dado de baja':            'badge-gray',
-                'Pendiente de aprobación': 'badge-warn',
-              }[i.estado] || 'badge-gray'
-
-              return (
-                <tr key={i.id}>
-                  <td className="mono" style={{fontWeight:600}}>{i.codigo}</td>
-                  <td style={{fontWeight:500}}>{i.nombre}</td>
-                  <td style={{color:'var(--text-2)'}}>{i.laboratorio}</td>
-                  <td style={{color:'var(--text-2)',fontSize:11}}>{i.lote || '—'}</td>
-                  <td style={{color:'var(--text-2)',fontSize:11}}>{i.ubicacion || '—'}</td>
-                  <td style={{color:'var(--text-2)',fontSize:11}}>{i.cantidadRecibida || '—'}</td>
-                  <td>
-                    {vence
-                      ? <span className={`badge ${badgeCls}`}>{sem.texto}</span>
-                      : <span style={{color:'var(--text-3)'}}>—</span>
-                    }
-                  </td>
-                  <td><span className={`badge ${estCls}`}>{i.estado}</span></td>
-                  <td style={{display:'flex',gap:4}}>
-                    <button className="btn btn-sm" onClick={()=>setDocInsumo(i)} title="Ver documentos">
-                      <FileText size={13}/>
-                    </button>
-                    {puedeBaja && !verPapelera && (
-                      <button className="btn btn-sm"
-                        style={{color:'var(--danger)',borderColor:'var(--danger)'}}
-                        onClick={()=>darDeBaja(i.id, i.codigo)}>🗑</button>
-                    )}
-                    {puedeBaja && verPapelera && (
-                      <button className="btn btn-sm" onClick={()=>restaurar(i.id)}>Restaurar</button>
-                    )}
-                  </td>
+ 
+      {tab==='inventario' && (
+        <>
+          {showForm && puedeAgregar && !verPapelera && (
+            <div className="card">
+              <div className="card-title">Registrar nuevo API</div>
+              {msg && <div className="alert-item danger" style={{marginBottom:10}}>{msg}</div>}
+              <div className="form-grid">
+                <div className="form-group"><label>Código *</label>
+                  <input placeholder="ej: API-034" onChange={f('codigo')} style={{textTransform:'uppercase'}}/>
+                </div>
+                <div className="form-group"><label>Nombre *</label>
+                  <input placeholder="ej: Metilfenidato HCl" onChange={e=>setForm(p=>({...p,nombre:capitalizar(e.target.value)}))}/>
+                </div>
+                <div className="form-group"><label>Laboratorio *</label>
+                  <select onChange={f('laboratorio')}>
+                    <option value="">Seleccionar...</option>
+                    {listaClientes.map(l=><option key={l}>{l}</option>)}
+                  </select>
+                </div>
+                <div className="form-group"><label>Lote</label>
+                  <input onChange={f('lote')}/>
+                </div>
+                <div className="form-group"><label>Fecha vencimiento</label>
+                  <input type="date" onChange={f('vencimiento')}/>
+                </div>
+                <div className="form-group"><label>Ubicación</label>
+                  <select onChange={f('ubicacion')}>
+                    {UBICACIONES.map(u=><option key={u}>{u}</option>)}
+                  </select>
+                </div>
+                <div className="form-group"><label>Cantidad recibida</label>
+                  <input placeholder="ej: 20 g" onChange={f('cantidad')}/>
+                </div>
+                <div className="form-group"><label>Stock inicial (mg)</label>
+                  <input type="number" step="0.01" placeholder="ej: 20000" onChange={f('stock')}/>
+                </div>
+                <div className="form-group"><label>Observaciones</label>
+                  <input onChange={e=>setForm(p=>({...p,observacion:capitalizar(e.target.value)}))}/>
+                </div>
+              </div>
+              <div style={{display:'flex',gap:8}}>
+                <button className="btn btn-primary btn-sm" onClick={guardar}>Guardar API</button>
+                <button className="btn btn-sm" onClick={()=>{setShowForm(false);setForm({});setMsg('')}}>Cancelar</button>
+              </div>
+            </div>
+          )}
+ 
+          {pesadaId && puedeOperar && (
+            <div className="card">
+              <div className="card-title">Registrar pesada — {items.find(i=>i.id===pesadaId)?.nombre}</div>
+              {msg && <div className="alert-item danger" style={{marginBottom:10}}>{msg}</div>}
+              <div className="form-grid">
+                <div className="form-group"><label>Cantidad pesada (mg) *</label>
+                  <input type="number" step="0.01" placeholder="ej: 10.25" onChange={f('mg')}/>
+                </div>
+                <div className="form-group"><label>N° análisis</label>
+                  <input onChange={f('nAnalisis')}/>
+                </div>
+                <div className="form-group"><label>Producto / análisis</label>
+                  <input onChange={f('producto')}/>
+                </div>
+              </div>
+              <div style={{display:'flex',gap:8}}>
+                <button className="btn btn-primary btn-sm" onClick={registrarPesada}>Confirmar pesada</button>
+                <button className="btn btn-sm" onClick={()=>{setPesadaId(null);setForm({});setMsg('')}}>Cancelar</button>
+              </div>
+            </div>
+          )}
+ 
+          {/* Barra búsqueda */}
+          <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:12}}>
+            <div className="search-bar">
+              <Search size={16} style={{color:'var(--text-3)',flexShrink:0}}/>
+              <input value={search} onChange={e=>setSearch(e.target.value)}
+                placeholder="Buscar por código, nombre o laboratorio..." style={{flex:1}}/>
+              <select value={filtroCliente} onChange={e=>setFiltroCliente(e.target.value)}>
+                <option value="">Todos los laboratorios</option>
+                {listaClientes.map(c=><option key={c}>{c}</option>)}
+              </select>
+              {!verPapelera && (
+                <select value={filtroEst} onChange={e=>setFiltroEst(e.target.value)}>
+                  <option value="">Todos los estados</option>
+                  <option value="ACTIVO">Activo</option>
+                  <option value="VENCIDO">Vencido</option>
+                  <option value="SIN STOCK">Sin stock</option>
+                  <option value="Pendiente de aprobación">Pendiente</option>
+                </select>
+              )}
+            </div>
+            <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+              <span style={{fontSize:11,color:'var(--text-2)',alignSelf:'center'}}>Ordenar por:</span>
+              {[
+                { campo:'nombre',      label:'Nombre' },
+                { campo:'codigo',      label:'Código' },
+                { campo:'vencimiento', label:'Vencimiento' },
+              ].map(o => (
+                <button key={o.campo} className="btn btn-sm"
+                  style={ordenCampo===o.campo?{background:'var(--accent-lt)',color:'var(--accent)',borderColor:'var(--accent)'}:{}}
+                  onClick={()=>toggleOrden(o.campo)}>
+                  {o.label} {ordenCampo===o.campo?(ordenDir==='asc'?'↑':'↓'):'↕'}
+                </button>
+              ))}
+            </div>
+          </div>
+ 
+          {/* KPIs */}
+          <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10,marginBottom:14}}>
+            {[
+              { label:'Total',      valor: activos.length, color:'var(--accent)' },
+              { label:'Activos',    valor: activos.filter(i=>i.estado==='ACTIVO').length, color:'var(--ok)' },
+              { label:'Vencidos',   valor: activos.filter(i=>i.estado==='VENCIDO').length, color:'var(--danger)' },
+              { label:'Pendientes', valor: activos.filter(i=>i.estado==='Pendiente de aprobación').length, color:'var(--warn)' },
+            ].map(k=>(
+              <div key={k.label} className="kpi-card">
+                <div className="kpi-label">{k.label}</div>
+                <div className="kpi-value" style={{color:k.color}}>{k.valor}</div>
+              </div>
+            ))}
+          </div>
+ 
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Código</th><th>Nombre</th><th>Laboratorio</th>
+                  <th>Lote</th><th>Stock (mg)</th><th>Vencimiento</th><th>Estado</th><th></th>
                 </tr>
-              )
-            })}
-            {filtrados.length === 0 && (
-              <tr><td colSpan={9} style={{textAlign:'center',padding:24,color:'var(--text-3)'}}>
-                {verPapelera ? 'La papelera está vacía' : 'No hay APIs que coincidan'}
-              </td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+              </thead>
+              <tbody>
+                {filtrados.map(i => {
+                  const vence    = i.fechaVencimiento?.toDate?.() || (i.fechaVencimiento ? new Date(i.fechaVencimiento) : null)
+                  const sem      = calcularSemaforo(vence)
+                  const badgeCls = sem.color==='danger'?'badge-danger':sem.color==='warning'?'badge-warn':sem.color==='success'?'badge-ok':'badge-gray'
+                  const estCls   = {
+                    'ACTIVO':'badge-ok','VENCIDO':'badge-danger','SIN STOCK':'badge-warn',
+                    'Dado de baja':'badge-gray','Pendiente de aprobación':'badge-warn',
+                  }[i.estado] || 'badge-gray'
+                  const stockMostrado = i.stockRestante ?? i.cantidadRecibida ?? '—'
+ 
+                  return (
+                    <tr key={i.id}>
+                      <td className="mono" style={{fontWeight:600}}>{i.codigo}</td>
+                      <td style={{fontWeight:500}}>{i.nombre}</td>
+                      <td style={{color:'var(--text-2)'}}>{i.laboratorio}</td>
+                      <td style={{color:'var(--text-2)',fontSize:11}}>{i.lote || '—'}</td>
+                      <td><strong>{stockMostrado}</strong></td>
+                      <td>{vence ? <span className={`badge ${badgeCls}`}>{sem.texto}</span> : <span style={{color:'var(--text-3)'}}>—</span>}</td>
+                      <td><span className={`badge ${estCls}`}>{i.estado}</span></td>
+                      <td style={{display:'flex',gap:4}}>
+                        {puedeOperar && i.estado==='ACTIVO' && (
+                          <button className="btn btn-sm" onClick={()=>{setPesadaId(i.id);setShowForm(false);setForm({})}}>Pesada</button>
+                        )}
+                        <button className="btn btn-sm" onClick={()=>setDocInsumo(i)} title="Ver documentos">
+                          <FileText size={13}/>
+                        </button>
+                        {puedeBaja && !verPapelera && (
+                          <button className="btn btn-sm"
+                            style={{color:'var(--danger)',borderColor:'var(--danger)'}}
+                            onClick={()=>darDeBaja(i.id, i.codigo)}>🗑</button>
+                        )}
+                        {puedeBaja && verPapelera && (
+                          <button className="btn btn-sm" onClick={()=>restaurar(i.id)}>Restaurar</button>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
+                {filtrados.length === 0 && (
+                  <tr><td colSpan={8} style={{textAlign:'center',padding:24,color:'var(--text-3)'}}>
+                    {verPapelera ? 'La papelera está vacía' : 'No hay APIs que coincidan'}
+                  </td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+ 
+      {tab==='historial' && (
+        <>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10,marginBottom:16}}>
+            <div className="kpi-card"><div className="kpi-label">Total registros</div><div className="kpi-value info">{pesadasFiltradas.length}</div></div>
+            <div className="kpi-card"><div className="kpi-label">Total mg pesados</div><div className="kpi-value">{totalMg.toFixed(2)} mg</div></div>
+            <div className="kpi-card"><div className="kpi-label">Analistas</div><div className="kpi-value">{usuariosUnicos.length}</div></div>
+          </div>
+ 
+          <div className="card" style={{marginBottom:12}}>
+            <div className="card-title">Filtros</div>
+            <div className="form-grid">
+              <div className="form-group"><label>Buscar</label>
+                <input value={searchH} onChange={e=>setSearchH(e.target.value)} placeholder="Código, nombre o N° análisis..."/>
+              </div>
+              <div className="form-group"><label>Analista</label>
+                <select value={filtroUsuario} onChange={e=>setFiltroUsuario(e.target.value)}>
+                  <option value="">Todos</option>{usuariosUnicos.map(u=><option key={u}>{u}</option>)}
+                </select>
+              </div>
+              <div className="form-group"><label>Desde</label>
+                <input type="date" value={fechaDesde} onChange={e=>setFechaDesde(e.target.value)}/>
+              </div>
+              <div className="form-group"><label>Hasta</label>
+                <input type="date" value={fechaHasta} onChange={e=>setFechaHasta(e.target.value)}/>
+              </div>
+              <div className="form-group" style={{display:'flex',alignItems:'flex-end'}}>
+                <button className="btn btn-sm" onClick={()=>{setSearchH('');setFiltroUsuario('');setFechaDesde('');setFechaHasta('')}}>Limpiar</button>
+              </div>
+            </div>
+          </div>
+ 
+          {loadingH ? (
+            <div style={{display:'flex',justifyContent:'center',padding:40}}><div className="spinner"/></div>
+          ) : (
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Fecha y hora</th><th>Analista</th><th>Código</th><th>Nombre</th>
+                    <th>Mg pesados</th><th>Stock antes</th><th>Stock después</th><th>N° análisis</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pesadasFiltradas.map(p=>(
+                    <tr key={p.id}>
+                      <td style={{fontSize:11,color:'var(--text-2)',whiteSpace:'nowrap'}}>{formatFecha(p.fecha)}</td>
+                      <td>
+                        <div style={{fontSize:12,fontWeight:500}}>{p.analista||'—'}</div>
+                        <div style={{fontSize:10,color:'var(--text-3)'}}>{p.email}</div>
+                      </td>
+                      <td className="mono">{p.codigo||'—'}</td>
+                      <td style={{fontWeight:500}}>{p.nombre||'—'}</td>
+                      <td><strong style={{color:'var(--accent)'}}>{p.mgPesados} mg</strong></td>
+                      <td style={{color:'var(--text-2)'}}>{p.stockAntes?.toFixed?.(2)??p.stockAntes??'—'}</td>
+                      <td style={{color:'var(--text-2)'}}>{p.stockDespues?.toFixed?.(2)??p.stockDespues??'—'}</td>
+                      <td style={{color:'var(--text-2)'}}>{p.nAnalisis||'—'}</td>
+                    </tr>
+                  ))}
+                  {pesadasFiltradas.length===0 && (
+                    <tr><td colSpan={8} style={{textAlign:'center',padding:24,color:'var(--text-3)'}}>No hay registros que coincidan</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
     </>
   )
 }
-
-const DEMO = [
-  { id:'1', codigo:'API-001', nombre:'Metilfenidato HCl', laboratorio:'Lab. Chile', lote:'O1D-00026', ubicacion:'Refrigerador controlado', cantidadRecibida:'', fechaVencimiento:'2027-01-31', estado:'ACTIVO' },
-  { id:'2', codigo:'API-017', nombre:'Brinzolamida', laboratorio:'Novartis', lote:'221112A', ubicacion:'Desecador', cantidadRecibida:'15,03 g', fechaVencimiento:'2027-08-31', estado:'ACTIVO' },
-  { id:'3', codigo:'API-028', nombre:'Pirfenidona', laboratorio:'Lab. Chile', lote:'1122400494', ubicacion:'Desecador', cantidadRecibida:'30 g', fechaVencimiento:'2027-06-30', estado:'ACTIVO' },
-]
