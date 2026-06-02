@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { collection, getDocs, addDoc, updateDoc, doc,
          serverTimestamp, query, orderBy, limit, where, writeBatch } from 'firebase/firestore'
 import { db } from '../lib/firebase'
-import { calcularSemaforo, ponerEnUsoInsumo, retirarInsumo } from '../lib/db'
+import { calcularSemaforo, ponerEnUsoInsumo, retirarInsumo, registrarAudit } from '../lib/db'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useRole } from '../hooks/useRole.jsx'
 import { puedoHacer } from '../lib/roles'
@@ -291,7 +291,7 @@ export default function Estandares() {
       load()
     } catch(e) { alert('Error: ' + e.message) }
   }
- 
+
   const confirmarRetiro = async () => {
     if (!retiroFecha) { alert('Indica la fecha de retiro'); return }
     try {
@@ -302,7 +302,7 @@ export default function Estandares() {
       setRetiroItem(null); setRetiroFecha(''); setRetiroMotivo(''); load()
     } catch(e) { alert('Error: ' + e.message) }
   }
- 
+
   const darDeBaja = async (id, codigo) => {
     const razon = window.prompt(`Razón para dar de baja ${codigo}:`)
     if (!razon) return
@@ -310,6 +310,11 @@ export default function Estandares() {
       await updateDoc(doc(db, 'estandares', id), {
         estado: 'Dado de baja', bajaPor: user.email, bajaRazon: capitalizar(razon),
         bajaFecha: serverTimestamp(), actualizadoEn: serverTimestamp(),
+      })
+      await registrarAudit({
+        coleccion: 'estandares', documentoId: id, accion: 'dar_de_baja',
+        despues: { estado: 'Dado de baja' },
+        detalle: `Dado de baja por ${user.email}. Razón: ${razon}`,
       })
       load()
     } catch(e) { alert('Error: ' + e.message) }
@@ -320,6 +325,11 @@ export default function Estandares() {
       await updateDoc(doc(db, 'estandares', id), {
         estado: 'Cerrado', bajaPor: null, bajaRazon: null, bajaFecha: null,
         actualizadoEn: serverTimestamp(),
+      })
+      await registrarAudit({
+        coleccion: 'estandares', documentoId: id, accion: 'restaurar',
+        despues: { estado: 'Cerrado' },
+        detalle: `Restaurado por ${user.email}`,
       })
       load()
     } catch(e) { alert('Error: ' + e.message) }
@@ -353,6 +363,11 @@ export default function Estandares() {
           proxRevision: uspProxRevision, observacion: uspObs,
           analista: user.displayName || user.email, email: user.email, fecha: serverTimestamp(),
         })
+        await registrarAudit({
+          coleccion: 'estandares', documentoId: uspModalId, accion: 'verificacion_usp',
+          despues: { resultado: 'Vigente', proximaRevisionUSP: uspProxRevision, fechaVerif: uspFechaVerif },
+          detalle: `Verificación USP Vigente por ${user.displayName || user.email}. Próxima revisión: ${uspProxRevision}`,
+        })
       } else {
         const mismosLotes = items.filter(i => i.lote === item.lote && i.nombre === item.nombre && i.estado !== 'Dado de baja')
         const batch = writeBatch(db)
@@ -369,6 +384,11 @@ export default function Estandares() {
           tipo: 'verificacion_usp', resultado: 'No vigente — baja automática',
           vialsDadosDeBaja: mismosLotes.length, fechaVerif: uspFechaVerif, observacion: uspObs,
           analista: user.displayName || user.email, email: user.email, fecha: serverTimestamp(),
+        })
+        await registrarAudit({
+          coleccion: 'estandares', documentoId: uspModalId, accion: 'verificacion_usp',
+          despues: { resultado: 'No vigente', estado: 'Dado de baja', vialsDadosDeBaja: mismosLotes.length, fechaVerif: uspFechaVerif },
+          detalle: `Verificación USP No vigente por ${user.displayName || user.email}. ${mismosLotes.length} vial(es) dado(s) de baja automáticamente.`,
         })
       }
       setUspModalId(null); load()
