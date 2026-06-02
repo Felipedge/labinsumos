@@ -159,7 +159,7 @@ export default function Clientes() {
             <tr>
               <th>Sigla</th>
               <th>Nombre del cliente</th>
-              <th>Código ejemplo</th>
+              <th></th>
               <th></th>
             </tr>
           </thead>
@@ -176,8 +176,8 @@ export default function Clientes() {
                   </span>
                 </td>
                 <td style={{fontWeight:500}}>{c.nombre}</td>
-                <td style={{color:'var(--text-3)',fontSize:12,fontFamily:'var(--font-mono)'}}>
-                  {c.sigla}-001, {c.sigla}-002...
+                <td>
+                  
                 </td>
                 <td style={{display:'flex',gap:4}}>
                   <button className="btn btn-sm" onClick={()=>editar(c)} title="Editar">
