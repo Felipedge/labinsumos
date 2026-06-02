@@ -2,11 +2,12 @@
 import { useState, useEffect } from 'react'
 import { collection, getDocs, query, where } from 'firebase/firestore'
 import { db } from '../lib/firebase'
-import { getColumnas, crearColumna, registrarUsoColumna, retirarColumna } from '../lib/db'
+import { getColumnas, crearColumna, registrarUsoColumna, retirarColumna,
+         ponerEnUsoColumna, darBajaColumnaSST } from '../lib/db'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useRole } from '../hooks/useRole.jsx'
 import { puedoHacer } from '../lib/roles'
-import { Plus, FileText, Search, X, PackageX } from 'lucide-react'
+import { Plus, FileText, Search, X, PackageX, PlayCircle, AlertOctagon } from 'lucide-react'
 import DocumentosPanel from '../components/shared/DocumentosPanel.jsx'
  
 // Clientes se cargan desde Firestore (fallback si falla)
@@ -116,6 +117,7 @@ export default function Columnas() {
   const puedeAgregar = puedoHacer(rol, 'agregarInsumo')
   const puedeOperar  = puedoHacer(rol, 'registrarUso')
   const puedeDarBaja = puedoHacer(rol, 'darDeBaja')
+  const puedePonerEnUso = puedoHacer(rol, 'ponerEnUso')
   // Solo el Analista registra uso de columna (regla específica de este módulo)
   const puedeRegistrarUso = rol === 'analista'
  
@@ -197,7 +199,7 @@ export default function Columnas() {
         fechaRetiro:       '',                              // se completa al retirar
         // — uso acumulado (reemplaza el sistema de inyecciones/límite) —
         inyeccionesAcumuladas: 0,
-        estado:            'Pendiente de aprobación',
+        estado:            'Nueva',
         creadoPorRol:      rol,
       }, user.email)
       setShowForm(false); setForm({}); setCodigoGenerado(''); setMsg(''); load()
@@ -252,6 +254,33 @@ export default function Columnas() {
         email:       user.email,
       })
       setRetiroForm(null); setForm({}); setMsg(''); load()
+    } catch(e) { setMsg(e.message) }
+  }
+ 
+  // ——— Poner en uso (Encargado/Jefe) ———
+  const ponerEnUso = async (c) => {
+    try {
+      await ponerEnUsoColumna({
+        columnaId: c.id,
+        usuario:   user.displayName || user.email,
+        email:     user.email,
+      })
+      load()
+    } catch(e) { setMsg(e.message) }
+  }
+ 
+  // ——— Baja por falla de System Suitability ———
+  const bajaPorSST = async (c) => {
+    const motivo = window.prompt('Motivo / detalle de la falla de System Suitability:')
+    if (motivo === null) return
+    try {
+      await darBajaColumnaSST({
+        columnaId: c.id,
+        motivo,
+        usuario:   user.displayName || user.email,
+        email:     user.email,
+      })
+      load()
     } catch(e) { setMsg(e.message) }
   }
  
@@ -498,8 +527,9 @@ export default function Columnas() {
           </thead>
           <tbody>
             {filtradas.map(c => {
-              const esPendiente = c.estado === 'Pendiente de aprobación'
-              const dadaBaja = c.estado === 'DADA DE BAJA' || c.estado === 'RETIRADA'
+              const esNueva  = c.estado === 'Nueva'
+              const enUso    = c.estado === 'En uso'
+              const dadaBaja = c.estado === 'Dada de baja' || c.estado === 'DADA DE BAJA' || c.estado === 'RETIRADA'
               return (
                 <tr key={c.id} style={dadaBaja?{opacity:0.6}:{}}>
                   <td className="mono" style={{fontWeight:600}}>{c.codigo}</td>
@@ -518,22 +548,37 @@ export default function Columnas() {
                     <span style={{color:'var(--text-3)',fontSize:11}}> inyecc.</span>
                   </td>
                   <td>
-                    {esPendiente
-                      ? <span className="badge badge-warn">Pendiente</span>
-                      : dadaBaja
-                        ? <span className="badge badge-danger">Dada de baja{c.fechaRetiro ? ` · ${c.fechaRetiro}` : ''}</span>
-                        : <span className="badge badge-ok">{c.estado}</span>
+                    {esNueva
+                      ? <span className="badge badge-info">Nueva</span>
+                      : enUso
+                        ? <span className="badge badge-ok">En uso</span>
+                        : dadaBaja
+                          ? <span className="badge badge-danger">Dada de baja{c.fechaRetiro ? ` · ${c.fechaRetiro}` : c.fechaBaja ? ` · ${c.fechaBaja}` : ''}</span>
+                          : <span className="badge badge-gray">{c.estado}</span>
                     }
+                    {dadaBaja && c.motivoBaja && (
+                      <div style={{fontSize:10,color:'var(--text-3)',marginTop:2}}>{c.motivoBaja}</div>
+                    )}
                   </td>
                   <td style={{display:'flex',gap:4}}>
-                    {puedeRegistrarUso && !esPendiente && !dadaBaja && (
+                    {puedePonerEnUso && esNueva && (
+                      <button className="btn btn-sm" title="Poner en uso" onClick={() => ponerEnUso(c)}>
+                        <PlayCircle size={13}/> En uso
+                      </button>
+                    )}
+                    {puedeRegistrarUso && enUso && (
                       <button className="btn btn-sm" onClick={() => abrirUso(c)}>
                         Registrar uso
                       </button>
                     )}
-                    {puedeDarBaja && !esPendiente && !dadaBaja && (
-                      <button className="btn btn-sm" title="Retirar / dar de baja" onClick={() => abrirRetiro(c)}>
+                    {puedeDarBaja && !dadaBaja && (
+                      <button className="btn btn-sm" title="Retirar por cliente / dar de baja" onClick={() => abrirRetiro(c)}>
                         <PackageX size={13}/>
+                      </button>
+                    )}
+                    {puedeDarBaja && enUso && (
+                      <button className="btn btn-sm" title="Dar de baja por falla de System Suitability" onClick={() => bajaPorSST(c)}>
+                        <AlertOctagon size={13}/>
                       </button>
                     )}
                     <button className="btn btn-sm" onClick={()=>setDocInsumo(c)} title="Ver documentos">
@@ -553,5 +598,4 @@ export default function Columnas() {
       </div>
     </>
   )
-
 }

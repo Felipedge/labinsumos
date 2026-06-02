@@ -35,6 +35,7 @@ export const PERMISOS = {
     agregarInsumo:        true,
     darDeBaja:            true,
     aprobarInsumos:       true,
+    ponerEnUso:           true,   // poner frasco/columna en estado "En uso"
     exportar:             true,
     verHistorial:         'todo',
     gestionarUsuarios:    true,
@@ -49,6 +50,7 @@ export const PERMISOS = {
     agregarInsumo:        true,   // con aprobación de Admin
     darDeBaja:            true,   // con aprobación de Admin
     aprobarInsumos:       true,   // aprueba a Encargado y Recepción
+    ponerEnUso:           true,
     exportar:             true,
     verHistorial:         'todo',
     gestionarUsuarios:    false,
@@ -63,6 +65,7 @@ export const PERMISOS = {
     agregarInsumo:        true,   // con aprobación de Jefe o Admin
     darDeBaja:            true,   // con aprobación de Jefe o Admin
     aprobarInsumos:       true,   // aprueba a Recepción
+    ponerEnUso:           true,
     exportar:             true,
     verHistorial:         'todo',
     gestionarUsuarios:    false,
@@ -77,6 +80,7 @@ export const PERMISOS = {
     agregarInsumo:        false,
     darDeBaja:            false,
     aprobarInsumos:       false,
+    ponerEnUso:           false,
     exportar:             false,
     verHistorial:         'propio',
     gestionarUsuarios:    false,
@@ -91,6 +95,7 @@ export const PERMISOS = {
     agregarInsumo:        true,   // puede ingresar insumos (quedan pendientes de aprobación)
     darDeBaja:            false,
     aprobarInsumos:       false,
+    ponerEnUso:           false,
     exportar:             false,
     verHistorial:         'propio',
     gestionarUsuarios:    false,
@@ -105,6 +110,7 @@ export const PERMISOS = {
     agregarInsumo:        false,
     darDeBaja:            false,
     aprobarInsumos:       false,
+    ponerEnUso:           false,
     exportar:             false,
     verHistorial:         false,
     gestionarUsuarios:    false,
