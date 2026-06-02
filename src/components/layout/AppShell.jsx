@@ -110,7 +110,7 @@ export default function AppShell() {
       <aside className="sidebar">
         <div className="sidebar-header">
           <div className="sidebar-header-logo">
-            <img src="/Logo.jpeg" alt="Qualyserv"/>
+            <img src="/Logo.png" alt="Qualyserv"/>
           </div>
           <p style={{ fontSize:10, color:'rgba(255,255,255,0.45)', marginTop:8 }}>Laboratorio de Análisis Químico</p>
         </div>
