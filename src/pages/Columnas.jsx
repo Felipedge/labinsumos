@@ -7,7 +7,7 @@ import { getColumnas, crearColumna, registrarUsoColumna, retirarColumna,
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useRole } from '../hooks/useRole.jsx'
 import { puedoHacer } from '../lib/roles'
-import { Plus, FileText, Search, X, PackageX, PlayCircle, AlertOctagon } from 'lucide-react'
+import { Plus, FileText, Search, X, PackageX, PlayCircle } from 'lucide-react'
 import DocumentosPanel from '../components/shared/DocumentosPanel.jsx'
  
 // Clientes se cargan desde Firestore (fallback si falla)
@@ -127,6 +127,9 @@ export default function Columnas() {
   const [showForm, setShowForm]     = useState(false)
   const [useForm, setUseForm]       = useState(null)   // columna en la que se registra uso
   const [retiroForm, setRetiroForm] = useState(null)   // columna que se está retirando
+  const [motivoBaja, setMotivoBaja] = useState('retiro_cliente') // 'retiro_cliente' | 'sst'
+  const [fechaRetiroCliente, setFechaRetiroCliente] = useState('')
+  const [obsRetiro, setObsRetiro] = useState('')
   const [form, setForm]             = useState({})
   // Líneas de análisis del registro de uso: [{ nAnalisis, inyecciones }]
   const [usoLineas, setUsoLineas]   = useState([{ nAnalisis:'', inyecciones:'' }])
@@ -240,20 +243,34 @@ export default function Columnas() {
   // ——— Retiro de columna (cliente pide el insumo de vuelta -> dada de baja) ———
   const abrirRetiro = (c) => {
     setRetiroForm(c); setUseForm(null); setShowForm(false)
-    setForm({ fechaRetiro: new Date().toISOString().split('T')[0] }); setMsg('')
+    setMotivoBaja('retiro_cliente')
+    setFechaRetiroCliente('')
+    setObsRetiro('')
+    setMsg('')
   }
  
   const confirmarRetiro = async () => {
-    if (!form.fechaRetiro) { setMsg('Indica la fecha de retiro'); return }
+    if (motivoBaja === 'retiro_cliente' && !fechaRetiroCliente) {
+      setMsg('Indica la fecha en que el cliente retiró la columna'); return
+    }
     try {
-      await retirarColumna({
-        columnaId:   retiroForm.id,
-        fechaRetiro: form.fechaRetiro,
-        motivo:      form.motivoRetiro || 'Cliente solicitó devolución del insumo',
-        usuario:     user.displayName || user.email,
-        email:       user.email,
-      })
-      setRetiroForm(null); setForm({}); setMsg(''); load()
+      if (motivoBaja === 'retiro_cliente') {
+        await retirarColumna({
+          columnaId:   retiroForm.id,
+          fechaRetiro: fechaRetiroCliente,
+          motivo:      obsRetiro || 'Cliente solicitó devolución del insumo',
+          usuario:     user.displayName || user.email,
+          email:       user.email,
+        })
+      } else {
+        await darBajaColumnaSST({
+          columnaId: retiroForm.id,
+          motivo:    obsRetiro || 'No cumple System Suitability',
+          usuario:   user.displayName || user.email,
+          email:     user.email,
+        })
+      }
+      setRetiroForm(null); setFechaRetiroCliente(''); setObsRetiro(''); setMsg(''); load()
     } catch(e) { setMsg(e.message) }
   }
  
@@ -269,20 +286,7 @@ export default function Columnas() {
     } catch(e) { setMsg(e.message) }
   }
  
-  // ——— Baja por falla de System Suitability ———
-  const bajaPorSST = async (c) => {
-    const motivo = window.prompt('Motivo / detalle de la falla de System Suitability:')
-    if (motivo === null) return
-    try {
-      await darBajaColumnaSST({
-        columnaId: c.id,
-        motivo,
-        usuario:   user.displayName || user.email,
-        email:     user.email,
-      })
-      load()
-    } catch(e) { setMsg(e.message) }
-  }
+  // bajaPorSST integrado en confirmarRetiro
  
   const toggleOrden = (campo) => {
     if (ordenCampo === campo) setOrdenDir(d => d === 'asc' ? 'desc' : 'asc')
@@ -461,25 +465,66 @@ export default function Columnas() {
         </div>
       )}
  
-      {/* ——— Retiro de columna ——— */}
+      {/* ——— Modal dar de baja columna ——— */}
       {retiroForm && puedeDarBaja && (
-        <div className="card">
-          <div className="card-title">Retirar columna — {retiroForm.codigo}</div>
-          {msg && <div className="alert-item danger" style={{marginBottom:10}}>{msg}</div>}
-          <div style={{fontSize:12,color:'var(--text-2)',marginBottom:10}}>
-            Al registrar el retiro, la columna pasa a estado <strong>DADA DE BAJA</strong> (el cliente solicitó la devolución del insumo).
-          </div>
-          <div className="form-grid">
-            <div className="form-group"><label>Fecha de retiro *</label>
-              <input type="date" value={form.fechaRetiro || ''} onChange={f('fechaRetiro')} />
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:1000,
+          display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
+          <div style={{background:'var(--surface)',borderRadius:'var(--radius-lg)',padding:24,width:'100%',maxWidth:460}}>
+            <p style={{fontSize:15,fontWeight:600,marginBottom:4}}>Dar de baja — {retiroForm.codigo}</p>
+            <p style={{fontSize:12,color:'var(--text-2)',marginBottom:16}}>
+              {retiroForm.fase} · {retiroForm.cliente}
+            </p>
+            {msg && <div className="alert-item danger" style={{marginBottom:10}}>{msg}</div>}
+ 
+            {/* Selector de motivo */}
+            <div style={{display:'flex',gap:8,marginBottom:16}}>
+              {[
+                { val:'retiro_cliente', label:'Retiro de cliente' },
+                { val:'sst',           label:'No cumple System Suitability' },
+              ].map(op => (
+                <button key={op.val}
+                  onClick={() => { setMotivoBaja(op.val); setMsg('') }}
+                  className="btn btn-sm"
+                  style={{
+                    flex:1, padding:'8px 4px', fontSize:12,
+                    background: motivoBaja===op.val ? 'var(--accent-lt)' : '',
+                    color:      motivoBaja===op.val ? 'var(--accent)' : 'var(--text-2)',
+                    borderColor:motivoBaja===op.val ? 'var(--accent)' : 'var(--border-md)',
+                    fontWeight: motivoBaja===op.val ? 600 : 400,
+                  }}>
+                  {op.label}
+                </button>
+              ))}
             </div>
-            <div className="form-group" style={{gridColumn:'1 / -1'}}><label>Motivo / observación</label>
-              <input placeholder="ej: Cliente solicitó devolución de la columna" onChange={f('motivoRetiro')} />
+ 
+            {/* Fecha solo para retiro de cliente */}
+            {motivoBaja === 'retiro_cliente' && (
+              <div className="form-group" style={{marginBottom:12}}>
+                <label>Fecha en que el cliente retiró la columna *</label>
+                <input type="date" value={fechaRetiroCliente}
+                  onChange={e => setFechaRetiroCliente(e.target.value)} />
+                <p style={{fontSize:11,color:'var(--text-3)',marginTop:4}}>
+                  Puede ser distinta a la fecha de hoy.
+                </p>
+              </div>
+            )}
+ 
+            <div className="form-group" style={{marginBottom:16}}>
+              <label>{motivoBaja === 'sst' ? 'Detalle de la falla *' : 'Observación (opcional)'}</label>
+              <input value={obsRetiro} onChange={e => setObsRetiro(e.target.value)}
+                placeholder={motivoBaja === 'sst'
+                  ? 'ej: Platos teóricos fuera de especificación, tailing factor > 2.0...'
+                  : 'ej: Cliente solicitó devolución el 01/06/2025'} />
             </div>
-          </div>
-          <div style={{ display:'flex', gap:8 }}>
-            <button className="btn btn-primary btn-sm" onClick={confirmarRetiro}>Confirmar retiro y dar de baja</button>
-            <button className="btn btn-sm" onClick={() => { setRetiroForm(null); setForm({}); setMsg('') }}>Cancelar</button>
+ 
+            <div style={{display:'flex',gap:8}}>
+              <button className="btn btn-primary btn-sm" onClick={confirmarRetiro}>
+                Confirmar y dar de baja
+              </button>
+              <button className="btn btn-sm" onClick={() => {
+                setRetiroForm(null); setFechaRetiroCliente(''); setObsRetiro(''); setMsg('')
+              }}>Cancelar</button>
+            </div>
           </div>
         </div>
       )}
@@ -572,13 +617,9 @@ export default function Columnas() {
                       </button>
                     )}
                     {puedeDarBaja && !dadaBaja && (
-                      <button className="btn btn-sm" title="Retirar por cliente / dar de baja" onClick={() => abrirRetiro(c)}>
+                      <button className="btn btn-sm" title="Dar de baja (retiro cliente / System Suitability)"
+                        onClick={() => abrirRetiro(c)}>
                         <PackageX size={13}/>
-                      </button>
-                    )}
-                    {puedeDarBaja && enUso && (
-                      <button className="btn btn-sm" title="Dar de baja por falla de System Suitability" onClick={() => bajaPorSST(c)}>
-                        <AlertOctagon size={13}/>
                       </button>
                     )}
                     <button className="btn btn-sm" onClick={()=>setDocInsumo(c)} title="Ver documentos">
