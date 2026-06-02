@@ -10,19 +10,20 @@ const MODULOS = ['estandares', 'columnas', 'reactivos', 'placebo']
 
 const ACCIONES = ['crear', 'pesada', 'uso', 'retiro', 'reasignar',
                   'dar_de_baja', 'restaurar', 'aprobar', 'rechazar',
-                  'verificacion_usp']
+                  'verificacion_usp', 'poner_en_uso']
 
 const ETIQUETAS_ACCION = {
-  crear:            '➕ Crear',
-  pesada:           '⚗️ Pesada',
-  uso:              '📋 Uso',
-  retiro:           '🧪 Retiro',
-  reasignar:        '🔄 Reasignar',
-  dar_de_baja:      '🗑 Dar de baja',
-  restaurar:        '♻️ Restaurar',
-  aprobar:          '✅ Aprobar',
-  rechazar:         '❌ Rechazar',
-  verificacion_usp: '🔵 USP',
+  crear:            'Crear',
+  pesada:           'Pesada',
+  uso:              'Uso',
+  retiro:           'Retiro',
+  reasignar:        'Reasignar',
+  dar_de_baja:      'Dar de baja',
+  restaurar:        'Restaurar',
+  aprobar:          'Aprobar',
+  rechazar:         'Rechazar',
+  verificacion_usp: 'Verificación USP',
+  poner_en_uso:     'Poner en uso',
 }
 
 const COLORES_ACCION = {
@@ -36,6 +37,7 @@ const COLORES_ACCION = {
   aprobar:          'badge-ok',
   rechazar:         'badge-danger',
   verificacion_usp: 'badge-info',
+  poner_en_uso:     'badge-ok',
 }
 
 function formatFecha(ts) {
