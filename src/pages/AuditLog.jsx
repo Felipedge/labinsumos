@@ -9,35 +9,30 @@ import { Shield, RefreshCw } from 'lucide-react'
 const MODULOS = ['estandares', 'columnas', 'reactivos', 'placebo']
 
 const ACCIONES = ['crear', 'pesada', 'uso', 'retiro', 'reasignar',
-                  'dar_de_baja', 'restaurar', 'aprobar', 'rechazar',
-                  'verificacion_usp', 'poner_en_uso']
+                  'dar_de_baja', 'poner_en_uso', 'aprobado', 'rechazado']
 
 const ETIQUETAS_ACCION = {
-  crear:            'Crear',
-  pesada:           'Pesada',
-  uso:              'Uso',
-  retiro:           'Retiro',
-  reasignar:        'Reasignar',
-  dar_de_baja:      'Dar de baja',
-  restaurar:        'Restaurar',
-  aprobar:          'Aprobar',
-  rechazar:         'Rechazar',
-  verificacion_usp: 'Verificación USP',
-  poner_en_uso:     'Poner en uso',
+  crear:        'Crear',
+  pesada:       'Pesada',
+  uso:          'Uso',
+  retiro:       'Retiro',
+  reasignar:    'Reasignar',
+  dar_de_baja:  'Dar de baja',
+  poner_en_uso: 'Poner en uso',
+  aprobado:     'Aprobado',
+  rechazado:    'Rechazado',
 }
 
 const COLORES_ACCION = {
-  crear:            'badge-ok',
-  pesada:           'badge-info',
-  uso:              'badge-info',
-  retiro:           'badge-purple',
-  reasignar:        'badge-gray',
-  dar_de_baja:      'badge-danger',
-  restaurar:        'badge-ok',
-  aprobar:          'badge-ok',
-  rechazar:         'badge-danger',
-  verificacion_usp: 'badge-info',
-  poner_en_uso:     'badge-ok',
+  crear:        'badge-ok',
+  pesada:       'badge-info',
+  uso:          'badge-info',
+  retiro:       'badge-purple',
+  reasignar:    'badge-gray',
+  dar_de_baja:  'badge-danger',
+  poner_en_uso: 'badge-ok',
+  aprobado:     'badge-ok',
+  rechazado:    'badge-danger',
 }
 
 function formatFecha(ts) {
