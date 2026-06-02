@@ -3,11 +3,11 @@ import { useState, useEffect } from 'react'
 import { collection, getDocs, addDoc, updateDoc, doc,
          serverTimestamp, query, orderBy, limit } from 'firebase/firestore'
 import { db } from '../lib/firebase'
-import { calcularSemaforo, registrarPesadaAPI } from '../lib/db'
+import { calcularSemaforo, registrarPesadaAPI, ponerEnUsoInsumo, retirarInsumo } from '../lib/db'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useRole } from '../hooks/useRole.jsx'
 import { puedoHacer } from '../lib/roles'
-import { Plus, Search, FileText, Package, History } from 'lucide-react'
+import { Plus, Search, FileText, Package, History, PlayCircle, PackageX } from 'lucide-react'
 import DocumentosPanel from '../components/shared/DocumentosPanel.jsx'
 import { useClientes } from '../hooks/useClientes.jsx'
  
@@ -28,12 +28,16 @@ export default function APIs() {
   const { user } = useAuth()
   const { rol }  = useRole()
   const { clientes: listaClientes } = useClientes()
-  const puedeAgregar = puedoHacer(rol, 'agregarInsumo')
-  const puedeOperar  = puedoHacer(rol, 'registrarUso')
-  const puedeBaja    = puedoHacer(rol, 'darDeBaja')
+  const puedeAgregar    = puedoHacer(rol, 'agregarInsumo')
+  const puedeOperar     = puedoHacer(rol, 'registrarUso')
+  const puedeBaja       = puedoHacer(rol, 'darDeBaja')
+  const puedePonerEnUso = puedoHacer(rol, 'ponerEnUso')
  
   const [tab, setTab]             = useState('inventario')
   const [items, setItems]         = useState([])
+  const [retiroItem, setRetiroItem]     = useState(null)
+  const [retiroFecha, setRetiroFecha]   = useState('')
+  const [retiroMotivo, setRetiroMotivo] = useState('')
   const [loading, setLoading]     = useState(true)
   const [showForm, setShowForm]   = useState(false)
   const [pesadaId, setPesadaId]   = useState(null)
@@ -93,7 +97,7 @@ export default function APIs() {
         stockRestante:    parseFloat(form.stock) || 0,
         observacion:      capitalizar(form.observacion || ''),
         stock:            true,
-        estado:           'Pendiente de aprobación',
+        estado:           'Cerrado',
         creadoPorRol:     rol,
         creadoPor:        user.email,
         creadoEn:         serverTimestamp(),
@@ -118,6 +122,25 @@ export default function APIs() {
     } catch(e) { setMsg(e.message) }
   }
  
+  const handlePonerEnUso = async (item) => {
+    try {
+      await ponerEnUsoInsumo({ coleccion:'apis', insumoId:item.id,
+        usuario: user.displayName || user.email, email: user.email })
+      load()
+    } catch(e) { alert('Error: ' + e.message) }
+  }
+ 
+  const confirmarRetiro = async () => {
+    if (!retiroFecha) { alert('Indica la fecha de retiro'); return }
+    try {
+      await retirarInsumo({ coleccion:'apis', insumoId:retiroItem.id,
+        fechaRetiro: retiroFecha,
+        motivo: retiroMotivo || 'Cliente solicitó devolución del insumo',
+        usuario: user.displayName || user.email, email: user.email })
+      setRetiroItem(null); setRetiroFecha(''); setRetiroMotivo(''); load()
+    } catch(e) { alert('Error: ' + e.message) }
+  }
+ 
   const darDeBaja = async (id, codigo) => {
     const razon = window.prompt(`Razón para dar de baja ${codigo}:`)
     if (!razon) return
@@ -134,7 +157,7 @@ export default function APIs() {
   const restaurar = async (id) => {
     try {
       await updateDoc(doc(db, 'apis', id), {
-        estado: 'ACTIVO', bajaPor: null, bajaRazon: null,
+        estado: 'Cerrado', bajaPor: null, bajaRazon: null,
         bajaFecha: null, actualizadoEn: serverTimestamp(),
       })
       load()
@@ -196,6 +219,28 @@ export default function APIs() {
  
   return (
     <>
+      {retiroItem && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:1000,
+          display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
+          <div style={{background:'var(--surface)',borderRadius:'var(--radius-lg)',padding:24,width:'100%',maxWidth:440}}>
+            <p style={{fontSize:15,fontWeight:600,marginBottom:4}}>Retirar por cliente</p>
+            <p style={{fontSize:12,color:'var(--text-2)',marginBottom:16}}>{retiroItem.codigo} — {retiroItem.nombre}</p>
+            <div className="form-group" style={{marginBottom:10}}>
+              <label>Fecha de retiro *</label>
+              <input type="date" value={retiroFecha} onChange={e=>setRetiroFecha(e.target.value)}/>
+            </div>
+            <div className="form-group" style={{marginBottom:16}}>
+              <label>Motivo / observación</label>
+              <input value={retiroMotivo} onChange={e=>setRetiroMotivo(e.target.value)}
+                placeholder="ej: Cliente solicitó devolución del insumo"/>
+            </div>
+            <div style={{display:'flex',gap:8}}>
+              <button className="btn btn-primary btn-sm" onClick={confirmarRetiro}>Confirmar retiro</button>
+              <button className="btn btn-sm" onClick={()=>{setRetiroItem(null);setRetiroFecha('');setRetiroMotivo('')}}>Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
       {docInsumo && (
         <DocumentosPanel
           insumoId={docInsumo.id} modulo="apis"
@@ -329,9 +374,10 @@ export default function APIs() {
               {!verPapelera && (
                 <select value={filtroEst} onChange={e=>setFiltroEst(e.target.value)}>
                   <option value="">Todos los estados</option>
-                  <option value="ACTIVO">Activo</option>
-                  <option value="VENCIDO">Vencido</option>
-                  <option value="SIN STOCK">Sin stock</option>
+                  <option value="En uso">En uso</option>
+                  <option value="Cerrado">Cerrado</option>
+                  <option value="Vencido">Vencido</option>
+                  <option value="Sin stock">Sin stock</option>
                   <option value="Pendiente de aprobación">Pendiente</option>
                 </select>
               )}
@@ -356,9 +402,9 @@ export default function APIs() {
           <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10,marginBottom:14}}>
             {[
               { label:'Total',      valor: activos.length, color:'var(--accent)' },
-              { label:'Activos',    valor: activos.filter(i=>i.estado==='ACTIVO').length, color:'var(--ok)' },
-              { label:'Vencidos',   valor: activos.filter(i=>i.estado==='VENCIDO').length, color:'var(--danger)' },
-              { label:'Pendientes', valor: activos.filter(i=>i.estado==='Pendiente de aprobación').length, color:'var(--warn)' },
+              { label:'En uso',     valor: activos.filter(i=>i.estado==='En uso').length, color:'var(--ok)' },
+              { label:'Vencidos',   valor: activos.filter(i=>i.estado==='Vencido').length, color:'var(--danger)' },
+              { label:'Cerrados',   valor: activos.filter(i=>i.estado==='Cerrado').length, color:'var(--warn)' },
             ].map(k=>(
               <div key={k.label} className="kpi-card">
                 <div className="kpi-label">{k.label}</div>
@@ -381,8 +427,10 @@ export default function APIs() {
                   const sem      = calcularSemaforo(vence)
                   const badgeCls = sem.color==='danger'?'badge-danger':sem.color==='warning'?'badge-warn':sem.color==='success'?'badge-ok':'badge-gray'
                   const estCls   = {
-                    'ACTIVO':'badge-ok','VENCIDO':'badge-danger','SIN STOCK':'badge-warn',
-                    'Dado de baja':'badge-gray','Pendiente de aprobación':'badge-warn',
+                    'En uso':'badge-ok','Cerrado':'badge-info',
+                    'Sin stock':'badge-warn','Vencido':'badge-danger',
+                    'Retirado por cliente':'badge-purple',
+                    'Dado de baja':'badge-gray','Dada de baja':'badge-gray',
                   }[i.estado] || 'badge-gray'
                   const stockMostrado = i.stockRestante ?? i.cantidadRecibida ?? '—'
  
@@ -396,16 +444,26 @@ export default function APIs() {
                       <td>{vence ? <span className={`badge ${badgeCls}`}>{sem.texto}</span> : <span style={{color:'var(--text-3)'}}>—</span>}</td>
                       <td><span className={`badge ${estCls}`}>{i.estado}</span></td>
                       <td style={{display:'flex',gap:4}}>
-                        {puedeOperar && i.estado==='ACTIVO' && (
+                        {puedePonerEnUso && i.estado==='Cerrado' && (
+                          <button className="btn btn-sm" title="Poner en uso" onClick={()=>handlePonerEnUso(i)}>
+                            <PlayCircle size={13}/> En uso
+                          </button>
+                        )}
+                        {puedeOperar && i.estado==='En uso' && (
                           <button className="btn btn-sm" onClick={()=>{setPesadaId(i.id);setShowForm(false);setForm({})}}>Pesada</button>
                         )}
                         <button className="btn btn-sm" onClick={()=>setDocInsumo(i)} title="Ver documentos">
                           <FileText size={13}/>
                         </button>
+                        {puedeBaja && !verPapelera && i.estado!=='Retirado por cliente' && i.estado!=='Dado de baja' && i.estado!=='Dada de baja' && (
+                          <button className="btn btn-sm" title="Retirar por cliente" onClick={()=>setRetiroItem(i)}>
+                            <PackageX size={13}/>
+                          </button>
+                        )}
                         {puedeBaja && !verPapelera && (
                           <button className="btn btn-sm"
                             style={{color:'var(--danger)',borderColor:'var(--danger)'}}
-                            onClick={()=>darDeBaja(i.id, i.codigo)}>🗑</button>
+                            onClick={()=>darDeBaja(i.id, i.codigo)} title="Dar de baja">🗑</button>
                         )}
                         {puedeBaja && verPapelera && (
                           <button className="btn btn-sm" onClick={()=>restaurar(i.id)}>Restaurar</button>

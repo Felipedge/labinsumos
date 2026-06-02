@@ -1,20 +1,19 @@
-
 // src/pages/Estandares.jsx
 import { useState, useEffect } from 'react'
 import { collection, getDocs, addDoc, updateDoc, doc,
          serverTimestamp, query, orderBy, limit, where, writeBatch } from 'firebase/firestore'
 import { db } from '../lib/firebase'
-import { calcularSemaforo } from '../lib/db'
+import { calcularSemaforo, ponerEnUsoInsumo, retirarInsumo } from '../lib/db'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useRole } from '../hooks/useRole.jsx'
 import { puedoHacer } from '../lib/roles'
 import { useClientes } from '../hooks/useClientes.jsx'
-import { Plus, Search, FlaskConical, History, Package, ExternalLink, CheckCircle, XCircle, FileText } from 'lucide-react'
+import { Plus, Search, FlaskConical, History, Package, ExternalLink, CheckCircle, XCircle, FileText, PlayCircle, PackageX } from 'lucide-react'
 import DocumentosPanel from '../components/shared/DocumentosPanel.jsx'
  
 const CLIENTES  = ['Ascend','Galenicum','Grunenthal','Bamberg','Labomed','Laboratorio Chile','Novartis','Seven Pharma','Emcure','Prater','MSN','Otro']
 const SECTORES  = ['Fq','Val','Fq/val','Mb','T-r']
-const ESTADOS   = ['En uso','Cerrado','Vencido','Sin stock','Dado de baja']
+const ESTADOS   = ['En uso','Cerrado','Vencido','Sin stock','Dado de baja','Retirado por cliente']
 const ALMACENES = ['Desecador','Refrigerador','Freezer','Desecador-oncológico','Refrigerador-oncológico','Refrigerador-controlado']
 const MESES     = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
 const MESES_NUM = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC']
@@ -108,9 +107,10 @@ export default function Estandares() {
   const { user } = useAuth()
   const { rol }  = useRole()
   const { clientes: listaClientes } = useClientes()
-  const puedeAgregar = puedoHacer(rol, 'agregarInsumo')
-  const puedePesada  = puedoHacer(rol, 'registrarUso')
-  const puedeBaja    = puedoHacer(rol, 'darDeBaja')
+  const puedeAgregar    = puedoHacer(rol, 'agregarInsumo')
+  const puedePesada     = puedoHacer(rol, 'registrarUso')
+  const puedeBaja       = puedoHacer(rol, 'darDeBaja')
+  const puedePonerEnUso = puedoHacer(rol, 'ponerEnUso')
  
   const [tab, setTab] = useState('inventario')
   const [items, setItems]         = useState([])
@@ -118,6 +118,9 @@ export default function Estandares() {
   const [showForm, setShowForm]   = useState(false)
   const [pesadaId, setPesadaId]   = useState(null)
   const [frascos, setFrascos]     = useState([{ letra: 'A', stock: '' }])
+  const [retiroItem, setRetiroItem]     = useState(null)
+  const [retiroFecha, setRetiroFecha]   = useState('')
+  const [retiroMotivo, setRetiroMotivo] = useState('')
   const [msg, setMsg]             = useState('')
   const [search, setSearch]       = useState('')
   const [filtroEst, setFiltroEst] = useState('')
@@ -258,7 +261,7 @@ export default function Estandares() {
           proximaRevisionUSP: fEsUSP ? fProxRevisionUSP : null,
           ultimaRevisionUSP: null,
           fechaVencimiento: !fEsUSP && fVencimiento ? new Date(fVencimiento) : null,
-          estado: 'Pendiente de aprobación', creadoPorRol: rol,
+          estado: 'Cerrado', creadoPorRol: rol,
           mesIngreso: fMes || mesAct, anioIngreso: parseInt(fAnio || anioAct),
           creadoPor: user.email, creadoEn: serverTimestamp(), actualizadoEn: serverTimestamp(),
         })
@@ -279,6 +282,25 @@ export default function Estandares() {
       })
       setPesadaId(null); setFMg(''); setFNAnalisis(''); setFProducto2(''); setMsg(''); load()
     } catch(e) { setMsg(e.message) }
+  }
+ 
+  const handlePonerEnUso = async (item) => {
+    try {
+      await ponerEnUsoInsumo({ coleccion:'estandares', insumoId:item.id,
+        usuario: user.displayName || user.email, email: user.email })
+      load()
+    } catch(e) { alert('Error: ' + e.message) }
+  }
+ 
+  const confirmarRetiro = async () => {
+    if (!retiroFecha) { alert('Indica la fecha de retiro'); return }
+    try {
+      await retirarInsumo({ coleccion:'estandares', insumoId:retiroItem.id,
+        fechaRetiro: retiroFecha,
+        motivo: retiroMotivo || 'Cliente solicitó devolución del insumo',
+        usuario: user.displayName || user.email, email: user.email })
+      setRetiroItem(null); setRetiroFecha(''); setRetiroMotivo(''); load()
+    } catch(e) { alert('Error: ' + e.message) }
   }
  
   const darDeBaja = async (id, codigo) => {
@@ -414,6 +436,28 @@ export default function Estandares() {
  
   return (
     <>
+      {retiroItem && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:1000,
+          display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
+          <div style={{background:'var(--surface)',borderRadius:'var(--radius-lg)',padding:24,width:'100%',maxWidth:440}}>
+            <p style={{fontSize:15,fontWeight:600,marginBottom:4}}>Retirar por cliente</p>
+            <p style={{fontSize:12,color:'var(--text-2)',marginBottom:16}}>{retiroItem.codigo} — {retiroItem.nombre}</p>
+            <div className="form-group" style={{marginBottom:10}}>
+              <label>Fecha de retiro *</label>
+              <input type="date" value={retiroFecha} onChange={e=>setRetiroFecha(e.target.value)}/>
+            </div>
+            <div className="form-group" style={{marginBottom:16}}>
+              <label>Motivo / observación</label>
+              <input value={retiroMotivo} onChange={e=>setRetiroMotivo(e.target.value)}
+                placeholder="ej: Cliente solicitó devolución del insumo"/>
+            </div>
+            <div style={{display:'flex',gap:8}}>
+              <button className="btn btn-primary btn-sm" onClick={confirmarRetiro}>Confirmar retiro</button>
+              <button className="btn btn-sm" onClick={()=>{setRetiroItem(null);setRetiroFecha('');setRetiroMotivo('')}}>Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
       {docInsumo && (
         <DocumentosPanel insumoId={docInsumo.id} modulo="estandares"
           nombreInsumo={`${docInsumo.nombre} · ${docInsumo.codigo}`}
@@ -755,7 +799,7 @@ export default function Estandares() {
                   const vence    = i.fechaVencimiento?.toDate?.() || (i.fechaVencimiento ? new Date(i.fechaVencimiento) : null)
                   const sem      = calcularSemaforo(vence)
                   const badgeCls = sem.color==='danger'?'badge-danger':sem.color==='warning'?'badge-warn':sem.color==='success'?'badge-ok':'badge-gray'
-                  const estCls   = {'En uso':'badge-ok','Cerrado':'badge-info','Vencido':'badge-danger','Sin stock':'badge-warn','Dado de baja':'badge-gray'}[i.estado]||'badge-gray'
+                  const estCls   = {'En uso':'badge-ok','Cerrado':'badge-info','Vencido':'badge-danger','Sin stock':'badge-warn','Dado de baja':'badge-gray','Dada de baja':'badge-gray','Retirado por cliente':'badge-purple'}[i.estado]||'badge-gray'
                   const diasUSP  = i.esUSP ? diasHastaRevision(i.proximaRevisionUSP) : null
                   const uspAlerta = i.esUSP && diasUSP !== null && diasUSP <= 60
                   return (
@@ -786,6 +830,11 @@ export default function Estandares() {
                       </td>
                       <td><span className={`badge ${estCls}`}>{i.estado}</span></td>
                       <td style={{display:'flex',gap:4,flexWrap:'wrap'}}>
+                        {puedePonerEnUso && i.estado==='Cerrado' && (
+                          <button className="btn btn-sm" title="Poner en uso" onClick={()=>handlePonerEnUso(i)}>
+                            <PlayCircle size={13}/> En uso
+                          </button>
+                        )}
                         {puedePesada && i.estado==='En uso' && (
                           <button className="btn btn-sm" onClick={()=>{setPesadaId(i.id);setShowForm(false)}}>Pesada</button>
                         )}
@@ -799,8 +848,13 @@ export default function Estandares() {
                             🔵 Verificar
                           </button>
                         )}
+                        {puedeBaja && !verPapelera && i.estado!=='Retirado por cliente' && (
+                          <button className="btn btn-sm" title="Retirar por cliente" onClick={()=>setRetiroItem(i)}>
+                            <PackageX size={13}/>
+                          </button>
+                        )}
                         {puedeBaja && !verPapelera && (
-                          <button className="btn btn-sm" style={{color:'var(--danger)',borderColor:'var(--danger)'}} onClick={()=>darDeBaja(i.id,i.codigo)}>🗑</button>
+                          <button className="btn btn-sm" style={{color:'var(--danger)',borderColor:'var(--danger)'}} onClick={()=>darDeBaja(i.id,i.codigo)} title="Dar de baja">🗑</button>
                         )}
                         {puedeBaja && verPapelera && (
                           <button className="btn btn-sm" onClick={()=>restaurar(i.id)}>Restaurar</button>

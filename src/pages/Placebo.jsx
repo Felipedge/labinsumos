@@ -1,12 +1,12 @@
 // src/pages/Placebo.jsx
 import { useState, useEffect } from 'react'
-import { getPlacebos, crearPlacebo, registrarUsoPlacebo, calcularSemaforo } from '../lib/db'
+import { getPlacebos, crearPlacebo, registrarUsoPlacebo, calcularSemaforo, ponerEnUsoInsumo, retirarInsumo } from '../lib/db'
 import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useRole } from '../hooks/useRole.jsx'
 import { puedoHacer } from '../lib/roles'
-import { Plus, FileText, Search, Package, History } from 'lucide-react'
+import { Plus, FileText, Search, Package, History, PlayCircle, PackageX } from 'lucide-react'
 import DocumentosPanel from '../components/shared/DocumentosPanel.jsx'
 import { useClientes } from '../hooks/useClientes.jsx'
  
@@ -22,14 +22,19 @@ export default function Placebo() {
   const { user } = useAuth()
   const { rol }  = useRole()
   const { clientes: listaClientes } = useClientes()
-  const puedeAgregar = puedoHacer(rol, 'agregarInsumo')
-  const puedeOperar  = puedoHacer(rol, 'registrarUso')
+  const puedeAgregar    = puedoHacer(rol, 'agregarInsumo')
+  const puedeOperar     = puedoHacer(rol, 'registrarUso')
+  const puedeBaja       = puedoHacer(rol, 'darDeBaja')
+  const puedePonerEnUso = puedoHacer(rol, 'ponerEnUso')
  
   const [tab, setTab]             = useState('inventario')
   const [items, setItems]         = useState([])
   const [loading, setLoading]     = useState(true)
   const [showForm, setShowForm]   = useState(false)
   const [usoId, setUsoId]         = useState(null)
+  const [retiroItem, setRetiroItem]     = useState(null)
+  const [retiroFecha, setRetiroFecha]   = useState('')
+  const [retiroMotivo, setRetiroMotivo] = useState('')
   const [form, setForm]           = useState({})
   const [msg, setMsg]             = useState('')
   const [docInsumo, setDocInsumo] = useState(null)
@@ -76,7 +81,7 @@ export default function Placebo() {
         stockUnidades: parseInt(form.stock) || 0,
         fechaVencimiento: form.vencimiento || null,
         almacenamiento: form.almacen || 'Temperatura ambiente',
-        estado: 'Pendiente de aprobación', creadoPorRol: rol,
+        estado: 'Cerrado', creadoPorRol: rol,
       }, user.email)
       setShowForm(false); setForm({}); setMsg(''); load()
     } catch(e) { setMsg(e.message) }
@@ -92,6 +97,25 @@ export default function Placebo() {
       })
       setUsoId(null); setForm({}); setMsg(''); load()
     } catch(e) { setMsg(e.message) }
+  }
+ 
+  const handlePonerEnUso = async (item) => {
+    try {
+      await ponerEnUsoInsumo({ coleccion:'placebo', insumoId:item.id,
+        usuario: user.displayName || user.email, email: user.email })
+      load()
+    } catch(e) { alert('Error: ' + e.message) }
+  }
+ 
+  const confirmarRetiro = async () => {
+    if (!retiroFecha) { alert('Indica la fecha de retiro'); return }
+    try {
+      await retirarInsumo({ coleccion:'placebo', insumoId:retiroItem.id,
+        fechaRetiro: retiroFecha,
+        motivo: retiroMotivo || 'Cliente solicitó devolución del insumo',
+        usuario: user.displayName || user.email, email: user.email })
+      setRetiroItem(null); setRetiroFecha(''); setRetiroMotivo(''); load()
+    } catch(e) { alert('Error: ' + e.message) }
   }
  
   const toggleOrden = (campo) => {
@@ -142,6 +166,28 @@ export default function Placebo() {
  
   return (
     <>
+      {retiroItem && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:1000,
+          display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
+          <div style={{background:'var(--surface)',borderRadius:'var(--radius-lg)',padding:24,width:'100%',maxWidth:440}}>
+            <p style={{fontSize:15,fontWeight:600,marginBottom:4}}>Retirar por cliente</p>
+            <p style={{fontSize:12,color:'var(--text-2)',marginBottom:16}}>{retiroItem.codigo} — {retiroItem.productoReferencia}</p>
+            <div className="form-group" style={{marginBottom:10}}>
+              <label>Fecha de retiro *</label>
+              <input type="date" value={retiroFecha} onChange={e=>setRetiroFecha(e.target.value)}/>
+            </div>
+            <div className="form-group" style={{marginBottom:16}}>
+              <label>Motivo / observación</label>
+              <input value={retiroMotivo} onChange={e=>setRetiroMotivo(e.target.value)}
+                placeholder="ej: Cliente solicitó devolución del insumo"/>
+            </div>
+            <div style={{display:'flex',gap:8}}>
+              <button className="btn btn-primary btn-sm" onClick={confirmarRetiro}>Confirmar retiro</button>
+              <button className="btn btn-sm" onClick={()=>{setRetiroItem(null);setRetiroFecha('');setRetiroMotivo('')}}>Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
       {docInsumo && (
         <DocumentosPanel insumoId={docInsumo.id} modulo="placebo"
           nombreInsumo={`${docInsumo.productoReferencia} — ${docInsumo.codigo}`}
@@ -251,7 +297,7 @@ export default function Placebo() {
                   const vence = p.fechaVencimiento?.toDate?.() || (p.fechaVencimiento ? new Date(p.fechaVencimiento) : null)
                   const sem   = calcularSemaforo(vence)
                   const badgeCls = sem.color==='danger'?'badge-danger':sem.color==='warning'?'badge-warn':sem.color==='success'?'badge-ok':'badge-gray'
-                  const esPendiente = p.estado === 'Pendiente de aprobación'
+                  const esPendiente = false  // estado inicial ahora es Cerrado
                   return (
                     <tr key={p.id}>
                       <td className="mono">{p.codigo}</td>
@@ -261,14 +307,21 @@ export default function Placebo() {
                       <td><strong>{p.stockUnidades ?? '—'}</strong></td>
                       <td>{vence ? <span className={`badge ${badgeCls}`}>{sem.texto}</span> : <span style={{color:'var(--text-3)'}}>—</span>}</td>
                       <td>
-                        {esPendiente
-                          ? <span className="badge badge-warn">Pendiente</span>
-                          : <span className={p.estado==='ACTIVO'?'badge badge-ok':'badge badge-danger'}>{p.estado}</span>
-                        }
+                        <span className={({'En uso':'badge badge-ok','Cerrado':'badge badge-info','Sin stock':'badge badge-warn','Retirado por cliente':'badge badge-purple','Dado de baja':'badge badge-gray','Dada de baja':'badge badge-gray'}[p.estado])||'badge badge-gray'}>{p.estado}</span>
                       </td>
                       <td style={{display:'flex',gap:4}}>
-                        {puedeOperar && !esPendiente && (
+                        {puedePonerEnUso && p.estado==='Cerrado' && (
+                          <button className="btn btn-sm" title="Poner en uso" onClick={()=>handlePonerEnUso(p)}>
+                            <PlayCircle size={13}/> En uso
+                          </button>
+                        )}
+                        {puedeOperar && p.estado==='En uso' && (
                           <button className="btn btn-sm" onClick={() => { setUsoId(p.id); setShowForm(false); setForm({}) }}>Registrar uso</button>
+                        )}
+                        {puedeBaja && p.estado!=='Retirado por cliente' && p.estado!=='Dado de baja' && p.estado!=='Dada de baja' && (
+                          <button className="btn btn-sm" title="Retirar por cliente" onClick={()=>setRetiroItem(p)}>
+                            <PackageX size={13}/>
+                          </button>
                         )}
                         <button className="btn btn-sm" onClick={()=>setDocInsumo(p)} title="Ver documentos">
                           <FileText size={13}/>
