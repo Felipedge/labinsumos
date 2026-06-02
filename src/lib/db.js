@@ -446,3 +446,55 @@ export function suscribirAlertas(callback) {
     snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() })))
   )
 }
+// ─────────────────────────────────────────────────────────────
+// TRANSICIONES DE ESTADO — INSUMOS (Estándar / Placebo / API)
+// ─────────────────────────────────────────────────────────────
+ 
+// Poner en uso: Cerrado → En uso (Encargado / Jefe / Admin)
+export async function ponerEnUsoInsumo({ coleccion, insumoId, usuario, email }) {
+  const ref  = doc(db, coleccion, insumoId)
+  const snap = await getDoc(ref)
+  if (!snap.exists()) throw new Error('Insumo no encontrado')
+  const actual = snap.data()
+ 
+  await updateDoc(ref, {
+    estado: 'En uso',
+    puestaEnUsoPor: usuario || email,
+    puestaEnUsoEn:  serverTimestamp(),
+    actualizadoEn:  serverTimestamp(),
+  })
+ 
+  await registrarAudit({
+    coleccion, documentoId: insumoId, accion: 'poner_en_uso',
+    antes:   { estado: actual.estado },
+    despues: { estado: 'En uso' },
+    detalle: `Puesto en uso por ${usuario || email}`,
+  })
+ 
+  return { estado: 'En uso' }
+}
+ 
+// Retirado por cliente: requiere fecha de retiro → pasa a baja
+export async function retirarInsumo({ coleccion, insumoId, fechaRetiro, motivo, usuario, email }) {
+  const ref  = doc(db, coleccion, insumoId)
+  const snap = await getDoc(ref)
+  if (!snap.exists()) throw new Error('Insumo no encontrado')
+  const actual = snap.data()
+ 
+  await updateDoc(ref, {
+    estado:      'Retirado por cliente',
+    fechaRetiro,
+    motivoRetiro: motivo || 'Cliente solicitó devolución del insumo',
+    retiradoPor:  usuario || email,
+    actualizadoEn: serverTimestamp(),
+  })
+ 
+  await registrarAudit({
+    coleccion, documentoId: insumoId, accion: 'dar_de_baja',
+    antes:   { estado: actual.estado },
+    despues: { estado: 'Retirado por cliente', fechaRetiro },
+    detalle: `Retirado por cliente el ${fechaRetiro}. ${motivo || ''}`.trim(),
+  })
+ 
+  return { estado: 'Retirado por cliente' }
+}
