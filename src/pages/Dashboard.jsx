@@ -1,9 +1,9 @@
 // src/pages/Dashboard.jsx
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { getEstandares, getColumnas, getReactivos, getPlacebos, calcularSemaforo, calcularSemaforoColumna } from '../lib/db'
-import { FlaskConical, Cylinder, Droplets, Pill, AlertTriangle, Clock, TrendingUp } from 'lucide-react'
-
+import { getEstandares, getColumnas, getReactivos, getPlacebos, calcularSemaforo } from '../lib/db'
+import { FlaskConical, Cylinder, Droplets, Pill, AlertTriangle, Clock, TrendingUp, ScanLine } from 'lucide-react'
+ 
 function KPI({ label, value, type, icon: Icon }) {
   return (
     <div className="kpi-card">
@@ -14,23 +14,23 @@ function KPI({ label, value, type, icon: Icon }) {
     </div>
   )
 }
-
+ 
 export default function Dashboard() {
   const [stats, setStats]   = useState(null)
   const [alerts, setAlerts] = useState([])
   const [loading, setLoading] = useState(true)
-
+ 
   useEffect(() => {
     async function load() {
       try {
         const [stds, cols, reacts, pls] = await Promise.all([
           getEstandares(), getColumnas(), getReactivos(), getPlacebos()
         ])
-
+ 
         // Calcular alertas transversales
         const allAlerts = []
         const hoy = new Date(); hoy.setHours(0,0,0,0)
-
+ 
         stds.forEach(s => {
           if (!s.fechaVencimiento) return
           const sem = calcularSemaforo(s.fechaVencimiento?.toDate?.() || s.fechaVencimiento)
@@ -38,12 +38,8 @@ export default function Dashboard() {
             allAlerts.push({ tipo:'Estándar', icono:'flask', codigo:s.codigo, nombre:s.nombre, sem, id:s.id })
           }
         })
-        cols.forEach(c => {
-          const sem = calcularSemaforoColumna(c.inyeccionesAcumuladas || 0, c.limiteInyecciones || 1500)
-          if (sem.color !== 'success') {
-            allAlerts.push({ tipo:'Columna', icono:'cylinder', codigo:c.codigo, nombre:`${c.fase} — ${c.cliente}`, sem, id:c.id })
-          }
-        })
+        // Las columnas ya no generan alertas por inyecciones (se dan de baja
+        // manualmente por retiro), por lo que se omiten del cálculo de alertas.
         reacts.forEach(r => {
           if (!r.fechaVencimiento) return
           const sem = calcularSemaforo(r.fechaVencimiento?.toDate?.() || r.fechaVencimiento)
@@ -58,12 +54,12 @@ export default function Dashboard() {
             allAlerts.push({ tipo:'Placebo', icono:'pill', codigo:p.codigo, nombre:p.productoReferencia, sem, id:p.id })
           }
         })
-
+ 
         allAlerts.sort((a,b) => (a.sem.dias ?? 0) - (b.sem.dias ?? 0))
-
+ 
         setStats({
           stds:     { total: stds.filter(s => s.estado === 'EN USO').length },
-          cols:     { total: cols.filter(c => c.estado === 'ACTIVA').length },
+          cols:     { total: cols.filter(c => c.estado !== 'DADA DE BAJA' && c.estado !== 'RETIRADA' && c.estado !== 'Pendiente de aprobación').length },
           reacts:   { total: reacts.filter(r => r.estado === 'ACTIVO').length },
           pls:      { total: pls.filter(p => p.estado === 'ACTIVO').length },
           criticas: allAlerts.filter(a => a.sem.color === 'danger').length,
@@ -78,7 +74,6 @@ export default function Dashboard() {
           { tipo:'Estándar', codigo:'Std-0685', nombre:'Blexit', sem:{ texto:'9 días', color:'danger' } },
           { tipo:'Reactivo', codigo:'REA-027',  nombre:'Ác. Fosfórico 85%', sem:{ texto:'9 días', color:'danger' } },
           { tipo:'Placebo',  codigo:'PL-009',   nombre:'Amoxicilina 500 mg', sem:{ texto:'9 días', color:'danger' } },
-          { tipo:'Columna',  codigo:'COL-007',  nombre:'C18 — Galenicum', sem:{ texto:'1.240/1.500 inj.', color:'danger' } },
           { tipo:'Estándar', codigo:'Std-0025', nombre:'Cilostazol', sem:{ texto:'28 días', color:'warning' } },
           { tipo:'Reactivo', codigo:'REA-041',  nombre:'Acetonitrilo HPLC', sem:{ texto:'34 días', color:'warning' } },
         ])
@@ -88,11 +83,11 @@ export default function Dashboard() {
     }
     load()
   }, [])
-
+ 
   if (loading) return <div style={{display:'flex',justifyContent:'center',padding:40}}><div className="spinner"/></div>
-
+ 
   const IconoTipo = { Estándar: FlaskConical, Columna: Cylinder, Reactivo: Droplets, Placebo: Pill }
-
+ 
   return (
     <>
       <div className="kpi-grid">
@@ -103,7 +98,7 @@ export default function Dashboard() {
         <KPI label="Alertas críticas"   value={stats.criticas}     type="danger" icon={AlertTriangle} />
         <KPI label="Por vencer (60d)"   value={stats.adv}          type="warn"   icon={Clock} />
       </div>
-
+ 
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
         <div className="card">
           <div className="card-title">
@@ -126,7 +121,7 @@ export default function Dashboard() {
             )
           })}
         </div>
-
+ 
         <div className="card">
           <div className="card-title"><TrendingUp size={14}/> Acceso rápido</div>
           <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
@@ -154,6 +149,3 @@ export default function Dashboard() {
     </>
   )
 }
-
-// Fix missing import
-import { ScanLine } from 'lucide-react'
