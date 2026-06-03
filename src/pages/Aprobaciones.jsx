@@ -9,17 +9,25 @@ import { puedoHacer, puedeAprobarA } from '../lib/roles'
 import { CheckCircle, XCircle, Clock, Shield } from 'lucide-react'
 
 const MODULOS = [
-  { id: 'estandares', label: 'Estándares',  color: 'badge-ok' },
-  { id: 'columnas',   label: 'Columnas',    color: 'badge-purple' },
-  { id: 'reactivos',  label: 'Reactivos',   color: 'badge-info' },
-  { id: 'placebo',    label: 'Placebo',     color: 'badge-warn' },
+  { id: 'estandares', label: 'Estándares', color: 'badge-ok' },
+  { id: 'columnas',   label: 'Columnas',   color: 'badge-purple' },
+  { id: 'reactivos',  label: 'Reactivos',  color: 'badge-info' },
+  { id: 'placebo',    label: 'Placebo',    color: 'badge-warn' },
+  { id: 'apis',       label: 'APIs',       color: 'badge-gray' },
 ]
+
+// Estado inicial tras aprobación según módulo
+function estadoTrasAprobacion(item) {
+  if (item.modulo === 'columnas')   return 'Nueva'    // Nueva → Encargado/Jefe la pone En uso
+  return 'Cerrado'                                    // Todos los demás: Cerrado → poner en uso manual
+}
 
 function nombreInsumo(item, modulo) {
   if (modulo === 'estandares') return `${item.nombre} — ${item.codigo}`
   if (modulo === 'columnas')   return `${item.codigo} — ${item.fase || ''} ${item.tamanoParticula || ''}`
   if (modulo === 'reactivos')  return `${item.nombre} — ${item.codigo}`
   if (modulo === 'placebo')    return `${item.productoReferencia} — ${item.codigo}`
+  if (modulo === 'apis')       return `${item.nombre} — ${item.codigo}`
   return item.codigo || item.nombre || '—'
 }
 
@@ -74,15 +82,7 @@ export default function Aprobaciones() {
     }
     setProcesando(true)
     try {
-      // Determinar estado final según módulo
-      let estadoFinal
-      if (item.modulo === 'estandares') {
-        estadoFinal = item.frasco === 'A' ? 'En uso' : 'Cerrado'
-      } else if (item.modulo === 'columnas') {
-        estadoFinal = 'ACTIVA'
-      } else {
-        estadoFinal = 'ACTIVO'
-      }
+      const estadoFinal = estadoTrasAprobacion(item)
 
       await updateDoc(doc(db, item.modulo, item.id), {
         estado:         estadoFinal,
@@ -99,6 +99,7 @@ export default function Aprobaciones() {
         nombre:       nombreInsumo(item, item.modulo),
         cliente:      item.cliente || '',
         accion:       'aprobado',
+        estadoFinal,
         aprobadoPor:  user.email,
         aprobadoRol:  rol,
         ingresadoPor: item.creadoPor || '',
@@ -106,7 +107,7 @@ export default function Aprobaciones() {
         fecha:        serverTimestamp(),
       })
 
-      setMsg(`✅ ${nombreInsumo(item, item.modulo)} aprobado correctamente`)
+      setMsg(`✅ ${nombreInsumo(item, item.modulo)} aprobado → estado: ${estadoFinal}`)
       setTimeout(() => setMsg(''), 3000)
       load()
     } catch(e) { setMsg('Error al aprobar: ' + e.message) }
@@ -218,9 +219,10 @@ export default function Aprobaciones() {
       )}
 
       {filtrados.map(item => {
-        const esRechazando    = rechazandoId === item.id
-        const fechaIngreso    = item.creadoEn?.toDate?.()
-        const puedeEste       = puedeAprobarItem(item)
+        const esRechazando = rechazandoId === item.id
+        const fechaIngreso = item.creadoEn?.toDate?.()
+        const puedeEste    = puedeAprobarItem(item)
+        const estadoSiAprueba = estadoTrasAprobacion(item)
 
         return (
           <div key={item.id} className="card" style={{marginBottom:12}}>
@@ -256,9 +258,9 @@ export default function Aprobaciones() {
                     <>
                       {item.tipoPotencia && (
                         <span className="badge badge-gray">
-                          {item.tipoPotencia === 'tal_cual'     ? `${item.potencia}% Tal cual`
-                           : item.tipoPotencia === 'base_seca'  ? `${item.potencia}% Base seca`
-                           : item.tipoPotencia === 'cualitativo'? 'Cualitativo'
+                          {item.tipoPotencia === 'tal_cual'      ? `${item.potencia}% Tal cual`
+                           : item.tipoPotencia === 'base_seca'   ? `${item.potencia}% Base seca`
+                           : item.tipoPotencia === 'cualitativo' ? 'Cualitativo'
                            : 'Sin potencia'}
                         </span>
                       )}
@@ -272,8 +274,9 @@ export default function Aprobaciones() {
                   {item.modulo === 'columnas' && (
                     <>
                       <span className="badge badge-purple">{item.fase} · {item.tamanoParticula}</span>
-                      <span className="badge badge-gray">Límite: {item.limiteInyecciones} iny.</span>
-                      {item.fabricante && <span className="badge badge-gray">{item.fabricante}</span>}
+                      {item.area        && <span className="badge badge-gray">{item.area}</span>}
+                      {item.loteSerie   && <span className="badge badge-gray">Lote: {item.loteSerie}</span>}
+                      {item.fabricante  && <span className="badge badge-gray">{item.fabricante}</span>}
                     </>
                   )}
                   {item.modulo === 'reactivos' && (
@@ -288,12 +291,28 @@ export default function Aprobaciones() {
                       <span className="badge badge-gray">Stock: {item.stockUnidades} unidades</span>
                     </>
                   )}
+                  {item.modulo === 'apis' && (
+                    <>
+                      {item.laboratorio && <span className="badge badge-gray">{item.laboratorio}</span>}
+                      {item.lote        && <span className="badge badge-gray">Lote: {item.lote}</span>}
+                    </>
+                  )}
                   {item.observacion && (
                     <span style={{fontSize:11,color:'var(--text-2)',fontStyle:'italic'}}>
                       Obs: {item.observacion}
                     </span>
                   )}
                 </div>
+
+                {/* Nota de estado tras aprobación */}
+                {puedeEste && (
+                  <div style={{marginTop:8,fontSize:11,color:'var(--text-3)'}}>
+                    Al aprobar, el insumo pasará a estado{' '}
+                    <span className={`badge ${estadoSiAprueba === 'Nueva' ? 'badge-info' : 'badge-info'}`}
+                      style={{fontSize:10}}>{estadoSiAprueba}</span>
+                    {' '}— deberá ser puesto en uso manualmente.
+                  </div>
+                )}
 
                 {/* Formulario de rechazo */}
                 {esRechazando && (
@@ -305,7 +324,8 @@ export default function Aprobaciones() {
                       style={{flex:1,padding:'6px 10px',border:'1px solid var(--danger)',borderRadius:'var(--radius-sm)',fontSize:13}}
                       autoFocus
                     />
-                    <button className="btn btn-sm btn-danger" onClick={()=>rechazar(item)} disabled={procesando}>
+                    <button className="btn btn-sm" style={{background:'var(--danger-lt)',color:'var(--danger)',borderColor:'var(--danger)'}}
+                      onClick={()=>rechazar(item)} disabled={procesando}>
                       Confirmar rechazo
                     </button>
                     <button className="btn btn-sm" onClick={()=>{setRechazandoId(null);setRazonRechazo('')}}>
@@ -318,20 +338,15 @@ export default function Aprobaciones() {
               {/* Botones de acción */}
               {!esRechazando && puedeEste && (
                 <div style={{display:'flex',gap:6,flexShrink:0}}>
-                  <button
-                    className="btn btn-sm"
+                  <button className="btn btn-sm"
                     style={{background:'var(--ok-lt)',color:'var(--ok)',borderColor:'var(--ok)'}}
-                    onClick={()=>aprobar(item)}
-                    disabled={procesando}
-                  >
+                    onClick={()=>aprobar(item)} disabled={procesando}>
                     <CheckCircle size={14}/> Aprobar
                   </button>
-                  <button
-                    className="btn btn-sm"
+                  <button className="btn btn-sm"
                     style={{background:'var(--danger-lt)',color:'var(--danger)',borderColor:'var(--danger)'}}
                     onClick={()=>{setRechazandoId(item.id);setRazonRechazo('')}}
-                    disabled={procesando}
-                  >
+                    disabled={procesando}>
                     <XCircle size={14}/> Rechazar
                   </button>
                 </div>
