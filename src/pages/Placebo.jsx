@@ -1,7 +1,7 @@
 // src/pages/Placebo.jsx
 import { useState, useEffect } from 'react'
 import { getPlacebos, crearPlacebo, registrarUsoPlacebo, calcularSemaforo, ponerEnUsoInsumo, retirarInsumo } from '../lib/db'
-import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore'
+import { collection, getDocs, addDoc, query, orderBy, limit } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useRole } from '../hooks/useRole.jsx'
@@ -11,13 +11,27 @@ import DocumentosPanel from '../components/shared/DocumentosPanel.jsx'
 import { useClientes } from '../hooks/useClientes.jsx'
  
 const FORMAS = ['Comprimido','Cápsula','Inyectable','Solución oral','Crema / ungüento','Otro']
-const MESES = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC']
+const ALMACENAMIENTOS = [
+  'Ambiente', 'Refrigerado', 'Refrigerado Oncológico',
+  'Ambiente Oncológico', 'Freezer', 'Freezer Oncológico'
+]
+const MESES_NUM = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC']
+const MESES     = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
 
-function generarCodigoFrasco(base, lote, frasco) {
-  const ahora = new Date()
-  const mes   = MESES[ahora.getMonth()]
-  const anio  = String(ahora.getFullYear()).slice(-2)
-  return `${base}/${mes}${anio}/${lote}/${frasco}`.toUpperCase()
+async function getSiguienteNumeroPL(db) {
+  try {
+    const q    = query(collection(db, 'placebo'), orderBy('numeroPL', 'desc'), limit(1))
+    const snap = await getDocs(q)
+    if (snap.empty) return 1
+    return (snap.docs[0].data().numeroPL || 0) + 1
+  } catch { return 1 }
+}
+
+function generarCodigoPL(numero, mes, anio, lote, frasco) {
+  const num     = String(numero).padStart(3, '0')
+  const mesStr  = MESES_NUM[parseInt(mes) - 1]
+  const anioStr = String(anio).slice(-2)
+  return `PL-${num}/${mesStr}${anioStr}/${(lote||'SL').toUpperCase()}/${frasco}`
 }
  
 function formatFecha(ts) {
@@ -44,7 +58,21 @@ export default function Placebo() {
   const [retiroFecha, setRetiroFecha]   = useState('')
   const [retiroMotivo, setRetiroMotivo] = useState('')
   const [form, setForm]           = useState({})
-  const [frascos, setFrascos]     = useState([{ letra: 'A', stock: '' }])
+  const ahora = new Date()
+  const mesActual  = String(ahora.getMonth() + 1).padStart(2, '0')
+  const anioActual = String(ahora.getFullYear())
+  const [sigNumPL, setSigNumPL]     = useState(null)
+  const [frascos, setFrascos]       = useState([{ letra: 'A', stock: '' }])
+  const [fProd, setFProd]           = useState('')
+  const [fCliente, setFCliente]     = useState('')
+  const [fLote, setFLote]           = useState('')
+  const [fMes, setFMes]             = useState(mesActual)
+  const [fAnio, setFAnio]           = useState(anioActual)
+  const [fForma, setFForma]         = useState('')
+  const [fDosis, setFDosis]         = useState('')
+  const [fVencimiento, setFVencimiento] = useState('')
+  const [fAlmacen, setFAlmacen]     = useState('Ambiente')
+  const [guardando, setGuardando]   = useState(false)
   const [msg, setMsg]             = useState('')
   const [docInsumo, setDocInsumo] = useState(null)
   const [filtroCliente, setFiltroCliente] = useState('')
@@ -81,32 +109,36 @@ export default function Placebo() {
   const f = k => e => setForm(p => ({ ...p, [k]: e.target.value }))
  
   const guardar = async () => {
-    if (!form.codigoBase || !form.productoReferencia || !form.cliente) { setMsg('Código base, producto y cliente son obligatorios'); return }
-    const frascosValidos = frascos.filter(fr => fr.letra.trim())
-    if (frascosValidos.length === 0) { setMsg('Agrega al menos un frasco'); return }
+    if (!fProd || !fCliente) { setMsg('Producto y cliente son obligatorios'); return }
+    if (!fLote) { setMsg('El lote es obligatorio'); return }
+    if (frascos.some(fr => !fr.stock || isNaN(parseInt(fr.stock)))) {
+      setMsg('Ingresa el stock inicial de cada frasco'); return
+    }
+    setGuardando(true)
     try {
-      const lote = form.lote || ''
-      for (const fr of frascosValidos) {
-        const codigo = generarCodigoFrasco(form.codigoBase.toUpperCase(), lote, fr.letra.trim().toUpperCase())
+      const numero = sigNumPL || await getSiguienteNumeroPL(db)
+      for (const fr of frascos) {
+        const codigo = generarCodigoPL(numero, fMes, fAnio, fLote, fr.letra)
         await crearPlacebo({
           codigo,
-          codigoBase:        form.codigoBase.toUpperCase(),
-          frasco:            fr.letra.trim().toUpperCase(),
-          productoReferencia: form.productoReferencia,
-          cliente:           form.cliente,
-          lote,
-          formaFarmaceutica: form.forma || '',
-          dosis:             form.dosis || '',
-          stockUnidades:     parseInt(fr.stock) || 0,
-          stockInicial:      parseInt(fr.stock) || 0,
-          fechaVencimiento:  form.vencimiento || null,
-          almacenamiento:    form.almacen || 'Temperatura ambiente',
+          numeroPL:          numero,
+          frasco:            fr.letra,
+          productoReferencia: fProd,
+          cliente:           fCliente,
+          lote:              fLote.toUpperCase(),
+          formaFarmaceutica: fForma,
+          dosis:             fDosis,
+          stockUnidades:     parseInt(fr.stock),
+          stockInicial:      parseInt(fr.stock),
+          fechaVencimiento:  fVencimiento || null,
+          almacenamiento:    fAlmacen,
           estado:            'Cerrado',
           creadoPorRol:      rol,
         }, user.email)
       }
-      setShowForm(false); setForm({}); setFrascos([{ letra:'A', stock:'' }]); setMsg(''); load()
+      setShowForm(false); setMsg(''); load()
     } catch(e) { setMsg(e.message) }
+    finally { setGuardando(false) }
   }
  
   const registrarUso = async () => {
@@ -221,7 +253,19 @@ export default function Placebo() {
         <div style={{display:'flex',gap:8}}>
           {tab==='historial' && <button className="btn btn-sm" onClick={loadHistorial}>↻ Actualizar</button>}
           {tab==='inventario' && puedeAgregar && (
-            <button className="btn btn-primary btn-sm" onClick={() => { setShowForm(!showForm); setUsoId(null); setForm({}) }}>
+            <button className="btn btn-primary btn-sm" onClick={async() => {
+              if (!showForm) {
+                const n = await getSiguienteNumeroPL(db)
+                setSigNumPL(n)
+                setFrascos([{ letra:'A', stock:'' }])
+                setFProd(''); setFCliente(''); setFLote('')
+                setFMes(String(new Date().getMonth()+1).padStart(2,'0'))
+                setFAnio(String(new Date().getFullYear()))
+                setFForma(''); setFDosis(''); setFVencimiento('')
+                setFAlmacen('Ambiente'); setMsg('')
+              }
+              setShowForm(!showForm); setUsoId(null)
+            }}>
               <Plus size={14} /> Nuevo lote
             </button>
           )}
@@ -254,23 +298,61 @@ export default function Placebo() {
             <div className="card">
               <div className="card-title">Registrar lote de placebo</div>
               {msg && <div className="alert-item danger" style={{marginBottom:10}}>{msg}</div>}
+              {/* Preview código */}
+              {sigNumPL && (
+                <div style={{background:'var(--accent-lt)',borderRadius:'var(--radius-sm)',padding:'8px 14px',marginBottom:14,fontSize:12,color:'var(--accent)'}}>
+                  <strong>Código:</strong>{' '}
+                  {frascos.map(fr=>(
+                    <span key={fr.letra} style={{fontFamily:'var(--font-mono)',fontSize:13,fontWeight:700,marginRight:12}}>
+                      {generarCodigoPL(sigNumPL, fMes, fAnio, fLote||'LOTE', fr.letra||'?')}
+                    </span>
+                  ))}
+                </div>
+              )}
+
               <div className="form-grid">
-                <div className="form-group">
-                  <label>Código base *</label>
-                  <input placeholder="ej: PL-038" value={form.codigoBase||''} onChange={f('codigoBase')} style={{textTransform:'uppercase'}}/>
-                  <p style={{fontSize:11,color:'var(--text-3)',marginTop:3}}>El código final será PL-038/MES+AÑO/LOTE/FRASCO</p>
+                <div className="form-group"><label>Producto de referencia *</label>
+                  <input placeholder="ej: Cilosvitae 100 mg" value={fProd} onChange={e=>setFProd(e.target.value)}/>
                 </div>
-                <div className="form-group"><label>Producto de referencia *</label><input placeholder="ej: Cilosvitae 100 mg" onChange={f('productoReferencia')} /></div>
                 <div className="form-group"><label>Cliente *</label>
-                  <select onChange={f('cliente')}><option value="">Seleccionar...</option>{listaClientes.map(c=><option key={c}>{c}</option>)}</select>
+                  <select value={fCliente} onChange={e=>setFCliente(e.target.value)}>
+                    <option value="">Seleccionar...</option>
+                    {listaClientes.map(c=><option key={c}>{c}</option>)}
+                  </select>
                 </div>
-                <div className="form-group"><label>Lote</label><input onChange={f('lote')} /></div>
+                <div className="form-group"><label>Lote *</label>
+                  <input value={fLote} onChange={e=>setFLote(e.target.value.toUpperCase())}
+                    placeholder="ej: AB12345" style={{textTransform:'uppercase'}}/>
+                </div>
+                <div className="form-group"><label>Mes ingreso</label>
+                  <select value={fMes} onChange={e=>setFMes(e.target.value)}>
+                    {Array.from({length:12},(_,i)=>(
+                      <option key={i+1} value={String(i+1).padStart(2,'0')}>{MESES[i]}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group"><label>Año ingreso</label>
+                  <select value={fAnio} onChange={e=>setFAnio(e.target.value)}>
+                    {[2024,2025,2026,2027].map(y=><option key={y}>{y}</option>)}
+                  </select>
+                </div>
                 <div className="form-group"><label>Forma farmacéutica</label>
-                  <select onChange={f('forma')}><option value="">Seleccionar...</option>{FORMAS.map(fo=><option key={fo}>{fo}</option>)}</select>
+                  <select value={fForma} onChange={e=>setFForma(e.target.value)}>
+                    <option value="">Seleccionar...</option>
+                    {FORMAS.map(fo=><option key={fo}>{fo}</option>)}
+                  </select>
                 </div>
-                <div className="form-group"><label>Dosis</label><input placeholder="ej: 100 mg" onChange={f('dosis')} /></div>
-                <div className="form-group"><label>Fecha vencimiento</label><input type="date" onChange={f('vencimiento')} /></div>
-                <div className="form-group"><label>Almacenamiento</label><input placeholder="ej: Temperatura ambiente" onChange={f('almacen')} /></div>
+                <div className="form-group"><label>Dosis</label>
+                  <input placeholder="ej: 100 mg" value={fDosis} onChange={e=>setFDosis(e.target.value)}/>
+                </div>
+                <div className="form-group"><label>Fecha vencimiento</label>
+                  <input type="date" value={fVencimiento} onChange={e=>setFVencimiento(e.target.value)}/>
+                </div>
+                <div className="form-group"><label>Almacenamiento</label>
+                  <select value={fAlmacen} onChange={e=>setFAlmacen(e.target.value)}>
+                    {ALMACENAMIENTOS.map(a=><option key={a}>{a}</option>)}
+                  </select>
+                </div>
               </div>
 
               {/* Frascos */}
@@ -278,26 +360,21 @@ export default function Placebo() {
                 <div style={{fontSize:13,fontWeight:600,marginBottom:8}}>Frascos</div>
                 {frascos.map((fr, i) => (
                   <div key={i} style={{display:'flex',gap:8,alignItems:'flex-end',marginBottom:8}}>
-                    <div className="form-group" style={{width:100,margin:0}}>
+                    <div className="form-group" style={{width:90,margin:0}}>
                       <label>Frasco</label>
                       <input value={fr.letra} maxLength={3}
                         onChange={e=>setFrascos(prev=>prev.map((x,j)=>j===i?{...x,letra:e.target.value.toUpperCase()}:x))}
-                        style={{textTransform:'uppercase',textAlign:'center',fontWeight:600}}/>
+                        style={{textTransform:'uppercase',textAlign:'center',fontWeight:700}}/>
                     </div>
                     <div className="form-group" style={{flex:1,margin:0}}>
-                      <label>Stock inicial (unidades)</label>
+                      <label>Stock inicial (unidades) *</label>
                       <input type="number" placeholder="ej: 50" value={fr.stock}
                         onChange={e=>setFrascos(prev=>prev.map((x,j)=>j===i?{...x,stock:e.target.value}:x))}/>
                     </div>
-                    {form.codigoBase && form.lote && (
-                      <div style={{fontSize:11,color:'var(--accent)',fontFamily:'var(--font-mono)',padding:'0 4px 8px',whiteSpace:'nowrap'}}>
-                        {generarCodigoFrasco(form.codigoBase, form.lote, fr.letra||'?')}
-                      </div>
+                    {frascos.length > 1 && (
+                      <button className="btn btn-sm" style={{marginBottom:1,color:'var(--danger)'}}
+                        onClick={()=>setFrascos(prev=>prev.filter((_,j)=>j!==i))}>✕</button>
                     )}
-                    <button className="btn btn-sm" style={{marginBottom:1}}
-                      onClick={()=>setFrascos(prev=>prev.length>1?prev.filter((_,j)=>j!==i):prev)}>
-                      ✕
-                    </button>
                   </div>
                 ))}
                 <button className="btn btn-sm" onClick={()=>setFrascos(prev=>[...prev,{letra:String.fromCharCode(65+prev.length),stock:''}])}>
@@ -306,8 +383,10 @@ export default function Placebo() {
               </div>
 
               <div style={{ display:'flex', gap:8 }}>
-                <button className="btn btn-primary btn-sm" onClick={guardar}>Guardar placebo{frascos.length>1?` (${frascos.length} frascos)`:''}</button>
-                <button className="btn btn-sm" onClick={() => { setShowForm(false); setForm({}); setFrascos([{letra:'A',stock:''}]); setMsg('') }}>Cancelar</button>
+                <button className="btn btn-primary btn-sm" onClick={guardar} disabled={guardando}>
+                  {guardando?'Guardando...':`Guardar ${frascos.length} frasco${frascos.length>1?'s':''}`}
+                </button>
+                <button className="btn btn-sm" onClick={() => { setShowForm(false); setMsg('') }}>Cancelar</button>
               </div>
             </div>
           )}
