@@ -30,7 +30,10 @@ function estadoEfectivo(item) {
   if (estados_baja.includes(item.estado)) return item.estado
   if (!item.fechaVencimiento) return item.estado
   const hoy  = new Date(); hoy.setHours(0,0,0,0)
-  const vence = new Date(item.fechaVencimiento)
+  const f = String(item.fechaVencimiento)
+  const [y,m,d] = f.split('T')[0].split('-').map(Number)
+  if (!y || !m || !d) return item.estado
+  const vence = new Date(y, m-1, d)
   if (vence < hoy) return 'Vencido'
   return item.estado
 }
@@ -434,7 +437,14 @@ export default function APIs() {
               </thead>
               <tbody>
                 {filtrados.map(i => {
-                  const vence    = i.fechaVencimiento?.toDate?.() || (i.fechaVencimiento ? new Date(i.fechaVencimiento) : null)
+                  const vence    = i.fechaVencimiento?.toDate?.() || (() => {
+                    if (!i.fechaVencimiento) return null
+                    const f = String(i.fechaVencimiento)
+                    // Parsear AAAA-MM-DD sin problemas de timezone
+                    const [y,m,d] = f.split('T')[0].split('-').map(Number)
+                    if (!y || !m || !d) return null
+                    return new Date(y, m-1, d)
+                  })()
                   const sem      = calcularSemaforo(vence)
                   const badgeCls = sem.color==='danger'?'badge-danger':sem.color==='warning'?'badge-warn':sem.color==='success'?'badge-ok':'badge-gray'
                   const estEfectivo = estadoEfectivo(i)
