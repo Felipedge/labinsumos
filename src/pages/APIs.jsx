@@ -418,7 +418,7 @@ export default function APIs() {
               { label:'Total',      valor: activos.length, color:'var(--accent)' },
               { label:'En uso',     valor: activos.filter(i=>estadoEfectivo(i)==='En uso').length, color:'var(--ok)' },
               { label:'Vencidos',   valor: activos.filter(i=>estadoEfectivo(i)==='Vencido').length, color:'var(--danger)' },
-              { label:'Cerrados',   valor: activos.filter(i=>estadoEfectivo(i)==='Cerrado').length, color:'var(--warn)' },
+              { label:'Sin stock',  valor: items.filter(i=>i.estado==='Sin stock').length, color:'var(--warn)' },
             ].map(k=>(
               <div key={k.label} className="kpi-card">
                 <div className="kpi-label">{k.label}</div>
