@@ -453,7 +453,7 @@ export default function APIs() {
                       <td style={{color:'var(--text-2)'}}>{i.laboratorio}</td>
                       <td style={{color:'var(--text-2)',fontSize:11}}>{i.lote || '—'}</td>
                       <td><strong>{stockMostrado}</strong></td>
-                      <td>{vence ? <span className={`badge ${badgeCls}`}>{sem.texto}</span> : <span style={{color:'var(--text-3)'}}>—</span>}</td>
+                      <td>{vence ? <span className={`badge ${badgeCls}`}>{vence.toLocaleDateString('es-CL')}</span> : <span style={{color:'var(--text-3)'}}>—</span>}</td>
                       <td><span className={`badge ${estCls}`}>{estEfectivo}</span></td>
                       <td style={{display:'flex',gap:4}}>
                         {puedePonerEnUso && estEfectivo==='Cerrado' && (
