@@ -24,6 +24,17 @@ function formatFecha(ts) {
   return d.toLocaleDateString('es-CL') + ' ' + d.toLocaleTimeString('es-CL', { hour:'2-digit', minute:'2-digit' })
 }
  
+// Estado efectivo combina estado guardado + vencimiento calculado en vivo
+function estadoEfectivo(item) {
+  const estados_baja = ['Dado de baja', 'Dada de baja', 'Retirado por cliente', 'Sin stock']
+  if (estados_baja.includes(item.estado)) return item.estado
+  if (!item.fechaVencimiento) return item.estado
+  const hoy  = new Date(); hoy.setHours(0,0,0,0)
+  const vence = new Date(item.fechaVencimiento)
+  if (vence < hoy) return 'Vencido'
+  return item.estado
+}
+
 export default function APIs() {
   const { user } = useAuth()
   const { rol }  = useRole()
@@ -169,14 +180,14 @@ export default function APIs() {
     else { setOrdenCampo(campo); setOrdenDir('asc') }
   }
  
-  const activos  = items.filter(i => i.estado !== 'Dado de baja')
-  const papelera = items.filter(i => i.estado === 'Dado de baja')
+  const activos  = items.filter(i => !['Dado de baja','Dada de baja'].includes(i.estado))
+  const papelera = items.filter(i => ['Dado de baja','Dada de baja'].includes(i.estado))
  
   const filtrados = (verPapelera ? papelera : activos)
     .filter(i => {
       const q = search.toLowerCase()
       const matchQ = !q || i.codigo?.toLowerCase().includes(q) || i.nombre?.toLowerCase().includes(q) || i.laboratorio?.toLowerCase().includes(q)
-      const matchE = !filtroEst || i.estado === filtroEst
+      const matchE = !filtroEst || estadoEfectivo(i) === filtroEst
       const matchC = !filtroCliente || i.laboratorio === filtroCliente
       return matchQ && matchE && matchC
     })
@@ -402,9 +413,9 @@ export default function APIs() {
           <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10,marginBottom:14}}>
             {[
               { label:'Total',      valor: activos.length, color:'var(--accent)' },
-              { label:'En uso',     valor: activos.filter(i=>i.estado==='En uso').length, color:'var(--ok)' },
-              { label:'Vencidos',   valor: activos.filter(i=>i.estado==='Vencido').length, color:'var(--danger)' },
-              { label:'Cerrados',   valor: activos.filter(i=>i.estado==='Cerrado').length, color:'var(--warn)' },
+              { label:'En uso',     valor: activos.filter(i=>estadoEfectivo(i)==='En uso').length, color:'var(--ok)' },
+              { label:'Vencidos',   valor: activos.filter(i=>estadoEfectivo(i)==='Vencido').length, color:'var(--danger)' },
+              { label:'Cerrados',   valor: activos.filter(i=>estadoEfectivo(i)==='Cerrado').length, color:'var(--warn)' },
             ].map(k=>(
               <div key={k.label} className="kpi-card">
                 <div className="kpi-label">{k.label}</div>
@@ -426,12 +437,13 @@ export default function APIs() {
                   const vence    = i.fechaVencimiento?.toDate?.() || (i.fechaVencimiento ? new Date(i.fechaVencimiento) : null)
                   const sem      = calcularSemaforo(vence)
                   const badgeCls = sem.color==='danger'?'badge-danger':sem.color==='warning'?'badge-warn':sem.color==='success'?'badge-ok':'badge-gray'
+                  const estEfectivo = estadoEfectivo(i)
                   const estCls   = {
                     'En uso':'badge-ok','Cerrado':'badge-info',
                     'Sin stock':'badge-warn','Vencido':'badge-danger',
                     'Retirado por cliente':'badge-purple',
                     'Dado de baja':'badge-gray','Dada de baja':'badge-gray',
-                  }[i.estado] || 'badge-gray'
+                  }[estEfectivo] || 'badge-gray'
                   const stockMostrado = i.stockRestante ?? i.cantidadRecibida ?? '—'
  
                   return (
@@ -442,20 +454,20 @@ export default function APIs() {
                       <td style={{color:'var(--text-2)',fontSize:11}}>{i.lote || '—'}</td>
                       <td><strong>{stockMostrado}</strong></td>
                       <td>{vence ? <span className={`badge ${badgeCls}`}>{sem.texto}</span> : <span style={{color:'var(--text-3)'}}>—</span>}</td>
-                      <td><span className={`badge ${estCls}`}>{i.estado}</span></td>
+                      <td><span className={`badge ${estCls}`}>{estEfectivo}</span></td>
                       <td style={{display:'flex',gap:4}}>
-                        {puedePonerEnUso && i.estado==='Cerrado' && (
+                        {puedePonerEnUso && estEfectivo==='Cerrado' && (
                           <button className="btn btn-sm" title="Poner en uso" onClick={()=>handlePonerEnUso(i)}>
                             <PlayCircle size={13}/> En uso
                           </button>
                         )}
-                        {puedeOperar && i.estado==='En uso' && (
+                        {puedeOperar && estEfectivo==='En uso' && (
                           <button className="btn btn-sm" onClick={()=>{setPesadaId(i.id);setShowForm(false);setForm({})}}>Pesada</button>
                         )}
                         <button className="btn btn-sm" onClick={()=>setDocInsumo(i)} title="Ver documentos">
                           <FileText size={13}/>
                         </button>
-                        {puedeBaja && !verPapelera && i.estado!=='Retirado por cliente' && i.estado!=='Dado de baja' && i.estado!=='Dada de baja' && (
+                        {puedeBaja && !verPapelera && !['Retirado por cliente','Dado de baja','Dada de baja'].includes(estEfectivo) && (
                           <button className="btn btn-sm" title="Retirar por cliente" onClick={()=>setRetiroItem(i)}>
                             <PackageX size={13}/>
                           </button>
