@@ -12,6 +12,14 @@ import DocumentosPanel from '../components/shared/DocumentosPanel.jsx'
 import { useClientes } from '../hooks/useClientes.jsx'
  
 const UBICACIONES = ['Desecador', 'Refrigerador', 'Freezer', 'Refrigerador controlado', 'Desecador Validaciones', 'Otro']
+const MESES = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC']
+
+function generarCodigoFrasco(base, lote, frasco) {
+  const ahora = new Date()
+  const mes   = MESES[ahora.getMonth()]
+  const anio  = String(ahora.getFullYear()).slice(-2)
+  return `${base}/${mes}${anio}/${lote}/${frasco}`.toUpperCase()
+}
  
 function capitalizar(str) {
   if (!str) return ''
@@ -56,6 +64,7 @@ export default function APIs() {
   const [showForm, setShowForm]   = useState(false)
   const [pesadaId, setPesadaId]   = useState(null)
   const [form, setForm]           = useState({})
+  const [frascos, setFrascos]     = useState([{ letra: 'A', stock: '' }])
   const [msg, setMsg]             = useState('')
   const [search, setSearch]       = useState('')
   const [filtroEst, setFiltroEst] = useState('')
@@ -96,28 +105,36 @@ export default function APIs() {
   const f = k => e => setForm(p => ({ ...p, [k]: e.target.value }))
  
   const guardar = async () => {
-    if (!form.codigo || !form.nombre || !form.laboratorio) {
-      setMsg('Código, nombre y laboratorio son obligatorios'); return
+    if (!form.codigoBase || !form.nombre || !form.laboratorio) {
+      setMsg('Código base, nombre y laboratorio son obligatorios'); return
     }
+    const frascosValidos = frascos.filter(fr => fr.letra.trim())
+    if (frascosValidos.length === 0) { setMsg('Agrega al menos un frasco'); return }
     try {
-      await addDoc(collection(db, 'apis'), {
-        codigo:           form.codigo.toUpperCase(),
-        nombre:           capitalizar(form.nombre),
-        lote:             form.lote || '',
-        laboratorio:      form.laboratorio,
-        ubicacion:        form.ubicacion || 'Desecador',
-        fechaVencimiento: form.vencimiento ? new Date(form.vencimiento) : null,
-        cantidadRecibida: form.cantidad || '',
-        stockRestante:    parseFloat(form.stock) || 0,
-        observacion:      capitalizar(form.observacion || ''),
-        stock:            true,
-        estado:           'Cerrado',
-        creadoPorRol:     rol,
-        creadoPor:        user.email,
-        creadoEn:         serverTimestamp(),
-        actualizadoEn:    serverTimestamp(),
-      })
-      setShowForm(false); setForm({}); setMsg(''); load()
+      const lote = form.lote || ''
+      for (const fr of frascosValidos) {
+        const codigo = generarCodigoFrasco(form.codigoBase.toUpperCase(), lote, fr.letra.trim().toUpperCase())
+        await addDoc(collection(db, 'apis'), {
+          codigo,
+          codigoBase:       form.codigoBase.toUpperCase(),
+          frasco:           fr.letra.trim().toUpperCase(),
+          nombre:           capitalizar(form.nombre),
+          lote,
+          laboratorio:      form.laboratorio,
+          ubicacion:        form.ubicacion || 'Desecador',
+          fechaVencimiento: form.vencimiento ? form.vencimiento : null,
+          cantidadRecibida: form.cantidad || '',
+          stockRestante:    parseFloat(fr.stock) || 0,
+          stockInicial:     parseFloat(fr.stock) || 0,
+          observacion:      capitalizar(form.observacion || ''),
+          estado:           'Cerrado',
+          creadoPorRol:     rol,
+          creadoPor:        user.email,
+          creadoEn:         serverTimestamp(),
+          actualizadoEn:    serverTimestamp(),
+        })
+      }
+      setShowForm(false); setForm({}); setFrascos([{ letra:'A', stock:'' }]); setMsg(''); load()
     } catch(e) { setMsg(e.message) }
   }
  
@@ -313,8 +330,9 @@ export default function APIs() {
               <div className="card-title">Registrar nuevo API</div>
               {msg && <div className="alert-item danger" style={{marginBottom:10}}>{msg}</div>}
               <div className="form-grid">
-                <div className="form-group"><label>Código *</label>
-                  <input placeholder="ej: API-034" onChange={f('codigo')} style={{textTransform:'uppercase'}}/>
+                <div className="form-group"><label>Código base *</label>
+                  <input placeholder="ej: API-034" value={form.codigoBase||''} onChange={f('codigoBase')} style={{textTransform:'uppercase'}}/>
+                  <p style={{fontSize:11,color:'var(--text-3)',marginTop:3}}>El código final será API-034/MES+AÑO/LOTE/FRASCO</p>
                 </div>
                 <div className="form-group"><label>Nombre *</label>
                   <input placeholder="ej: Metilfenidato HCl" onChange={e=>setForm(p=>({...p,nombre:capitalizar(e.target.value)}))}/>
@@ -339,16 +357,46 @@ export default function APIs() {
                 <div className="form-group"><label>Cantidad recibida</label>
                   <input placeholder="ej: 20 g" onChange={f('cantidad')}/>
                 </div>
-                <div className="form-group"><label>Stock inicial (mg)</label>
-                  <input type="number" step="0.01" placeholder="ej: 20000" onChange={f('stock')}/>
-                </div>
                 <div className="form-group"><label>Observaciones</label>
                   <input onChange={e=>setForm(p=>({...p,observacion:capitalizar(e.target.value)}))}/>
                 </div>
               </div>
+
+              {/* Frascos */}
+              <div style={{marginBottom:14}}>
+                <div style={{fontSize:13,fontWeight:600,marginBottom:8}}>Frascos</div>
+                {frascos.map((fr, i) => (
+                  <div key={i} style={{display:'flex',gap:8,alignItems:'flex-end',marginBottom:8}}>
+                    <div className="form-group" style={{width:100,margin:0}}>
+                      <label>Frasco</label>
+                      <input value={fr.letra} maxLength={3}
+                        onChange={e=>setFrascos(prev=>prev.map((x,j)=>j===i?{...x,letra:e.target.value.toUpperCase()}:x))}
+                        style={{textTransform:'uppercase',textAlign:'center',fontWeight:600}}/>
+                    </div>
+                    <div className="form-group" style={{flex:1,margin:0}}>
+                      <label>Stock inicial (mg)</label>
+                      <input type="number" step="0.01" placeholder="ej: 20000" value={fr.stock}
+                        onChange={e=>setFrascos(prev=>prev.map((x,j)=>j===i?{...x,stock:e.target.value}:x))}/>
+                    </div>
+                    {form.codigoBase && form.lote && (
+                      <div style={{fontSize:11,color:'var(--accent)',fontFamily:'var(--font-mono)',padding:'0 4px 8px',whiteSpace:'nowrap'}}>
+                        {generarCodigoFrasco(form.codigoBase, form.lote, fr.letra||'?')}
+                      </div>
+                    )}
+                    <button className="btn btn-sm" style={{marginBottom:1}}
+                      onClick={()=>setFrascos(prev=>prev.length>1?prev.filter((_,j)=>j!==i):prev)}>
+                      ✕
+                    </button>
+                  </div>
+                ))}
+                <button className="btn btn-sm" onClick={()=>setFrascos(prev=>[...prev,{letra:String.fromCharCode(65+prev.length),stock:''}])}>
+                  <Plus size={13}/> Agregar frasco
+                </button>
+              </div>
+
               <div style={{display:'flex',gap:8}}>
-                <button className="btn btn-primary btn-sm" onClick={guardar}>Guardar API</button>
-                <button className="btn btn-sm" onClick={()=>{setShowForm(false);setForm({});setMsg('')}}>Cancelar</button>
+                <button className="btn btn-primary btn-sm" onClick={guardar}>Guardar API{frascos.length>1?`s (${frascos.length} frascos)`:''}</button>
+                <button className="btn btn-sm" onClick={()=>{setShowForm(false);setForm({});setFrascos([{letra:'A',stock:''}]);setMsg('')}}>Cancelar</button>
               </div>
             </div>
           )}
