@@ -1,27 +1,27 @@
 // src/pages/Columnas.jsx
 import { useState, useEffect } from 'react'
-import { collection, getDocs, query, where } from 'firebase/firestore'
+import { collection, getDocs, query, where, orderBy, limit } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { getColumnas, crearColumna, registrarUsoColumna, retirarColumna,
          ponerEnUsoColumna, darBajaColumnaSST } from '../lib/db'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useRole } from '../hooks/useRole.jsx'
 import { puedoHacer } from '../lib/roles'
-import { Plus, FileText, Search, X, PackageX, PlayCircle } from 'lucide-react'
+import { Plus, FileText, Search, X, PackageX, PlayCircle, History, Clock, User, Beaker } from 'lucide-react'
 import DocumentosPanel from '../components/shared/DocumentosPanel.jsx'
- 
+
 // Clientes se cargan desde Firestore (fallback si falla)
 const CLIENTES_FALLBACK = [
   { nombre:'Ascend', sigla:'ASC' }, { nombre:'Galenicum', sigla:'GL' },
   { nombre:'Laboratorio Chile', sigla:'LCH' }, { nombre:'Novartis', sigla:'NOV' },
   { nombre:'Otro', sigla:'OTR' },
 ]
- 
+
 const FASES   = [
   'C18','C8','CN','Fenil','RP18','RP8','PH','CPS','Quiral','SCX','T3','RP',
   'SIL','Alquimide','NAP','ODS 3V','ODS 2','C1','L9','ODS 3','MOS','ODS','AMINO','Otro'
 ]
- 
+
 // Color por grupo de fase. Editable: agrega/ajusta entradas aquí.
 // Cada fase mapea a una variante de badge (color + texto) definida en COLOR_VARIANTES.
 const FASE_COLOR = {
@@ -50,7 +50,7 @@ const FASE_COLOR = {
   'MOS':       'violeta',
   'AMINO':     'turquesa',
 }
- 
+
 // Paleta de variantes (fondo translúcido + texto). No depende de clases CSS externas.
 const COLOR_VARIANTES = {
   rojo:      { bg:'#fee2e2', fg:'#b91c1c' },
@@ -78,9 +78,9 @@ const COLOR_VARIANTES = {
   turquesa:  { bg:'#cffafe', fg:'#0891b2' },
   gris:      { bg:'#f1f5f9', fg:'#475569' },
 }
- 
+
 const AREAS = ['Fisicoquímico', 'Validaciones']
- 
+
 function FaseBadge({ fase }) {
   const key = FASE_COLOR[fase] || 'gris'
   const v = COLOR_VARIANTES[key] || COLOR_VARIANTES.gris
@@ -90,7 +90,7 @@ function FaseBadge({ fase }) {
     </span>
   )
 }
- 
+
 // Obtener siguiente número correlativo para un cliente
 async function getSiguienteCorrelativo(sigla) {
   try {
@@ -110,7 +110,7 @@ async function getSiguienteCorrelativo(sigla) {
     return maxNum + 1
   } catch { return 1 }
 }
- 
+
 export default function Columnas() {
   const { user } = useAuth()
   const { rol }  = useRole()
@@ -120,7 +120,7 @@ export default function Columnas() {
   const puedePonerEnUso = puedoHacer(rol, 'ponerEnUso')
   // Solo el Analista registra uso de columna (regla específica de este módulo)
   const puedeRegistrarUso = rol === 'analista'
- 
+
   const [clientesDB, setClientesDB] = useState(CLIENTES_FALLBACK)
   const [columnas, setColumnas]     = useState([])
   const [loading, setLoading]       = useState(true)
@@ -135,17 +135,20 @@ export default function Columnas() {
   const [usoLineas, setUsoLineas]   = useState([{ nAnalisis:'', inyecciones:'' }])
   const [msg, setMsg]               = useState('')
   const [docInsumo, setDocInsumo]   = useState(null)
+  const [historialCol, setHistorialCol] = useState(null)   // columna cuyo historial se muestra
+  const [historialData, setHistorialData] = useState([])
+  const [historialLoading, setHistorialLoading] = useState(false)
   const [search, setSearch]         = useState('')
   const [filtroCliente, setFiltroCliente] = useState('')
   const [ordenCampo, setOrdenCampo] = useState('codigo')
   const [ordenDir, setOrdenDir]     = useState('asc')
   const [codigoGenerado, setCodigoGenerado] = useState('')
   const [generandoCodigo, setGenerandoCodigo] = useState(false)
- 
+
   // mapa nombre -> sigla a partir de los clientes cargados
   const SIGLAS_CLIENTE = Object.fromEntries(clientesDB.map(c => [c.nombre, c.sigla]))
   const NOMBRES_CLIENTE = clientesDB.map(c => c.nombre)
- 
+
   const loadClientes = async () => {
     try {
       const snap = await getDocs(collection(db, 'clientes'))
@@ -154,16 +157,16 @@ export default function Columnas() {
       }
     } catch { /* mantiene fallback */ }
   }
- 
+
   const load = async () => {
     try { setColumnas(await getColumnas()) }
     catch { setColumnas([]) }
     finally { setLoading(false) }
   }
   useEffect(() => { loadClientes(); load() }, [])
- 
+
   const f = k => e => setForm(p => ({ ...p, [k]: e.target.value }))
- 
+
   // Generar código automático al seleccionar cliente
   const onClienteChange = async (e) => {
     const cliente = e.target.value
@@ -177,7 +180,7 @@ export default function Columnas() {
     setForm(p => ({ ...p, cliente, codigo, siglaCliente: sigla }))
     setGenerandoCodigo(false)
   }
- 
+
   const guardarColumna = async () => {
     if (!form.codigo || !form.cliente || !form.fase) { setMsg('Completa los campos obligatorios'); return }
     try {
@@ -208,20 +211,20 @@ export default function Columnas() {
       setShowForm(false); setForm({}); setCodigoGenerado(''); setMsg(''); load()
     } catch(e) { setMsg(e.message) }
   }
- 
+
   // ——— Registro de uso (solo Analista) ———
   const setLinea = (i, k, val) =>
     setUsoLineas(prev => prev.map((l, idx) => idx === i ? { ...l, [k]: val } : l))
   const addLinea = () => setUsoLineas(prev => [...prev, { nAnalisis:'', inyecciones:'' }])
   const removeLinea = (i) => setUsoLineas(prev => prev.length > 1 ? prev.filter((_, idx) => idx !== i) : prev)
- 
+
   const totalInyeccionesUso = usoLineas.reduce((s, l) => s + (parseInt(l.inyecciones) || 0), 0)
- 
+
   const abrirUso = (c) => {
     setUseForm(c); setRetiroForm(null); setShowForm(false)
     setForm({}); setUsoLineas([{ nAnalisis:'', inyecciones:'' }]); setMsg('')
   }
- 
+
   const registrarUso = async () => {
     const lineasValidas = usoLineas
       .map(l => ({ nAnalisis: (l.nAnalisis || '').trim(), inyecciones: parseInt(l.inyecciones) || 0 }))
@@ -239,7 +242,7 @@ export default function Columnas() {
       setUseForm(null); setUsoLineas([{ nAnalisis:'', inyecciones:'' }]); setMsg(''); load()
     } catch(e) { setMsg(e.message) }
   }
- 
+
   // ——— Retiro de columna (cliente pide el insumo de vuelta -> dada de baja) ———
   const abrirRetiro = (c) => {
     setRetiroForm(c); setUseForm(null); setShowForm(false)
@@ -248,7 +251,7 @@ export default function Columnas() {
     setObsRetiro('')
     setMsg('')
   }
- 
+
   const confirmarRetiro = async () => {
     if (motivoBaja === 'retiro_cliente' && !fechaRetiroCliente) {
       setMsg('Indica la fecha en que el cliente retiró la columna'); return
@@ -273,7 +276,7 @@ export default function Columnas() {
       setRetiroForm(null); setFechaRetiroCliente(''); setObsRetiro(''); setMsg(''); load()
     } catch(e) { setMsg(e.message) }
   }
- 
+
   // ——— Poner en uso (Encargado/Jefe) ———
   const ponerEnUso = async (c) => {
     try {
@@ -285,16 +288,32 @@ export default function Columnas() {
       load()
     } catch(e) { setMsg(e.message) }
   }
- 
+
   // bajaPorSST integrado en confirmarRetiro
- 
+
+  const abrirHistorial = async (c) => {
+    setHistorialCol(c)
+    setHistorialData([])
+    setHistorialLoading(true)
+    try {
+      const snap = await getDocs(
+        query(collection(db, 'usos_columnas'),
+          where('columnaId', '==', c.id),
+          orderBy('fecha', 'desc'),
+          limit(100))
+      )
+      setHistorialData(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+    } catch(e) { console.error(e) }
+    finally { setHistorialLoading(false) }
+  }
+
   const toggleOrden = (campo) => {
     if (ordenCampo === campo) setOrdenDir(d => d === 'asc' ? 'desc' : 'asc')
     else { setOrdenCampo(campo); setOrdenDir('asc') }
   }
- 
+
   const clientesUnicos = [...new Set(columnas.map(c => c.cliente).filter(Boolean))].sort()
- 
+
   const filtradas = columnas
     .filter(c => {
       const q = search.toLowerCase()
@@ -314,9 +333,9 @@ export default function Columnas() {
       if (valA > valB) return ordenDir === 'asc' ? 1 : -1
       return 0
     })
- 
+
   if (loading) return <div style={{display:'flex',justifyContent:'center',padding:40}}><div className="spinner"/></div>
- 
+
   return (
     <>
       {docInsumo && (
@@ -327,7 +346,103 @@ export default function Columnas() {
           onClose={()=>setDocInsumo(null)}
         />
       )}
- 
+
+      {/* ——— Panel historial de uso ——— */}
+      {historialCol && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:1000,
+          display:'flex',alignItems:'flex-start',justifyContent:'flex-end',padding:16}}>
+          <div style={{background:'var(--surface)',borderRadius:'var(--radius-lg)',
+            width:'100%',maxWidth:680,height:'calc(100vh - 32px)',display:'flex',flexDirection:'column',overflow:'hidden'}}>
+
+            {/* Header */}
+            <div style={{padding:'16px 20px',borderBottom:'1px solid var(--border)',
+              display:'flex',justifyContent:'space-between',alignItems:'flex-start',flexShrink:0}}>
+              <div>
+                <div style={{fontSize:15,fontWeight:600}}>{historialCol.codigo}</div>
+                <div style={{fontSize:12,color:'var(--text-2)',marginTop:2}}>
+                  <FaseBadge fase={historialCol.fase}/>{' '}
+                  <span style={{marginLeft:6}}>{historialCol.cliente}</span>
+                  {historialCol.area && <span style={{marginLeft:6,color:'var(--text-3)'}}>· {historialCol.area}</span>}
+                </div>
+                <div style={{fontSize:12,color:'var(--text-2)',marginTop:6,display:'flex',gap:16}}>
+                  <span>Total acumulado: <strong>{historialCol.inyeccionesAcumuladas || 0} inyecciones</strong></span>
+                  {historialData.length > 0 && <span style={{color:'var(--text-3)'}}>{historialData.length} registros</span>}
+                </div>
+              </div>
+              <button className="btn btn-sm" onClick={()=>setHistorialCol(null)}><X size={14}/></button>
+            </div>
+
+            {/* Contenido */}
+            <div style={{flex:1,overflowY:'auto',padding:'12px 20px'}}>
+              {historialLoading ? (
+                <div style={{display:'flex',justifyContent:'center',padding:40}}><div className="spinner"/></div>
+              ) : historialData.length === 0 ? (
+                <div style={{textAlign:'center',padding:40,color:'var(--text-3)'}}>
+                  <History size={32} style={{marginBottom:8,opacity:0.4}}/>
+                  <p>No hay registros de uso aún</p>
+                </div>
+              ) : historialData.map((u, i) => {
+                const fecha = u.fecha?.toDate?.() || (u.fecha ? new Date(u.fecha) : null)
+                const fechaStr = fecha ? fecha.toLocaleDateString('es-CL') + ' ' + fecha.toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'}) : '—'
+                return (
+                  <div key={u.id} style={{
+                    borderBottom: i < historialData.length-1 ? '1px solid var(--border)' : 'none',
+                    padding:'12px 0',
+                  }}>
+                    {/* Cabecera del registro */}
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+                      <div style={{display:'flex',alignItems:'center',gap:8}}>
+                        <Clock size={12} style={{color:'var(--text-3)'}}/>
+                        <span style={{fontSize:11,color:'var(--text-3)'}}>{fechaStr}</span>
+                      </div>
+                      <div style={{display:'flex',alignItems:'center',gap:6}}>
+                        <User size={12} style={{color:'var(--text-3)'}}/>
+                        <span style={{fontSize:11,color:'var(--text-2)'}}>{u.analista || u.email}</span>
+                        <span className="badge badge-info" style={{fontSize:10}}>
+                          +{u.inyecciones || u.totalInyecciones || 0} inyecc.
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Líneas de análisis */}
+                    {(u.analisis && u.analisis.length > 0) ? (
+                      <div style={{background:'var(--bg)',borderRadius:'var(--radius-sm)',padding:'8px 12px'}}>
+                        <div style={{fontSize:11,color:'var(--text-3)',marginBottom:6,fontWeight:500}}>
+                          Análisis registrados:
+                        </div>
+                        {u.analisis.map((a, j) => (
+                          <div key={j} style={{display:'flex',justifyContent:'space-between',
+                            alignItems:'center',padding:'3px 0',
+                            borderBottom: j < u.analisis.length-1 ? '1px solid var(--border)' : 'none'}}>
+                            <span style={{fontSize:12,fontFamily:'var(--font-mono)',color:'var(--text-1)'}}>
+                              {a.nAnalisis || '—'}
+                            </span>
+                            <span style={{fontSize:11,color:'var(--text-2)'}}>
+                              {a.inyecciones || 0} inyecciones
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      /* Formato viejo sin array de análisis */
+                      <div style={{background:'var(--bg)',borderRadius:'var(--radius-sm)',padding:'6px 12px',
+                        fontSize:12,color:'var(--text-2)'}}>
+                        N° análisis: {u.nAnalisis || '—'} · {u.inyecciones || 0} inyecciones
+                      </div>
+                    )}
+
+                    {/* Total acumulado después de este registro */}
+                    <div style={{fontSize:11,color:'var(--text-3)',marginTop:6,textAlign:'right'}}>
+                      Acumulado tras este registro: <strong>{u.totalAcum || '—'}</strong>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
         <h2 style={{ fontSize:16, fontWeight:600 }}>Columnas cromatográficas</h2>
         {puedeAgregar && (
@@ -337,7 +452,7 @@ export default function Columnas() {
           </button>
         )}
       </div>
- 
+
       {showForm && puedeAgregar && (
         <div className="card">
           <div className="card-title">Registrar nueva columna</div>
@@ -404,7 +519,7 @@ export default function Columnas() {
               <input type="date" onChange={f('fechaInicioUso')} />
             </div>
           </div>
- 
+
           {form.codigo && form.cliente && (
             <div style={{background:'var(--accent-lt)',borderRadius:'var(--radius-sm)',padding:'8px 14px',marginBottom:14,fontSize:12,color:'var(--accent)'}}>
               <strong>Código generado:</strong>{' '}
@@ -412,14 +527,14 @@ export default function Columnas() {
               {' '}— {form.cliente}
             </div>
           )}
- 
+
           <div style={{ display:'flex', gap:8 }}>
             <button className="btn btn-primary btn-sm" onClick={guardarColumna}>Guardar columna</button>
             <button className="btn btn-sm" onClick={() => { setShowForm(false); setForm({}); setCodigoGenerado(''); setMsg('') }}>Cancelar</button>
           </div>
         </div>
       )}
- 
+
       {/* ——— Registro de uso (solo Analista) ——— */}
       {useForm && puedeRegistrarUso && (
         <div className="card">
@@ -428,7 +543,7 @@ export default function Columnas() {
           <div style={{fontSize:12,color:'var(--text-2)',marginBottom:10}}>
             Inyecciones acumuladas actuales: <strong>{useForm.inyeccionesAcumuladas || 0}</strong>
           </div>
- 
+
           <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:12}}>
             {usoLineas.map((l, i) => (
               <div key={i} style={{display:'flex',gap:8,alignItems:'flex-end'}}>
@@ -449,7 +564,7 @@ export default function Columnas() {
               </div>
             ))}
           </div>
- 
+
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
             <button className="btn btn-sm" onClick={addLinea}><Plus size={13}/> Agregar análisis</button>
             <div style={{fontSize:13}}>
@@ -457,14 +572,14 @@ export default function Columnas() {
               {' '}→ nuevo acumulado: <strong>{(useForm.inyeccionesAcumuladas || 0) + totalInyeccionesUso}</strong>
             </div>
           </div>
- 
+
           <div style={{ display:'flex', gap:8 }}>
             <button className="btn btn-primary btn-sm" onClick={registrarUso}>Confirmar uso</button>
             <button className="btn btn-sm" onClick={() => { setUseForm(null); setUsoLineas([{ nAnalisis:'', inyecciones:'' }]); setMsg('') }}>Cancelar</button>
           </div>
         </div>
       )}
- 
+
       {/* ——— Modal dar de baja columna ——— */}
       {retiroForm && puedeDarBaja && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:1000,
@@ -475,7 +590,7 @@ export default function Columnas() {
               {retiroForm.fase} · {retiroForm.cliente}
             </p>
             {msg && <div className="alert-item danger" style={{marginBottom:10}}>{msg}</div>}
- 
+
             {/* Selector de motivo */}
             <div style={{display:'flex',gap:8,marginBottom:16}}>
               {[
@@ -496,7 +611,7 @@ export default function Columnas() {
                 </button>
               ))}
             </div>
- 
+
             {/* Fecha solo para retiro de cliente */}
             {motivoBaja === 'retiro_cliente' && (
               <div className="form-group" style={{marginBottom:12}}>
@@ -508,7 +623,7 @@ export default function Columnas() {
                 </p>
               </div>
             )}
- 
+
             <div className="form-group" style={{marginBottom:16}}>
               <label>{motivoBaja === 'sst' ? 'Detalle de la falla *' : 'Observación (opcional)'}</label>
               <input value={obsRetiro} onChange={e => setObsRetiro(e.target.value)}
@@ -516,7 +631,7 @@ export default function Columnas() {
                   ? 'ej: Platos teóricos fuera de especificación, tailing factor > 2.0...'
                   : 'ej: Cliente solicitó devolución el 01/06/2025'} />
             </div>
- 
+
             <div style={{display:'flex',gap:8}}>
               <button className="btn btn-primary btn-sm" onClick={confirmarRetiro}>
                 Confirmar y dar de baja
@@ -528,7 +643,7 @@ export default function Columnas() {
           </div>
         </div>
       )}
- 
+
       {/* Barra búsqueda, filtro cliente y ordenamiento */}
       <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:12}}>
         <div className="search-bar">
@@ -555,12 +670,12 @@ export default function Columnas() {
           ))}
         </div>
       </div>
- 
+
       <div style={{fontSize:12,color:'var(--text-2)',marginBottom:8}}>
         Mostrando {filtradas.length} de {columnas.length} columnas
         {filtroCliente && <span> · Cliente: <strong>{filtroCliente}</strong></span>}
       </div>
- 
+
       <div className="table-wrap">
         <table>
           <thead>
@@ -622,6 +737,9 @@ export default function Columnas() {
                         <PackageX size={13}/>
                       </button>
                     )}
+                    <button className="btn btn-sm" onClick={()=>abrirHistorial(c)} title="Ver historial de uso">
+                      <History size={13}/>
+                    </button>
                     <button className="btn btn-sm" onClick={()=>setDocInsumo(c)} title="Ver documentos">
                       <FileText size={13}/>
                     </button>
