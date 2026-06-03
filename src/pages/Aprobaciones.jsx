@@ -71,7 +71,7 @@ export default function Aprobaciones() {
   // Admin siempre puede aprobar, otros según jerarquía
   const puedeAprobarItem = (item) => {
     if (rol === 'admin') return true
-    return puedeAprobarA(rol, item.creadoPorRol || 'encargado')
+    return puedeAprobarA(rol, item.creadoPorRol || 'coordinador')
   }
 
   const aprobar = async (item) => {
@@ -148,7 +148,7 @@ export default function Aprobaciones() {
 
       setRechazandoId(null)
       setRazonRechazo('')
-      setMsg('❌ Insumo rechazado. El encargado verá la razón en el inventario.')
+      setMsg('❌ Insumo rechazado. El coordinador verá la razón en el inventario.')
       setTimeout(() => setMsg(''), 4000)
       load()
     } catch(e) { setMsg('Error al rechazar: ' + e.message) }

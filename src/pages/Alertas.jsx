@@ -10,9 +10,9 @@ import { useRole } from '../hooks/useRole.jsx'
 import { puedoHacer } from '../lib/roles'
 import { FlaskConical, Cylinder, Droplets, Pill, AlertTriangle,
          Clock, X, History, CheckCircle, XCircle } from 'lucide-react'
- 
+
 const ICONOS = { Estándar: FlaskConical, Columna: Cylinder, Reactivo: Droplets, Placebo: Pill, API: FlaskConical }
- 
+
 // ── Modal para solicitar cierre de alerta ────────────────────
 function ModalCierre({ alerta, onConfirmar, onCancelar }) {
   const [razon, setRazon] = useState('')
@@ -45,14 +45,14 @@ function ModalCierre({ alerta, onConfirmar, onCancelar }) {
     </div>
   )
 }
- 
+
 export default function Alertas() {
   const { user } = useAuth()
   const { rol }  = useRole()
- 
-  const puedeSolicitar = rol === 'admin' || rol === 'jefe' || rol === 'encargado'
-  const puedeAprobar   = rol === 'admin' || rol === 'jefe'
- 
+
+  const puedeSolicitar = rol === 'admin' || rol === 'jefe' || rol === 'coordinador'
+  const puedeAprobar   = rol === 'jefe' || rol === 'admin'
+
   const [alertas, setAlertas]         = useState([])
   const [loading, setLoading]         = useState(true)
   const [filtro, setFiltro]           = useState('todas')
@@ -64,7 +64,7 @@ export default function Alertas() {
   const [pendientesAprobacion, setPendientesAprobacion] = useState([])
   const [procesando, setProcesando]   = useState(false)
   const [msg, setMsg]                 = useState('')
- 
+
   // Cargar alertas activas
   useEffect(() => {
     async function load() {
@@ -73,7 +73,7 @@ export default function Alertas() {
           getEstandares(), getColumnas(), getReactivos(), getPlacebos()
         ])
         const all = []
- 
+
         stds.forEach(s => {
           if (s.estado === 'SIN STOCK') return
           const vence = s.fechaVencimiento?.toDate?.() || (s.fechaVencimiento ? new Date(s.fechaVencimiento) : null)
@@ -98,10 +98,10 @@ export default function Alertas() {
               accion: sem.color==='danger'?'Solicitar reposición urgente':'Planificar reposición o re-test' })
           }
         })
- 
+
         // Las columnas ya no generan alertas por inyecciones; su baja es manual
         // (retiro solicitado por el cliente). Se omiten del cálculo de alertas.
- 
+
         reacts.forEach(r => {
           const vence = r.fechaVencimiento?.toDate?.() || (r.fechaVencimiento ? new Date(r.fechaVencimiento) : null)
           const sem = calcularSemaforo(vence)
@@ -112,7 +112,7 @@ export default function Alertas() {
               accion:'Reponer stock o verificar alternativo' })
           }
         })
- 
+
         pls.forEach(p => {
           const vence = p.fechaVencimiento?.toDate?.() || (p.fechaVencimiento ? new Date(p.fechaVencimiento) : null)
           const sem = calcularSemaforo(vence)
@@ -123,7 +123,7 @@ export default function Alertas() {
               accion:'Solicitar nuevo lote al cliente' })
           }
         })
- 
+
         all.sort((a,b) => (a.sem.dias ?? 9999) - (b.sem.dias ?? 9999))
         setAlertas(all)
       } catch { setAlertas([]) }
@@ -131,7 +131,7 @@ export default function Alertas() {
     }
     load()
   }, [])
- 
+
   // Cargar solicitudes pendientes de aprobación
   useEffect(() => {
     if (!puedeAprobar) return
@@ -147,7 +147,7 @@ export default function Alertas() {
     }
     loadPendientes()
   }, [puedeAprobar])
- 
+
   // Cargar historial de alertas cerradas
   const loadHistorial = async () => {
     setLoadingH(true)
@@ -161,11 +161,11 @@ export default function Alertas() {
     } catch(e) { console.error(e) }
     finally { setLoadingH(false) }
   }
- 
+
   useEffect(() => {
     if (tab === 'historial') loadHistorial()
   }, [tab])
- 
+
   // Solicitar cierre de alerta
   const solicitarCierre = async (alerta, razon) => {
     setProcesando(true)
@@ -200,7 +200,7 @@ export default function Alertas() {
     } catch(e) { setMsg('Error: ' + e.message) }
     finally { setProcesando(false) }
   }
- 
+
   // Aprobar cierre
   const aprobarCierre = async (solicitud) => {
     setProcesando(true)
@@ -217,7 +217,7 @@ export default function Alertas() {
     } catch(e) { setMsg('Error: ' + e.message) }
     finally { setProcesando(false) }
   }
- 
+
   // Rechazar cierre
   const rechazarCierre = async (solicitud) => {
     const razon = window.prompt('Razón del rechazo:')
@@ -237,10 +237,10 @@ export default function Alertas() {
     } catch(e) { setMsg('Error: ' + e.message) }
     finally { setProcesando(false) }
   }
- 
+
   // Clientes únicos para filtro
   const clientesUnicos = [...new Set(alertas.map(a => a.cliente).filter(c => c && c !== '—'))].sort()
- 
+
   const filtradas = alertas
     .filter(a => {
       const matchF = filtro === 'todas' ? true
@@ -250,12 +250,12 @@ export default function Alertas() {
       const matchC = !filtroCliente || a.cliente === filtroCliente
       return matchF && matchC
     })
- 
+
   const criticas    = alertas.filter(a => a.sem.color === 'danger').length
   const advertencia = alertas.filter(a => a.sem.color === 'warning').length
- 
+
   if (loading) return <div style={{display:'flex',justifyContent:'center',padding:40}}><div className="spinner"/></div>
- 
+
   return (
     <>
       {alertaCierre && (
@@ -265,14 +265,14 @@ export default function Alertas() {
           onCancelar={() => setAlertaCierre(null)}
         />
       )}
- 
+
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
         <h2 style={{fontSize:16,fontWeight:600}}>Alertas</h2>
         {puedeAprobar && pendientesAprobacion.length > 0 && (
           <span className="badge badge-danger">{pendientesAprobacion.length} solicitudes pendientes</span>
         )}
       </div>
- 
+
       {/* KPIs */}
       <div className="kpi-grid" style={{gridTemplateColumns:'repeat(3,minmax(0,1fr))',marginBottom:16}}>
         <div className="kpi-card">
@@ -288,7 +288,7 @@ export default function Alertas() {
           <div className="kpi-value">{alertas.length}</div>
         </div>
       </div>
- 
+
       {/* Pestañas */}
       <div style={{display:'flex',gap:4,marginBottom:16,borderBottom:'1px solid var(--border)'}}>
         {[
@@ -314,7 +314,7 @@ export default function Alertas() {
           </button>
         ))}
       </div>
- 
+
       {msg && (
         <div className="alert-item" style={{
           background: msg.includes('✅') ? 'var(--ok-lt)' : 'var(--danger-lt)',
@@ -322,7 +322,7 @@ export default function Alertas() {
           marginBottom:12
         }}>{msg}</div>
       )}
- 
+
       {/* ── TAB ALERTAS ACTIVAS ── */}
       {tab === 'activas' && (
         <>
@@ -355,11 +355,11 @@ export default function Alertas() {
               )}
             </div>
           </div>
- 
+
           {filtradas.length === 0 && (
             <div className="empty"><AlertTriangle size={32}/><p>Sin alertas en esta categoría</p></div>
           )}
- 
+
           {filtradas.map((a, i) => {
             const Icon = ICONOS[a.tipo] || FlaskConical
             const cls  = a.sem.color === 'danger' ? 'danger' : 'warn'
@@ -398,7 +398,7 @@ export default function Alertas() {
           })}
         </>
       )}
- 
+
       {/* ── TAB SOLICITUDES PENDIENTES ── */}
       {tab === 'pendientes' && puedeAprobar && (
         <>
@@ -443,7 +443,7 @@ export default function Alertas() {
           ))}
         </>
       )}
- 
+
       {/* ── TAB HISTORIAL ── */}
       {tab === 'historial' && (
         <>
