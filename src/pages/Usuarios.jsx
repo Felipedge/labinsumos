@@ -7,21 +7,21 @@ import { ROLES, ETIQUETAS_ROL, COLORES_ROL, puedoHacer } from '../lib/roles'
 import { Users, Shield } from 'lucide-react'
  
 const COLORES_BADGE = {
-  admin:     'badge-danger',
-  jefe:      'badge-info',
-  encargado: 'badge-ok',
-  analista:  'badge-purple',
-  recepcion: 'badge-warn',
-  lectura:   'badge-gray',
+  admin:          'badge-danger',
+  jefe:           'badge-info',
+  coordinador:    'badge-ok',
+  analista:       'badge-purple',
+  administrativo: 'badge-warn',
+  lectura:        'badge-gray',
 }
  
 const DESCRIPCIONES = {
-  admin:     'Acceso total + gestión de usuarios',
-  jefe:      'Aprueba insumos, exporta reportes, da de baja con autorización Admin',
-  encargado: 'Agrega insumos, aprueba a Recepción, da de baja con autorización Jefe, ve auditoría',
-  analista:  'Registra pesadas y usos — único rol con esta capacidad',
-  recepcion: 'Ingresa insumos nuevos (quedan pendientes de aprobación)',
-  lectura:   'Solo visualiza, sin acciones',
+  admin:          'Gestión de usuarios, clientes y auditoría del sistema',
+  jefe:           'Autoridad máxima sobre insumos: aprueba, da de baja, exporta, gestiona clientes',
+  coordinador:    'Agrega y aprueba insumos, da de baja, exporta reportes, ve auditoría',
+  analista:       'Registra pesadas y usos — único rol con esta capacidad',
+  administrativo: 'Ingresa insumos nuevos (quedan pendientes de aprobación)',
+  lectura:        'Solo visualiza, sin acciones',
 }
  
 export default function Usuarios() {
