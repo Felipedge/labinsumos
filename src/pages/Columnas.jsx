@@ -1,3 +1,4 @@
+
 // src/pages/Columnas.jsx
 import { useState, useEffect } from 'react'
 import { collection, getDocs, query, where, orderBy, limit } from 'firebase/firestore'
@@ -710,7 +711,7 @@ export default function Columnas() {
         <table>
           <thead>
             <tr>
-              <th style={{position:'sticky',left:0,background:'var(--surface)',zIndex:2}}>Código</th><th>Fase</th><th>Área</th><th>Largo (mm)</th><th>Diám. (mm)</th><th>Micra (µm)</th>
+              <th style={{position:'sticky',left:0,background:'var(--surface)',zIndex:2}}>Código</th><th>Fase</th><th>Área</th><th>Producto</th><th>Largo (mm)</th><th>Diám. (mm)</th><th>Micra (µm)</th>
               <th>Platos ini.</th><th>Lote/Serie</th><th>Cliente</th>
               <th>Recepción</th><th>Inicio uso</th><th>Uso (inyecc.)</th><th>Estado</th><th></th>
             </tr>
@@ -734,6 +735,7 @@ export default function Columnas() {
                   </td>
                   <td><FaseBadge fase={c.fase} /></td>
                   <td style={{color:'var(--text-2)',fontSize:12}}>{c.area || '—'}</td>
+                  <td style={{fontSize:12,color:'var(--text-2)',maxWidth:120,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}} title={c.producto}>{c.producto||'—'}</td>
                   <td style={{color:'var(--text-2)',fontSize:11,textAlign:'center'}}>{c.largo || '—'}</td>
                   <td style={{color:'var(--text-2)',fontSize:11,textAlign:'center'}}>{c.diametro || '—'}</td>
                   <td style={{color:'var(--text-2)',fontSize:11,textAlign:'center'}}>{c.micra || '—'}</td>

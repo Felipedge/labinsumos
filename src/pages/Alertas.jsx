@@ -74,41 +74,45 @@ export default function Alertas() {
         ])
         const all = []
 
-        // ── Alertas de escasez de stock ──────────────────────────────
-        // Agrupar estándares por código base (STD-XXXX) para detectar último frasco
+        // ── Alertas de escasez — solo al 50% del ÚLTIMO frasco ──────
+        // Agrupar por código base (STD-XXXX) para detectar si es el último
         const stdPorBase = {}
-        stds.forEach(s => {
-          const base = s.codigo?.split('/')?.[0] || s.codigo
+        stds.forEach(st => {
+          const base = st.codigo?.split('/')?.[0] || st.codigo
           if (!stdPorBase[base]) stdPorBase[base] = []
-          stdPorBase[base].push(s)
+          stdPorBase[base].push(st)
         })
 
         Object.entries(stdPorBase).forEach(([base, frascos]) => {
+          // Frascos disponibles: En uso o Cerrado (no dados de baja)
+          const disponibles = frascos.filter(f => f.estado === 'En uso' || f.estado === 'Cerrado')
           const enUso = frascos.filter(f => f.estado === 'En uso')
           if (enUso.length === 0) return
+
+          const esUltimoFrasco = disponibles.length === 1
           const esLiquido = enUso[0].tipoInsumo === 'Liquido' || enUso[0].tipoInsumo === 'Liquido-ampolla'
-          const esAmpolla = enUso[0].tipoInsumo === 'Liquido-ampolla'
+
+          // Solo alertar si es el último frasco disponible
+          if (!esUltimoFrasco) return
 
           enUso.forEach(fr => {
-            const stock = fr.stockRestante ?? 0
-            const inicial = fr.stockInicial ?? fr.stockRestante ?? 0
-            const esUltimoFrasco = frascos.filter(f => f.estado === 'En uso' || f.estado === 'Cerrado').length === 1
+            const stock   = fr.stockRestante ?? 0
+            const inicial = fr.stockInicial ?? fr.stockRestante ?? 1
 
-            // Sólidos: alerta al 50% del frasco en uso
-            if (!esLiquido && inicial > 0 && stock <= inicial * 0.5) {
-              all.push({ tipo:'Estándar', codigo:fr.codigo, nombre:fr.nombre,
-                cliente:fr.cliente||'—', insumoId:fr.id,
-                sem:{ color:'danger', texto:`Stock bajo: ${stock}mg`, dias:0, tipo:'critica' },
-                detalle:`Stock: ${stock}mg de ${inicial}mg (≤50%)`,
-                accion:'Solicitar reposición de stock' })
-            }
-            // Líquidos/ampollas: alerta cuando queda el último frasco
-            if ((esLiquido || esAmpolla) && esUltimoFrasco) {
+            if (esLiquido) {
+              // Líquidos/ampollas: alerta al llegar al último frasco
               all.push({ tipo:'Estándar', codigo:fr.codigo, nombre:fr.nombre,
                 cliente:fr.cliente||'—', insumoId:fr.id,
                 sem:{ color:'danger', texto:'Último frasco', dias:0, tipo:'critica' },
                 detalle:`Último frasco disponible`,
                 accion:'Solicitar reposición urgente' })
+            } else if (inicial > 0 && stock <= inicial * 0.5) {
+              // Sólidos: alerta al 50% del último frasco
+              all.push({ tipo:'Estándar', codigo:fr.codigo, nombre:fr.nombre,
+                cliente:fr.cliente||'—', insumoId:fr.id,
+                sem:{ color:'danger', texto:`Stock bajo: ${stock}mg`, dias:0, tipo:'critica' },
+                detalle:`Último frasco al ${Math.round(stock/inicial*100)}% — ${stock}mg de ${inicial}mg`,
+                accion:'Solicitar reposición de stock' })
             }
           })
         })

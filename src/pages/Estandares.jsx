@@ -950,9 +950,9 @@ export default function Estandares() {
             <table>
               <thead>
                 <tr>
-                  <th>Código</th><th>Nombre</th><th>Frasco</th><th>Cliente</th>
+                  <th>Código</th><th>Nombre</th><th>Producto</th><th>Frasco</th><th>Cliente</th>
                   <th>Potencia / Tipo</th><th>Condiciones</th><th>Stock (mg)</th>
-                  <th>Vencimiento / Revisión</th><th>Estado</th><th></th>
+                  <th>Vencimiento / Revisión</th><th>Observación</th><th>Estado</th><th></th>
                 </tr>
               </thead>
               <tbody>
@@ -976,6 +976,7 @@ export default function Estandares() {
                         </span>
                       </td>
                       <td style={{color:'var(--text-2)'}}>{i.cliente}</td>
+                      <td style={{fontSize:12,color:'var(--text-2)',maxWidth:120,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}} title={i.producto}>{i.producto||'—'}</td>
                       <td><BadgePotencia tipoPotencia={i.tipoPotencia} potencia={i.potencia}/></td>
                       <td>
                         {(i.karlFischer||i.secadoPrevio||i.secadoDesecador)
@@ -989,6 +990,7 @@ export default function Estandares() {
                           : vence ? <span className={`badge ${badgeCls}`}>{sem.texto}</span> : <span style={{color:'var(--text-3)'}}>—</span>
                         }
                       </td>
+                      <td style={{fontSize:11,color:'var(--text-2)',maxWidth:130,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}} title={i.observacion}>{i.observacion||'—'}</td>
                       <td><span className={`badge ${estCls}`}>{i.estado}</span></td>
                       <td style={{display:'flex',gap:4,flexWrap:'wrap'}}>
                         {puedePonerEnUso && i.estado==='Cerrado' && (

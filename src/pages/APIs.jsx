@@ -628,8 +628,8 @@ export default function APIs() {
             <table>
               <thead>
                 <tr>
-                  <th>Código</th><th>Nombre</th><th>Laboratorio</th>
-                  <th>Lote</th><th>Stock (mg)</th><th>Vencimiento</th><th>Estado</th><th></th>
+                  <th>Código</th><th>Nombre</th><th>Producto</th><th>Laboratorio</th>
+                  <th>Lote</th><th>Stock (mg)</th><th>Vencimiento</th><th>Observación</th><th>Estado</th><th></th>
                 </tr>
               </thead>
               <tbody>
@@ -657,10 +657,12 @@ export default function APIs() {
                     <tr key={i.id}>
                       <td className="mono" style={{fontWeight:600}}>{i.codigo}</td>
                       <td style={{fontWeight:500}}>{i.nombre}</td>
+                      <td style={{fontSize:12,color:'var(--text-2)',maxWidth:120,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}} title={i.producto}>{i.producto||'—'}</td>
                       <td style={{color:'var(--text-2)'}}>{i.laboratorio}</td>
                       <td style={{color:'var(--text-2)',fontSize:11}}>{i.lote || '—'}</td>
                       <td><strong>{stockMostrado}</strong></td>
                       <td>{vence ? <span className={`badge ${badgeCls}`}>{vence.toLocaleDateString('es-CL')}</span> : <span style={{color:'var(--text-3)'}}>—</span>}</td>
+                      <td style={{fontSize:11,color:'var(--text-2)',maxWidth:130,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}} title={i.observacion}>{i.observacion||'—'}</td>
                       <td><span className={`badge ${estCls}`}>{estEfectivo}</span></td>
                       <td style={{display:'flex',gap:4}}>
                         {puedePonerEnUso && estEfectivo==='Cerrado' && (

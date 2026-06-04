@@ -516,7 +516,7 @@ export default function Placebo() {
  
           <div className="table-wrap">
             <table>
-              <thead><tr><th>Código</th><th>Producto</th><th>Cliente</th><th>Forma farm.</th><th>Stock (unid.)</th><th>Vencimiento</th><th>Estado</th><th></th></tr></thead>
+              <thead><tr><th>Código</th><th>Producto</th><th>Cliente</th><th>Forma farm.</th><th>Stock (unid.)</th><th>Vencimiento</th><th>Observación</th><th>Estado</th><th></th></tr></thead>
               <tbody>
                 {filtrados.map(p => {
                   const vence = p.fechaVencimiento?.toDate?.() || (p.fechaVencimiento ? new Date(p.fechaVencimiento) : null)
@@ -531,6 +531,7 @@ export default function Placebo() {
                       <td><span className="badge badge-gray">{p.formaFarmaceutica || '—'}</span></td>
                       <td><strong>{p.stockUnidades ?? '—'}</strong></td>
                       <td>{vence ? <span className={`badge ${badgeCls}`}>{sem.texto}</span> : <span style={{color:'var(--text-3)'}}>—</span>}</td>
+                      <td style={{fontSize:11,color:'var(--text-2)',maxWidth:130,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}} title={p.observacion}>{p.observacion||'—'}</td>
                       <td>
                         <span className={({'En uso':'badge badge-ok','Cerrado':'badge badge-info','Sin stock':'badge badge-warn','Retirado por cliente':'badge badge-purple','Dado de baja':'badge badge-gray','Dada de baja':'badge badge-gray'}[p.estado])||'badge badge-gray'}>{p.estado}</span>
                       </td>
