@@ -88,7 +88,14 @@ export default function APIs() {
   const [fAlmacen, setFAlmacen]   = useState('Ambiente')
   const [fCantidad, setFCantidad] = useState('')
   const [fObs, setFObs]           = useState('')
-  const [guardando, setGuardando] = useState(false)
+  const [guardando, setGuardando]     = useState(false)
+  const [reposItem, setReposItem]     = useState(null)
+  const [reposFrascos, setReposFrascos] = useState([{letra:'A',stock:''}])
+  const [reposLote, setReposLote]     = useState('')
+  const [reposMes, setReposMes]       = useState('')
+  const [reposAnio, setReposAnio]     = useState('')
+  const [reposVenc, setReposVenc]     = useState('')
+  const [reposGuardando, setReposGuardando] = useState(false)
   const [msg, setMsg]             = useState('')
   const [search, setSearch]       = useState('')
   const [filtroEst, setFiltroEst] = useState('')
@@ -204,6 +211,38 @@ export default function APIs() {
     } catch(e) { alert('Error: ' + e.message) }
   }
  
+  const guardarReposicionAPI = async () => {
+    if (!reposLote) { setMsg('El lote es obligatorio'); return }
+    if (reposFrascos.some(fr => !fr.stock || isNaN(parseFloat(fr.stock)))) {
+      setMsg('Ingresa el stock de cada frasco'); return
+    }
+    setReposGuardando(true)
+    try {
+      const base = reposItem
+      const mes  = reposMes  || String(new Date().getMonth()+1).padStart(2,'0')
+      const anio = reposAnio || String(new Date().getFullYear())
+      for (const fr of reposFrascos) {
+        const codigo = generarCodigoAPI(base.numeroAPI, mes, anio, reposLote, fr.letra)
+        await addDoc(collection(db, 'apis'), {
+          codigo, numeroAPI: base.numeroAPI, frasco: fr.letra,
+          nombre: base.nombre, laboratorio: base.laboratorio,
+          lote: reposLote.toUpperCase(),
+          fechaVencimiento: reposVenc || null,
+          almacenamiento: base.almacenamiento || 'Ambiente',
+          cantidadRecibida: base.cantidadRecibida || '',
+          stockRestante: parseFloat(fr.stock),
+          stockInicial: parseFloat(fr.stock),
+          observacion: base.observacion || '',
+          estado: 'Cerrado', creadoPorRol: rol,
+          creadoPor: user.email, creadoEn: serverTimestamp(), actualizadoEn: serverTimestamp(),
+        })
+      }
+      setReposItem(null); setReposFrascos([{letra:'A',stock:''}])
+      setReposLote(''); setReposVenc(''); setMsg(''); load()
+    } catch(e) { setMsg('Error: ' + e.message) }
+    finally { setReposGuardando(false) }
+  }
+
   const darDeBaja = async (id, codigo) => {
     const razon = window.prompt(`Razón para dar de baja ${codigo}:`)
     if (!razon) return
@@ -300,6 +339,62 @@ export default function APIs() {
             <div style={{display:'flex',gap:8}}>
               <button className="btn btn-primary btn-sm" onClick={confirmarRetiro}>Confirmar retiro</button>
               <button className="btn btn-sm" onClick={()=>{setRetiroItem(null);setRetiroFecha('');setRetiroMotivo('')}}>Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {reposItem && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:1000,
+          display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
+          <div style={{background:'var(--surface)',borderRadius:'var(--radius-lg)',padding:24,width:'100%',maxWidth:480}}>
+            <p style={{fontSize:15,fontWeight:600,marginBottom:4}}>Reposición — {reposItem.nombre}</p>
+            <p style={{fontSize:12,color:'var(--text-2)',marginBottom:16}}>
+              Código base: <span style={{fontFamily:'var(--font-mono)',fontWeight:600}}>API-{String(reposItem.numeroAPI).padStart(3,'0')}</span>
+            </p>
+            {msg && <div className="alert-item danger" style={{marginBottom:10}}>{msg}</div>}
+            <div className="form-grid">
+              <div className="form-group"><label>N° Lote nuevo *</label>
+                <input value={reposLote} onChange={e=>setReposLote(e.target.value.toUpperCase())} placeholder="ej: 1234567890"/>
+              </div>
+              <div className="form-group"><label>Fecha vencimiento</label>
+                <input type="date" value={reposVenc} onChange={e=>setReposVenc(e.target.value)}/>
+              </div>
+              <div className="form-group"><label>Mes ingreso</label>
+                <select value={reposMes} onChange={e=>setReposMes(e.target.value)}>
+                  {Array.from({length:12},(_,i)=>(<option key={i+1} value={String(i+1).padStart(2,'0')}>{MESES[i]}</option>))}
+                </select>
+              </div>
+              <div className="form-group"><label>Año ingreso</label>
+                <select value={reposAnio} onChange={e=>setReposAnio(e.target.value)}>
+                  {[2024,2025,2026,2027].map(a=><option key={a}>{a}</option>)}
+                </select>
+              </div>
+            </div>
+            <div style={{marginBottom:12}}>
+              <div style={{display:'flex',justifyContent:'space-between',marginBottom:8}}>
+                <label style={{fontSize:11,fontWeight:600,color:'var(--text-2)'}}>FRASCOS</label>
+                <button className="btn btn-sm" onClick={()=>setReposFrascos(p=>[...p,{letra:String.fromCharCode(65+p.length),stock:''}])}><Plus size={12}/> Frasco</button>
+              </div>
+              {reposFrascos.map((fr,i)=>(
+                <div key={i} style={{display:'flex',gap:8,alignItems:'flex-end',marginBottom:6}}>
+                  <div className="form-group" style={{width:80,margin:0}}>
+                    <input value={fr.letra} maxLength={3}
+                      onChange={e=>setReposFrascos(p=>p.map((x,j)=>j===i?{...x,letra:e.target.value.toUpperCase()}:x))}
+                      style={{textTransform:'uppercase',textAlign:'center',fontWeight:700}}/>
+                  </div>
+                  <div className="form-group" style={{flex:1,margin:0}}>
+                    <input type="number" step="0.01" placeholder="Stock inicial (mg)" value={fr.stock}
+                      onChange={e=>setReposFrascos(p=>p.map((x,j)=>j===i?{...x,stock:e.target.value}:x))}/>
+                  </div>
+                  {reposFrascos.length>1 && <button className="btn btn-sm" style={{color:'var(--danger)'}} onClick={()=>setReposFrascos(p=>p.filter((_,j)=>j!==i))}>✕</button>}
+                </div>
+              ))}
+            </div>
+            <div style={{display:'flex',gap:8}}>
+              <button className="btn btn-primary btn-sm" onClick={guardarReposicionAPI} disabled={reposGuardando}>
+                {reposGuardando?'Guardando...':'Confirmar reposición'}
+              </button>
+              <button className="btn btn-sm" onClick={()=>{setReposItem(null);setReposFrascos([{letra:'A',stock:''}]);setReposLote('');setReposVenc('');setMsg('')}}>Cancelar</button>
             </div>
           </div>
         </div>
@@ -579,6 +674,15 @@ export default function APIs() {
                         <button className="btn btn-sm" onClick={()=>setDocInsumo(i)} title="Ver documentos">
                           <FileText size={13}/>
                         </button>
+                        {puedeAgregar && !verPapelera && (
+                          <button className="btn btn-sm" title="Reposición de stock" onClick={()=>{
+                            setReposItem(i)
+                            setReposMes(String(new Date().getMonth()+1).padStart(2,'0'))
+                            setReposAnio(String(new Date().getFullYear()))
+                            setReposFrascos([{letra:'A',stock:''}])
+                            setReposLote(''); setReposVenc(''); setMsg('')
+                          }}>📦</button>
+                        )}
                         {puedeBaja && !verPapelera && !['Retirado por cliente','Dado de baja','Dada de baja'].includes(estEfectivo) && (
                           <button className="btn btn-sm" title="Retirar por cliente" onClick={()=>setRetiroItem(i)}>
                             <PackageX size={13}/>
