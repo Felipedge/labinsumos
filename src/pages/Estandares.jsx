@@ -12,7 +12,7 @@ import { Plus, Search, FlaskConical, History, Package, ExternalLink, CheckCircle
 import DocumentosPanel from '../components/shared/DocumentosPanel.jsx'
  
 const CLIENTES  = ['Ascend','Galenicum','Grunenthal','Bamberg','Labomed','Laboratorio Chile','Novartis','Seven Pharma','Emcure','Prater','MSN','Otro']
-const SECTORES  = ['Fq','Val','Fq/val','Mb','T-r']
+const SECTORES  = ['Fisicoquímico','Validación']
 const ESTADOS   = ['En uso','Cerrado','Vencido','Sin stock','Dado de baja','Retirado por cliente']
 const ALMACENES = ['Desecador','Refrigerador','Freezer','Desecador-oncológico','Refrigerador-oncológico','Refrigerador-controlado']
 const MESES     = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
