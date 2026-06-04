@@ -140,7 +140,7 @@ export default function Columnas() {
   const [historialLoading, setHistorialLoading] = useState(false)
   const [search, setSearch]         = useState('')
   const [filtroCliente, setFiltroCliente] = useState('')
-  const [ordenCampo, setOrdenCampo] = useState('codigo')
+  const [ordenCampo, setOrdenCampo] = useState('cliente')
   const [ordenDir, setOrdenDir]     = useState('asc')
   const [codigoGenerado, setCodigoGenerado] = useState('')
   const [generandoCodigo, setGenerandoCodigo] = useState(false)
@@ -326,8 +326,12 @@ export default function Columnas() {
     })
     .sort((a, b) => {
       let valA, valB
-      if (ordenCampo === 'codigo')        { valA = a.codigo?.toLowerCase() || '';  valB = b.codigo?.toLowerCase() || '' }
-      else if (ordenCampo === 'cliente')  { valA = a.cliente?.toLowerCase() || ''; valB = b.cliente?.toLowerCase() || '' }
+      if (ordenCampo === 'codigo') {
+        const parseCode = c => { const m = (c.codigo||'').match(/^(.*?)[-]?(\d+)$/) ; return m ? [m[1].toLowerCase(), parseInt(m[2])||0] : [c.codigo?.toLowerCase()||'', 0] }
+        const [pA, nA] = parseCode(a); const [pB, nB] = parseCode(b)
+        if (pA !== pB) return ordenDir==='asc' ? pA.localeCompare(pB) : pB.localeCompare(pA)
+        return ordenDir==='asc' ? nA-nB : nB-nA
+      } else if (ordenCampo === 'cliente')  { valA = a.cliente?.toLowerCase() || ''; valB = b.cliente?.toLowerCase() || '' }
       else if (ordenCampo === 'inicio')   { valA = a.fechaInicioUso || '';         valB = b.fechaInicioUso || '' }
       if (valA < valB) return ordenDir === 'asc' ? -1 : 1
       if (valA > valB) return ordenDir === 'asc' ? 1 : -1
@@ -701,8 +705,12 @@ export default function Columnas() {
                   <td style={{color:'var(--text-2)',fontSize:12}}>{c.platosTeoricosIniciales ?? '—'}</td>
                   <td style={{color:'var(--text-2)',fontSize:12}}>{c.loteSerie || '—'}</td>
                   <td>{c.cliente}</td>
-                  <td style={{ color:'var(--text-2)', fontSize:11 }}>{c.fechaRecepcion || '—'}</td>
-                  <td style={{ color:'var(--text-2)', fontSize:11 }}>{c.fechaInicioUso || '—'}</td>
+                  <td style={{ color:'var(--text-2)', fontSize:11 }}>
+                    {c.fechaRecepcion ? new Date(c.fechaRecepcion + 'T12:00:00').toLocaleDateString('es-CL') : '—'}
+                  </td>
+                  <td style={{ color:'var(--text-2)', fontSize:11 }}>
+                    {c.fechaInicioUso ? new Date(c.fechaInicioUso + 'T12:00:00').toLocaleDateString('es-CL') : '—'}
+                  </td>
                   <td style={{ minWidth:90 }}>
                     <strong style={{fontSize:13}}>{c.inyeccionesAcumuladas || 0}</strong>
                     <span style={{color:'var(--text-3)',fontSize:11}}> inyecc.</span>
