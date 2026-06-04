@@ -696,7 +696,7 @@ export default function Columnas() {
               const dadaBaja = c.estado === 'Dada de baja' || c.estado === 'DADA DE BAJA' || c.estado === 'RETIRADA'
               return (
                 <tr key={c.id} style={dadaBaja?{opacity:0.6}:{}}>
-                  <td className="mono" style={{fontWeight:600}}>{c.codigo}</td>
+                  <td className="mono" style={{fontWeight:600,whiteSpace:'nowrap'}}>{c.codigo}</td>
                   <td><FaseBadge fase={c.fase} /></td>
                   <td style={{color:'var(--text-2)',fontSize:12}}>{c.area || '—'}</td>
                   <td style={{color:'var(--text-2)',fontSize:11,textAlign:'center'}}>{c.largo || '—'}</td>
@@ -704,13 +704,9 @@ export default function Columnas() {
                   <td style={{color:'var(--text-2)',fontSize:11,textAlign:'center'}}>{c.micra || '—'}</td>
                   <td style={{color:'var(--text-2)',fontSize:11,textAlign:'center'}}>{c.platosTeoricosIniciales ?? '—'}</td>
                   <td style={{color:'var(--text-2)',fontSize:12}}>{c.loteSerie || '—'}</td>
-                  <td>{c.cliente}</td>
-                  <td style={{ color:'var(--text-2)', fontSize:11 }}>
-                    {c.fechaRecepcion ? new Date(c.fechaRecepcion + 'T12:00:00').toLocaleDateString('es-CL') : '—'}
-                  </td>
-                  <td style={{ color:'var(--text-2)', fontSize:11 }}>
-                    {c.fechaInicioUso ? new Date(c.fechaInicioUso + 'T12:00:00').toLocaleDateString('es-CL') : '—'}
-                  </td>
+                  <td style={{whiteSpace:'nowrap',fontSize:12}}>{c.cliente}</td>
+                  <td style={{color:'var(--text-2)',fontSize:11,whiteSpace:'nowrap'}}>{c.fechaRecepcion ? new Date(c.fechaRecepcion+'T12:00:00').toLocaleDateString('es-CL') : '—'}</td>
+                  <td style={{color:'var(--text-2)',fontSize:11,whiteSpace:'nowrap'}}>{c.fechaInicioUso ? new Date(c.fechaInicioUso+'T12:00:00').toLocaleDateString('es-CL') : '—'}</td>
                   <td style={{ minWidth:90 }}>
                     <strong style={{fontSize:13}}>{c.inyeccionesAcumuladas || 0}</strong>
                     <span style={{color:'var(--text-3)',fontSize:11}}> inyecc.</span>
@@ -721,7 +717,7 @@ export default function Columnas() {
                       : enUso
                         ? <span className="badge badge-ok">En uso</span>
                         : dadaBaja
-                          ? <span className="badge badge-danger">Dada de baja{c.fechaRetiro ? ` · ${c.fechaRetiro}` : c.fechaBaja ? ` · ${c.fechaBaja}` : ''}</span>
+                          ? <span className="badge badge-danger" style={{whiteSpace:'nowrap'}}>Dada de baja{c.fechaRetiro ? ` · ${new Date(c.fechaRetiro+'T12:00:00').toLocaleDateString('es-CL')}` : c.fechaBaja ? ` · ${c.fechaBaja}` : ''}</span>
                           : <span className="badge badge-gray">{c.estado}</span>
                     }
                     {dadaBaja && c.motivoBaja && (
