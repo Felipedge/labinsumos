@@ -68,10 +68,9 @@ export default function Aprobaciones() {
 
   useEffect(() => { load() }, [])
 
-  // Admin siempre puede aprobar, otros según jerarquía
+  // Aprueba quien tenga jerarquía mayor al rol que ingresó el insumo
   const puedeAprobarItem = (item) => {
-    if (rol === 'admin') return true
-    return puedeAprobarA(rol, item.creadoPorRol || 'coordinador')
+    return puedeAprobarA(rol, item.creadoPorRol || 'administrativo')
   }
 
   const aprobar = async (item) => {
@@ -159,7 +158,7 @@ export default function Aprobaciones() {
     return (
       <div className="empty">
         <Shield size={40}/>
-        <p>Solo Jefe de laboratorio y Administrador pueden acceder a esta sección</p>
+        <p>Solo Coordinador, Jefe de laboratorio y Administrador pueden acceder a esta sección</p>
       </div>
     )
   }

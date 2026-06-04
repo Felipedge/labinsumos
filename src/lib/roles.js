@@ -35,7 +35,7 @@ export const PERMISOS = {
     agregarInsumo:     false,
     darDeBaja:         false,
     ponerEnUso:        false,
-    aprobarInsumos:    false,
+    aprobarInsumos:    true,
     exportar:          false,
     verHistorial:      'todo',
     gestionarUsuarios: true,
