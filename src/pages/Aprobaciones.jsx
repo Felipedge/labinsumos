@@ -68,8 +68,9 @@ export default function Aprobaciones() {
 
   useEffect(() => { load() }, [])
 
-  // Aprueba quien tenga jerarquía mayor al rol que ingresó el insumo
+  // Admin solo observa; aprueba quien tenga jerarquía mayor al rol ingresador
   const puedeAprobarItem = (item) => {
+    if (rol === 'admin') return false
     return puedeAprobarA(rol, item.creadoPorRol || 'administrativo')
   }
 
