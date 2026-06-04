@@ -684,7 +684,7 @@ export default function Columnas() {
         <table>
           <thead>
             <tr>
-              <th>Código</th><th>Fase</th><th>Área</th><th>Largo (mm)</th><th>Diám. (mm)</th><th>Micra (µm)</th>
+              <th style={{position:'sticky',left:0,background:'var(--surface)',zIndex:2}}>Código</th><th>Fase</th><th>Área</th><th>Largo (mm)</th><th>Diám. (mm)</th><th>Micra (µm)</th>
               <th>Platos ini.</th><th>Lote/Serie</th><th>Cliente</th>
               <th>Recepción</th><th>Inicio uso</th><th>Uso (inyecc.)</th><th>Estado</th><th></th>
             </tr>
@@ -696,7 +696,7 @@ export default function Columnas() {
               const dadaBaja = c.estado === 'Dada de baja' || c.estado === 'DADA DE BAJA' || c.estado === 'RETIRADA'
               return (
                 <tr key={c.id} style={dadaBaja?{opacity:0.6}:{}}>
-                  <td className="mono" style={{fontWeight:600,whiteSpace:'nowrap'}}>{c.codigo}</td>
+                  <td className="mono" style={{fontWeight:600,whiteSpace:'nowrap',position:'sticky',left:0,background:'var(--surface)',zIndex:1}}>{c.codigo}</td>
                   <td><FaseBadge fase={c.fase} /></td>
                   <td style={{color:'var(--text-2)',fontSize:12}}>{c.area || '—'}</td>
                   <td style={{color:'var(--text-2)',fontSize:11,textAlign:'center'}}>{c.largo || '—'}</td>
