@@ -823,7 +823,15 @@ export default function Estandares() {
                   <label style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer',fontSize:13}}>
                     <input type="checkbox" checked={fSecadoPrevio} onChange={e=>setFSecadoPrevio(e.target.checked)}/> 🌡️ Secado previo
                   </label>
+                  <label style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer',fontSize:13}}>
+                    <input type="checkbox" checked={fSecadoDesecador} onChange={e=>setFSecadoDesecador(e.target.checked)}/> 🧫 Secado en desecador
+                  </label>
                 </div>
+                {fSecadoDesecador && (
+                  <div style={{background:'var(--warn-lt)',border:'1px solid var(--warn)',borderRadius:'var(--radius-sm)',padding:'6px 12px',fontSize:12,color:'var(--warn)',marginBottom:8}}>
+                    ⚠️ Revisar etiqueta o metodología
+                  </div>
+                )}
                 {fSecadoPrevio && (
                   <div style={{display:'flex',gap:10}}>
                     <div className="form-group" style={{flex:1}}>
