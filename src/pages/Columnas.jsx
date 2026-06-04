@@ -684,7 +684,7 @@ export default function Columnas() {
         <table>
           <thead>
             <tr>
-              <th>Código</th><th>Fase</th><th>Área</th><th>Largo</th><th>Diám.</th><th>Micra</th>
+              <th>Código</th><th>Fase</th><th>Área</th><th>Largo (mm)</th><th>Diám. (mm)</th><th>Micra (µm)</th>
               <th>Platos ini.</th><th>Lote/Serie</th><th>Cliente</th>
               <th>Recepción</th><th>Inicio uso</th><th>Uso (inyecc.)</th><th>Estado</th><th></th>
             </tr>
@@ -699,10 +699,10 @@ export default function Columnas() {
                   <td className="mono" style={{fontWeight:600}}>{c.codigo}</td>
                   <td><FaseBadge fase={c.fase} /></td>
                   <td style={{color:'var(--text-2)',fontSize:12}}>{c.area || '—'}</td>
-                  <td style={{color:'var(--text-2)',fontSize:12}}>{c.largo ? `${c.largo} mm` : c.dimensiones || '—'}</td>
-                  <td style={{color:'var(--text-2)',fontSize:12}}>{c.diametro ? `${c.diametro} mm` : '—'}</td>
-                  <td style={{color:'var(--text-2)',fontSize:12}}>{c.micra ? `${c.micra} µm` : c.tamanoParticula || '—'}</td>
-                  <td style={{color:'var(--text-2)',fontSize:12}}>{c.platosTeoricosIniciales ?? '—'}</td>
+                  <td style={{color:'var(--text-2)',fontSize:11,textAlign:'center'}}>{c.largo || '—'}</td>
+                  <td style={{color:'var(--text-2)',fontSize:11,textAlign:'center'}}>{c.diametro || '—'}</td>
+                  <td style={{color:'var(--text-2)',fontSize:11,textAlign:'center'}}>{c.micra || '—'}</td>
+                  <td style={{color:'var(--text-2)',fontSize:11,textAlign:'center'}}>{c.platosTeoricosIniciales ?? '—'}</td>
                   <td style={{color:'var(--text-2)',fontSize:12}}>{c.loteSerie || '—'}</td>
                   <td>{c.cliente}</td>
                   <td style={{ color:'var(--text-2)', fontSize:11 }}>
