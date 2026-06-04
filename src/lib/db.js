@@ -396,7 +396,7 @@ export async function registrarPesadaAPI({ apiId, mgPesados, nAnalisis, producto
 // ─────────────────────────────────────────────────────────────
 // ALERTAS (calculadas en cliente)
 // ─────────────────────────────────────────────────────────────
-export function calcularSemaforo(fechaVencimiento, diasCritico = 30, diasAdv = 60) {
+export function calcularSemaforo(fechaVencimiento, diasCritico = 45, diasAdv = 90) {
   if (!fechaVencimiento) return { texto: 'Sin fecha', color: 'gray', dias: null }
   const hoy   = new Date(); hoy.setHours(0, 0, 0, 0)
   const vence = fechaVencimiento instanceof Date ? fechaVencimiento : new Date(fechaVencimiento)

@@ -81,7 +81,7 @@ function BadgePotencia({ tipoPotencia, potencia }) {
   return potencia ? <span className="badge badge-gray">{potencia}%</span> : <span style={{color:'var(--text-3)'}}>—</span>
 }
  
-function BadgesCondiciones({ karlFischer, secadoPrevio, tempSecado, tiempoSecado }) {
+function BadgesCondiciones({ karlFischer, secadoPrevio, tempSecado, tiempoSecado, secadoDesecador, tipoInsumo }) {
   return (
     <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
       {karlFischer && <span className="badge badge-warn" title="Requiere Karl Fischer">💧 Karl Fischer</span>}
@@ -126,7 +126,14 @@ export default function Estandares() {
   const [filtroEst, setFiltroEst] = useState('')
   const [filtroCliente, setFiltroCliente] = useState('')
   const [sigNum, setSigNum]       = useState(null)
-  const [guardando, setGuardando] = useState(false)
+  const [guardando, setGuardando]   = useState(false)
+  const [reposItem, setReposItem]   = useState(null)  // item base para reposición
+  const [reposFrascos, setReposFrascos] = useState([{ letra:'A', stock:'' }])
+  const [reposLote, setReposLote]   = useState('')
+  const [reposMes, setReposMes]     = useState('')
+  const [reposAnio, setReposAnio]   = useState('')
+  const [reposVenc, setReposVenc]   = useState('')
+  const [reposGuardando, setReposGuardando] = useState(false)
   const [verPapelera, setVerPapelera] = useState(false)
   const [docInsumo, setDocInsumo]     = useState(null)
   const [ordenCampo, setOrdenCampo]   = useState('nombre')
@@ -155,7 +162,9 @@ export default function Estandares() {
   const [fXAnalisis, setFXAnalisis]       = useState('200')
   const [fTipoPotencia, setFTipoPotencia] = useState('tal_cual')
   const [fPotencia, setFPotencia]         = useState('')
-  const [fKarlFischer, setFKarlFischer]   = useState(false)
+  const [fKarlFischer, setFKarlFischer]     = useState(false)
+  const [fSecadoDesecador, setFSecadoDesecador] = useState(false)
+  const [fTipoInsumo, setFTipoInsumo]       = useState('Polvo')
   const [fSecadoPrevio, setFSecadoPrevio] = useState(false)
   const [fTempSecado, setFTempSecado]     = useState('')
   const [fTiempoSecado, setFTiempoSecado] = useState('')
@@ -250,6 +259,7 @@ export default function Estandares() {
           tipoPotencia: fTipoPotencia,
           potencia: (fTipoPotencia === 'tal_cual' || fTipoPotencia === 'base_seca') ? parseFloat(fPotencia) : null,
           karlFischer: fKarlFischer, secadoPrevio: fSecadoPrevio,
+          secadoDesecador: fSecadoDesecador, tipoInsumo: fTipoInsumo,
           tempSecado: fSecadoPrevio ? capitalizar(fTempSecado) : '',
           tiempoSecado: fSecadoPrevio ? capitalizar(fTiempoSecado) : '',
           sector: fSector, almacenamiento: fAlmacen,
@@ -301,6 +311,46 @@ export default function Estandares() {
         usuario: user.displayName || user.email, email: user.email })
       setRetiroItem(null); setRetiroFecha(''); setRetiroMotivo(''); load()
     } catch(e) { alert('Error: ' + e.message) }
+  }
+
+  const guardarReposicion = async () => {
+    if (!reposLote) { setMsg('El lote es obligatorio'); return }
+    if (reposFrascos.some(fr => !fr.stock || isNaN(fr.stock))) {
+      setMsg('Ingresa el stock de cada frasco'); return
+    }
+    setReposGuardando(true)
+    try {
+      const base = reposItem
+      const mes  = reposMes  || String(new Date().getMonth()+1).padStart(2,'0')
+      const anio = reposAnio || String(new Date().getFullYear())
+      for (const fr of reposFrascos) {
+        const codigo = generarCodigo(base.numeroStd, mes, anio, reposLote, fr.letra)
+        await addDoc(collection(db, 'estandares'), {
+          codigo, numeroStd: base.numeroStd, frasco: fr.letra,
+          nombre: base.nombre, cas: base.cas || '', lote: reposLote.toUpperCase(),
+          cliente: base.cliente, producto: base.producto || '',
+          tipoPotencia: base.tipoPotencia, potencia: base.potencia ?? null,
+          karlFischer: base.karlFischer || false, secadoPrevio: base.secadoPrevio || false,
+          secadoDesecador: base.secadoDesecador || false, tipoInsumo: base.tipoInsumo || 'Polvo',
+          tempSecado: base.tempSecado || '', tiempoSecado: base.tiempoSecado || '',
+          sector: base.sector || '', almacenamiento: base.almacenamiento || '',
+          fabricante: base.fabricante || '', observacion: base.observacion || '',
+          stockInicial: parseFloat(fr.stock), stockRestante: parseFloat(fr.stock),
+          cantPorAnalisis: base.cantPorAnalisis || 200,
+          esUSP: base.esUSP || false,
+          frecuenciaRevUSP: base.frecuenciaRevUSP || null,
+          proximaRevisionUSP: base.proximaRevisionUSP || null,
+          ultimaRevisionUSP: null,
+          fechaVencimiento: reposVenc ? new Date(reposVenc) : null,
+          estado: 'Cerrado', creadoPorRol: rol,
+          mesIngreso: mes, anioIngreso: parseInt(anio),
+          creadoPor: user.email, creadoEn: serverTimestamp(), actualizadoEn: serverTimestamp(),
+        })
+      }
+      setReposItem(null); setReposFrascos([{letra:'A',stock:''}])
+      setReposLote(''); setReposVenc(''); setMsg(''); load()
+    } catch(e) { setMsg('Error al guardar: ' + e.message) }
+    finally { setReposGuardando(false) }
   }
 
   const darDeBaja = async (id, codigo) => {
@@ -478,6 +528,75 @@ export default function Estandares() {
           </div>
         </div>
       )}
+      {/* Modal reposición de stock */}
+      {reposItem && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:1000,
+          display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
+          <div style={{background:'var(--surface)',borderRadius:'var(--radius-lg)',padding:24,width:'100%',maxWidth:500}}>
+            <p style={{fontSize:15,fontWeight:600,marginBottom:4}}>
+              Reposición de stock — {reposItem.nombre}
+            </p>
+            <p style={{fontSize:12,color:'var(--text-2)',marginBottom:16}}>
+              Código base: <span style={{fontFamily:'var(--font-mono)',fontWeight:600}}>STD-{String(reposItem.numeroStd).padStart(4,'0')}</span> · {reposItem.cliente}
+            </p>
+            {msg && <div className="alert-item danger" style={{marginBottom:10}}>{msg}</div>}
+            <div className="form-grid">
+              <div className="form-group"><label>N° Lote nuevo *</label>
+                <input value={reposLote} onChange={e=>setReposLote(e.target.value.toUpperCase())} placeholder="ej: LRAD5001"/>
+              </div>
+              <div className="form-group"><label>Fecha vencimiento</label>
+                <input type="date" value={reposVenc} onChange={e=>setReposVenc(e.target.value)}/>
+              </div>
+              <div className="form-group"><label>Mes ingreso</label>
+                <select value={reposMes} onChange={e=>setReposMes(e.target.value)}>
+                  {Array.from({length:12},(_,i)=>(<option key={i+1} value={String(i+1).padStart(2,'0')}>{['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][i]}</option>))}
+                </select>
+              </div>
+              <div className="form-group"><label>Año ingreso</label>
+                <select value={reposAnio} onChange={e=>setReposAnio(e.target.value)}>
+                  {[2024,2025,2026,2027].map(a=><option key={a}>{a}</option>)}
+                </select>
+              </div>
+            </div>
+            <div style={{marginBottom:14}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
+                <label style={{fontSize:11,fontWeight:600,color:'var(--text-2)'}}>FRASCOS</label>
+                <button className="btn btn-sm" onClick={()=>setReposFrascos(p=>[...p,{letra:String.fromCharCode(65+p.length),stock:''}])}><Plus size={12}/> Frasco</button>
+              </div>
+              {reposFrascos.map((fr,i)=>(
+                <div key={i} style={{display:'flex',gap:8,alignItems:'flex-end',marginBottom:6}}>
+                  <div className="form-group" style={{width:80,margin:0}}>
+                    <input value={fr.letra} maxLength={3}
+                      onChange={e=>setReposFrascos(p=>p.map((x,j)=>j===i?{...x,letra:e.target.value.toUpperCase()}:x))}
+                      style={{textTransform:'uppercase',textAlign:'center',fontWeight:700}}/>
+                  </div>
+                  <div className="form-group" style={{flex:1,margin:0}}>
+                    <input type="number" step="0.01" placeholder="Stock inicial (mg)" value={fr.stock}
+                      onChange={e=>setReposFrascos(p=>p.map((x,j)=>j===i?{...x,stock:e.target.value}:x))}/>
+                  </div>
+                  {reposFrascos.length>1 && <button className="btn btn-sm" style={{color:'var(--danger)'}} onClick={()=>setReposFrascos(p=>p.filter((_,j)=>j!==i))}>✕</button>}
+                </div>
+              ))}
+            </div>
+            {reposItem && reposLote && (
+              <div style={{marginBottom:12,padding:'6px 12px',background:'var(--accent-lt)',borderRadius:'var(--radius-sm)',fontSize:11,color:'var(--accent)'}}>
+                {reposFrascos.map(fr=>(
+                  <div key={fr.letra} style={{fontFamily:'var(--font-mono)'}}>
+                    {generarCodigo(reposItem.numeroStd, reposMes||String(new Date().getMonth()+1).padStart(2,'0'), reposAnio||String(new Date().getFullYear()), reposLote, fr.letra)}
+                  </div>
+                ))}
+              </div>
+            )}
+            <div style={{display:'flex',gap:8}}>
+              <button className="btn btn-primary btn-sm" onClick={guardarReposicion} disabled={reposGuardando}>
+                {reposGuardando?'Guardando...':'Confirmar reposición'}
+              </button>
+              <button className="btn btn-sm" onClick={()=>{setReposItem(null);setReposFrascos([{letra:'A',stock:''}]);setReposLote('');setReposVenc('');setMsg('')}}>Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {docInsumo && (
         <DocumentosPanel insumoId={docInsumo.id} modulo="estandares"
           nombreInsumo={`${docInsumo.nombre} · ${docInsumo.codigo}`}
@@ -505,11 +624,25 @@ export default function Estandares() {
               <p style={{fontSize:11,fontWeight:600,color:'var(--text-2)',marginBottom:8}}>RESULTADO DE LA VERIFICACIÓN</p>
               <div style={{display:'flex',gap:10,marginBottom:16}}>
                 <label style={{flex:1,display:'flex',alignItems:'center',gap:8,padding:'10px 14px',borderRadius:'var(--radius-sm)',border:`2px solid ${uspResultado==='vigente'?'var(--ok)':'var(--border-md)'}`,background:uspResultado==='vigente'?'var(--ok-lt)':'var(--surface)',cursor:'pointer',fontSize:13}}>
-                  <input type="radio" name="uspRes" value="vigente" checked={uspResultado==='vigente'} onChange={e=>setUspResultado(e.target.value)} style={{display:'none'}}/>
+                  <input type="radio" name="uspRes" value="vigente" checked={uspResultado==='vigente'} onChange={e=>{
+                    setUspResultado(e.target.value)
+                    if (e.target.value === 'vigente') {
+                      const prox = new Date()
+                      prox.setMonth(prox.getMonth() + 1)
+                      setUspProxRevision(prox.toISOString().split('T')[0])
+                    }
+                  }} style={{display:'none'}}/>
                   <CheckCircle size={16} style={{color:uspResultado==='vigente'?'var(--ok)':'var(--text-3)'}}/> Vigente — continúa en uso
                 </label>
                 <label style={{flex:1,display:'flex',alignItems:'center',gap:8,padding:'10px 14px',borderRadius:'var(--radius-sm)',border:`2px solid ${uspResultado==='no_vigente'?'var(--danger)':'var(--border-md)'}`,background:uspResultado==='no_vigente'?'var(--danger-lt)':'var(--surface)',cursor:'pointer',fontSize:13}}>
-                  <input type="radio" name="uspRes" value="no_vigente" checked={uspResultado==='no_vigente'} onChange={e=>setUspResultado(e.target.value)} style={{display:'none'}}/>
+                  <input type="radio" name="uspRes" value="no_vigente" checked={uspResultado==='no_vigente'} onChange={e=>{
+                    setUspResultado(e.target.value)
+                    if (e.target.value === 'vigente') {
+                      const prox = new Date()
+                      prox.setMonth(prox.getMonth() + 1)
+                      setUspProxRevision(prox.toISOString().split('T')[0])
+                    }
+                  }} style={{display:'none'}}/>
                   <XCircle size={16} style={{color:uspResultado==='no_vigente'?'var(--danger)':'var(--text-3)'}}/> No vigente — dar de baja
                 </label>
               </div>
@@ -837,8 +970,8 @@ export default function Estandares() {
                       <td style={{color:'var(--text-2)'}}>{i.cliente}</td>
                       <td><BadgePotencia tipoPotencia={i.tipoPotencia} potencia={i.potencia}/></td>
                       <td>
-                        {(i.karlFischer||i.secadoPrevio)
-                          ?<BadgesCondiciones karlFischer={i.karlFischer} secadoPrevio={i.secadoPrevio} tempSecado={i.tempSecado} tiempoSecado={i.tiempoSecado}/>
+                        {(i.karlFischer||i.secadoPrevio||i.secadoDesecador)
+                          ?<BadgesCondiciones karlFischer={i.karlFischer} secadoPrevio={i.secadoPrevio} tempSecado={i.tempSecado} tiempoSecado={i.tiempoSecado} secadoDesecador={i.secadoDesecador} tipoInsumo={i.tipoInsumo}/>
                           :<span style={{color:'var(--text-3)',fontSize:11}}>—</span>}
                       </td>
                       <td><strong>{i.stockRestante??'—'}</strong></td>
@@ -866,6 +999,17 @@ export default function Estandares() {
                             style={uspAlerta?{background:'var(--accent-lt)',color:'var(--accent)',borderColor:'var(--accent)'}:{}}
                             onClick={()=>abrirVerificacionUSP(i)}>
                             🔵 Verificar
+                          </button>
+                        )}
+                        {puedeAgregar && !verPapelera && (
+                          <button className="btn btn-sm" title="Reposición de stock" onClick={()=>{
+                            setReposItem(i)
+                            setReposMes(String(new Date().getMonth()+1).padStart(2,'0'))
+                            setReposAnio(String(new Date().getFullYear()))
+                            setReposFrascos([{letra:'A',stock:''}])
+                            setReposLote(''); setReposVenc(''); setMsg('')
+                          }}>
+                            📦
                           </button>
                         )}
                         {puedeBaja && !verPapelera && i.estado!=='Retirado por cliente' && (

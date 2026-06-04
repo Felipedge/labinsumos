@@ -74,6 +74,45 @@ export default function Alertas() {
         ])
         const all = []
 
+        // ── Alertas de escasez de stock ──────────────────────────────
+        // Agrupar estándares por código base (STD-XXXX) para detectar último frasco
+        const stdPorBase = {}
+        stds.forEach(s => {
+          const base = s.codigo?.split('/')?.[0] || s.codigo
+          if (!stdPorBase[base]) stdPorBase[base] = []
+          stdPorBase[base].push(s)
+        })
+
+        Object.entries(stdPorBase).forEach(([base, frascos]) => {
+          const enUso = frascos.filter(f => f.estado === 'En uso')
+          if (enUso.length === 0) return
+          const esLiquido = enUso[0].tipoInsumo === 'Liquido' || enUso[0].tipoInsumo === 'Liquido-ampolla'
+          const esAmpolla = enUso[0].tipoInsumo === 'Liquido-ampolla'
+
+          enUso.forEach(fr => {
+            const stock = fr.stockRestante ?? 0
+            const inicial = fr.stockInicial ?? fr.stockRestante ?? 0
+            const esUltimoFrasco = frascos.filter(f => f.estado === 'En uso' || f.estado === 'Cerrado').length === 1
+
+            // Sólidos: alerta al 50% del frasco en uso
+            if (!esLiquido && inicial > 0 && stock <= inicial * 0.5) {
+              all.push({ tipo:'Estándar', codigo:fr.codigo, nombre:fr.nombre,
+                cliente:fr.cliente||'—', insumoId:fr.id,
+                sem:{ color:'danger', texto:`Stock bajo: ${stock}mg`, dias:0, tipo:'critica' },
+                detalle:`Stock: ${stock}mg de ${inicial}mg (≤50%)`,
+                accion:'Solicitar reposición de stock' })
+            }
+            // Líquidos/ampollas: alerta cuando queda el último frasco
+            if ((esLiquido || esAmpolla) && esUltimoFrasco) {
+              all.push({ tipo:'Estándar', codigo:fr.codigo, nombre:fr.nombre,
+                cliente:fr.cliente||'—', insumoId:fr.id,
+                sem:{ color:'danger', texto:'Último frasco', dias:0, tipo:'critica' },
+                detalle:`Último frasco disponible`,
+                accion:'Solicitar reposición urgente' })
+            }
+          })
+        })
+
         stds.forEach(s => {
           if (s.estado === 'SIN STOCK') return
           const vence = s.fechaVencimiento?.toDate?.() || (s.fechaVencimiento ? new Date(s.fechaVencimiento) : null)
@@ -82,16 +121,24 @@ export default function Alertas() {
             const dias = s.proximaRevisionUSP
               ? Math.round((new Date(s.proximaRevisionUSP) - new Date()) / 86400000)
               : null
-            if (dias !== null && dias <= 60) {
+            if (dias !== null && dias <= 90) {
               all.push({ tipo:'Estándar', codigo:s.codigo, nombre:s.nombre,
                 cliente:s.cliente || '—', insumoId:s.id,
-                sem: { color: dias <= 30 ? 'danger' : 'warning', texto: `USP revisar en ${dias}d`, dias },
+                sem: { color: dias <= 45 ? 'danger' : 'warning', texto: `USP revisar en ${dias}d`, dias },
                 detalle:`Revisión USP requerida`, accion:'Verificar vigencia en catálogo USP' })
             }
             return
           }
-          const sem = calcularSemaforo(vence)
-          if (sem.color !== 'success') {
+          if (!vence) return
+          const diasVenc = Math.round((vence - new Date()) / 86400000)
+          if (diasVenc > 90) return  // solo alertar si quedan ≤90 días
+          const sem = {
+            color: diasVenc < 0 ? 'danger' : diasVenc <= 45 ? 'danger' : 'warning',
+            texto: diasVenc < 0 ? 'Vencido' : `${diasVenc} días`,
+            dias: diasVenc,
+            tipo: diasVenc <= 45 ? 'critica' : 'advertencia',
+          }
+          if (true) {
             all.push({ tipo:'Estándar', codigo:s.codigo, nombre:s.nombre,
               cliente:s.cliente || '—', insumoId:s.id, sem,
               detalle:`Stock: ${s.stockRestante ?? '—'} mg`,
@@ -104,19 +151,42 @@ export default function Alertas() {
 
         reacts.forEach(r => {
           const vence = r.fechaVencimiento?.toDate?.() || (r.fechaVencimiento ? new Date(r.fechaVencimiento) : null)
-          const sem = calcularSemaforo(vence)
-          if (sem.color !== 'success' || r.estado === 'STOCK BAJO') {
+          if (vence) {
+            const diasVenc = Math.round((vence - new Date()) / 86400000)
+            if (diasVenc <= 90) {
+              const sem = {
+                color: diasVenc < 0 ? 'danger' : diasVenc <= 45 ? 'danger' : 'warning',
+                texto: diasVenc < 0 ? 'Vencido' : `${diasVenc} días`,
+                dias: diasVenc,
+                tipo: diasVenc <= 45 ? 'critica' : 'advertencia',
+              }
+              all.push({ tipo:'Reactivo', codigo:r.codigo, nombre:r.nombre,
+                cliente:'—', insumoId:r.id, sem,
+                detalle:`Stock: ${r.stockRestante ?? '—'} ${r.unidad||''}`,
+                accion:'Reponer stock o verificar alternativo' })
+            }
+          }
+          if (r.estado === 'STOCK BAJO') {
             all.push({ tipo:'Reactivo', codigo:r.codigo, nombre:r.nombre,
-              cliente:'—', insumoId:r.id, sem,
+              cliente:'—', insumoId:r.id,
+              sem:{ color:'danger', texto:'Stock bajo', dias:0, tipo:'critica' },
               detalle:`Stock: ${r.stockRestante ?? '—'} ${r.unidad||''}`,
-              accion:'Reponer stock o verificar alternativo' })
+              accion:'Reponer stock urgente' })
           }
         })
 
         pls.forEach(p => {
           const vence = p.fechaVencimiento?.toDate?.() || (p.fechaVencimiento ? new Date(p.fechaVencimiento) : null)
-          const sem = calcularSemaforo(vence)
-          if (sem.color !== 'success') {
+          if (!vence) return
+          const diasVenc = Math.round((vence - new Date()) / 86400000)
+          if (diasVenc > 90) return  // solo alertar si quedan ≤90 días
+          const sem = {
+            color: diasVenc < 0 ? 'danger' : diasVenc <= 45 ? 'danger' : 'warning',
+            texto: diasVenc < 0 ? 'Vencido' : `${diasVenc} días`,
+            dias: diasVenc,
+            tipo: diasVenc <= 45 ? 'critica' : 'advertencia',
+          }
+          if (true) {
             all.push({ tipo:'Placebo', codigo:p.codigo, nombre:p.productoReferencia,
               cliente:p.cliente || '—', insumoId:p.id, sem,
               detalle:`Stock: ${p.stockUnidades ?? '—'} unidades`,
@@ -277,11 +347,13 @@ export default function Alertas() {
       <div className="kpi-grid" style={{gridTemplateColumns:'repeat(3,minmax(0,1fr))',marginBottom:16}}>
         <div className="kpi-card">
           <div className="kpi-label"><AlertTriangle size={12} style={{display:'inline',verticalAlign:'middle',marginRight:4}}/>Críticas</div>
-          <div className="kpi-value danger">{criticas}</div>
+          <div className="kpi-value danger">{alertas.filter(a=>a.sem.color==='danger').length}</div>
+          <div style={{fontSize:10,color:'var(--text-3)',marginTop:2}}>Vence ≤45d · Stock bajo</div>
         </div>
         <div className="kpi-card">
-          <div className="kpi-label"><Clock size={12} style={{display:'inline',verticalAlign:'middle',marginRight:4}}/>Advertencia</div>
-          <div className="kpi-value warn">{advertencia}</div>
+          <div className="kpi-label"><Clock size={12} style={{display:'inline',verticalAlign:'middle',marginRight:4}}/>Advertencias</div>
+          <div className="kpi-value warn">{alertas.filter(a=>a.sem.color==='warning').length}</div>
+          <div style={{fontSize:10,color:'var(--text-3)',marginTop:2}}>Vence entre 46 y 90d</div>
         </div>
         <div className="kpi-card">
           <div className="kpi-label">Total activas</div>

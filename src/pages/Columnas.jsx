@@ -80,6 +80,7 @@ const COLOR_VARIANTES = {
 }
 
 const AREAS = ['Fisicoquímico', 'Validaciones']
+const TIPOS_ANALISIS = ['Valoración','Identidad','Quiralidad','Sustancias relacionadas','Uniformidad','Disolución']
 
 function FaseBadge({ fase }) {
   const key = FASE_COLOR[fase] || 'gris'
@@ -203,6 +204,7 @@ export default function Columnas() {
         fechaRecepcion:    form.fechaRecepcion || '',
         fechaInicioUso:    form.fechaInicioUso || '',
         fechaRetiro:       '',                              // se completa al retirar
+        analisisAplicables: [],                             // tipos de análisis
         // — uso acumulado (reemplaza el sistema de inyecciones/límite) —
         inyeccionesAcumuladas: 0,
         estado:            'Nueva',
@@ -495,6 +497,30 @@ export default function Columnas() {
                 {AREAS.map(a=><option key={a}>{a}</option>)}
               </select>
             </div>
+            <div className="form-group" style={{gridColumn:'1 / -1'}}>
+              <label>Análisis aplicables (selecciona uno o más)</label>
+              <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:4}}>
+                {TIPOS_ANALISIS.map(tipo => {
+                  const sel = (form.analisisAplicables||[]).includes(tipo)
+                  return (
+                    <label key={tipo} style={{display:'flex',alignItems:'center',gap:4,cursor:'pointer',
+                      padding:'4px 10px',borderRadius:'var(--radius-sm)',fontSize:12,
+                      background: sel ? 'var(--accent-lt)' : 'var(--bg)',
+                      border: `1px solid ${sel ? 'var(--accent)' : 'var(--border-md)'}`,
+                      color: sel ? 'var(--accent)' : 'var(--text-2)'}}>
+                      <input type="checkbox" style={{display:'none'}} checked={sel}
+                        onChange={e => setForm(p => ({
+                          ...p,
+                          analisisAplicables: e.target.checked
+                            ? [...(p.analisisAplicables||[]), tipo]
+                            : (p.analisisAplicables||[]).filter(x=>x!==tipo)
+                        }))}/>
+                      {tipo}
+                    </label>
+                  )
+                })}
+              </div>
+            </div>
             <div className="form-group"><label>Largo (mm)</label>
               <input type="number" placeholder="ej: 150" onChange={f('largo')} />
             </div>
@@ -696,7 +722,16 @@ export default function Columnas() {
               const dadaBaja = c.estado === 'Dada de baja' || c.estado === 'DADA DE BAJA' || c.estado === 'RETIRADA'
               return (
                 <tr key={c.id} style={dadaBaja?{opacity:0.6}:{}}>
-                  <td className="mono" style={{fontWeight:600,whiteSpace:'nowrap',position:'sticky',left:0,background:'var(--surface)',zIndex:1}}>{c.codigo}</td>
+                  <td className="mono" style={{fontWeight:600,whiteSpace:'nowrap',position:'sticky',left:0,background:'var(--surface)',zIndex:1}}>
+                    {c.codigo}
+                    {c.analisisAplicables?.length > 0 && (
+                      <div style={{display:'flex',gap:2,flexWrap:'wrap',marginTop:2}}>
+                        {c.analisisAplicables.map(a=>(
+                          <span key={a} style={{fontSize:9,padding:'1px 4px',borderRadius:3,background:'var(--accent-lt)',color:'var(--accent)'}}>{a}</span>
+                        ))}
+                      </div>
+                    )}
+                  </td>
                   <td><FaseBadge fase={c.fase} /></td>
                   <td style={{color:'var(--text-2)',fontSize:12}}>{c.area || '—'}</td>
                   <td style={{color:'var(--text-2)',fontSize:11,textAlign:'center'}}>{c.largo || '—'}</td>
