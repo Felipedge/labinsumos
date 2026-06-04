@@ -970,13 +970,13 @@ export default function Estandares() {
                         {i.nombre}
                         {i.esUSP && <span className="badge badge-info" style={{marginLeft:4,fontSize:10}}>USP</span>}
                       </td>
+                      <td style={{fontSize:12,color:'var(--text-2)',maxWidth:120,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}} title={i.producto}>{i.producto||'—'}</td>
                       <td>
                         <span style={{width:24,height:24,borderRadius:'50%',background:i.estado==='En uso'?'var(--accent-lt)':'var(--bg)',border:'1px solid var(--border-md)',display:'inline-flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:600,color:i.estado==='En uso'?'var(--accent)':'var(--text-2)'}}>
                           {i.frasco||'—'}
                         </span>
                       </td>
                       <td style={{color:'var(--text-2)'}}>{i.cliente}</td>
-                      <td style={{fontSize:12,color:'var(--text-2)',maxWidth:120,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}} title={i.producto}>{i.producto||'—'}</td>
                       <td><BadgePotencia tipoPotencia={i.tipoPotencia} potencia={i.potencia}/></td>
                       <td>
                         {(i.karlFischer||i.secadoPrevio||i.secadoDesecador)
