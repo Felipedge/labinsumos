@@ -201,7 +201,8 @@ def importar_estandares():
             "nombre":             clean(ws.cell(r, 6).value),
             "lote":               clean(ws.cell(r, 7).value),
             "producto":           clean(ws.cell(r, 8).value),
-            "potencia":           ws.cell(r, 9).value or 0,
+            "potencia":           (lambda v: round(float(v)*100,4) if v else 0)(
+                                      next((x for x in [ws.cell(r,9).value] if isinstance(x,(int,float))), None)),
             "fechaVencimiento":   to_date(ws.cell(r, 10).value),
             "vigencia":           clean(ws.cell(r, 11).value),
             "vigenciaPrimario":   clean(ws.cell(r, 12).value),
@@ -211,7 +212,8 @@ def importar_estandares():
             "estado":             map_estado_estandar(ws.cell(r, 16).value),
             "observaciones":      clean(ws.cell(r, 17).value),
             "sector":             clean(ws.cell(r, 18).value),
-            "numeroVial":         clean(ws.cell(r, 19).value),
+            "frasco":             clean(ws.cell(r, 19).value),   # campo que usa la app
+            "numeroVial":         clean(ws.cell(r, 19).value),   # alias de compatibilidad
             "almacenamiento":     clean(ws.cell(r, 20).value),
             "coa":                bool_field(ws.cell(r, 21).value),
             "fichaSeguridad":     bool_field(ws.cell(r, 22).value),

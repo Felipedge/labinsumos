@@ -73,12 +73,21 @@ function diasHastaRevision(fechaRevision) {
   return Math.round((rev - hoy) / 86400000)
 }
  
+function normPotencia(v) {
+  // El Excel guarda fracciones (0.946); la app usa porcentajes (94.6).
+  // Si el valor es < 2 asumimos que es fracción y multiplicamos por 100.
+  const n = parseFloat(v)
+  if (isNaN(n)) return null
+  return n > 0 && n < 2 ? parseFloat((n * 100).toFixed(4)) : n
+}
+
 function BadgePotencia({ tipoPotencia, potencia }) {
+  const p = normPotencia(potencia)
   if (tipoPotencia === 'cualitativo')  return <span className="badge badge-purple">Cualitativo</span>
   if (tipoPotencia === 'sin_potencia') return <span className="badge badge-gray">Sin potencia</span>
-  if (tipoPotencia === 'base_seca')    return <span className="badge badge-info">{potencia}% Base seca</span>
-  if (tipoPotencia === 'tal_cual')     return <span className="badge badge-ok">{potencia}% Tal cual</span>
-  return potencia ? <span className="badge badge-gray">{potencia}%</span> : <span style={{color:'var(--text-3)'}}>—</span>
+  if (tipoPotencia === 'base_seca')    return <span className="badge badge-info">{p}% Base seca</span>
+  if (tipoPotencia === 'tal_cual')     return <span className="badge badge-ok">{p}% Tal cual</span>
+  return p ? <span className="badge badge-gray">{p}%</span> : <span style={{color:'var(--text-3)'}}>—</span>
 }
  
 function BadgesCondiciones({ karlFischer, secadoPrevio, tempSecado, tiempoSecado, secadoDesecador, tipoInsumo }) {
@@ -453,6 +462,11 @@ export default function Estandares() {
  
   const activos  = items.filter(i => i.estado !== 'Dado de baja')
   const papelera = items.filter(i => i.estado === 'Dado de baja')
+
+  // Clientes presentes en los datos reales (no solo los de la colección clientes)
+  const clientesDisponibles = [...new Set(
+    [...listaClientes, ...items.map(i => i.cliente)].filter(Boolean)
+  )].sort()
  
   const filtrados = (verPapelera ? papelera : activos)
     .filter(i => {
@@ -809,7 +823,9 @@ export default function Estandares() {
                 {needsPotencia && (
                   <div className="form-group" style={{maxWidth:200}}>
                     <label>Valor de potencia (%) *</label>
-                    <input type="number" step="0.001" min="0" max="100" value={fPotencia} onChange={e=>setFPotencia(e.target.value)} placeholder="ej: 99.5"/>
+                    <input inputMode="decimal" value={fPotencia}
+                      onChange={e=>setFPotencia(e.target.value.replace(',','.'))}
+                      placeholder="ej: 99.5"/>
                   </div>
                 )}
               </div>
@@ -927,7 +943,7 @@ export default function Estandares() {
               )}
               <select value={filtroCliente} onChange={e=>setFiltroCliente(e.target.value)}>
                 <option value="">Todos los clientes</option>
-                {listaClientes.map(c=><option key={c}>{c}</option>)}
+                {clientesDisponibles.map(c=><option key={c}>{c}</option>)}
               </select>
             </div>
             <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
@@ -973,7 +989,7 @@ export default function Estandares() {
                       <td style={{fontSize:12,color:'var(--text-2)',maxWidth:120,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}} title={i.producto}>{i.producto||'—'}</td>
                       <td>
                         <span style={{width:24,height:24,borderRadius:'50%',background:i.estado==='En uso'?'var(--accent-lt)':'var(--bg)',border:'1px solid var(--border-md)',display:'inline-flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:600,color:i.estado==='En uso'?'var(--accent)':'var(--text-2)'}}>
-                          {i.frasco||'—'}
+                          {i.frasco||i.numeroVial||'—'}
                         </span>
                       </td>
                       <td style={{color:'var(--text-2)'}}>{i.cliente}</td>
