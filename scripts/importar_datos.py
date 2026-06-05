@@ -105,6 +105,11 @@ def fdate(v):
         return {"timestampValue": v.strftime("%Y-%m-%dT%H:%M:%SZ")}
     return {"nullValue": None}
 
+NOW_TS = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+
+def fnow():
+    return {"timestampValue": NOW_TS}
+
 def fval(v):
     """Serializa cualquier valor Python al tipo Firestore correcto."""
     if v is None:
@@ -215,6 +220,7 @@ def importar_estandares():
             "esUSP":              fabricante.upper() == "USP",
             "cantidadRecibidaMg": ws.cell(r, 25).value or 0,
             "cantPorAnalisisMg":  ws.cell(r, 26).value or 0,
+            "creadoEn":           to_date(ws.cell(r, 3).value) or datetime.datetime.utcnow(),
             "importado":          True,
         }
         try:
@@ -270,6 +276,7 @@ def importar_reactivos():
             "adquiridoPara":       clean(ws.cell(r, 25).value),
             "recepcionadoPor":     clean(ws.cell(r, 26).value),
             "fechaIngreso":        to_date(ws.cell(r, 2).value),
+            "creadoEn":            to_date(ws.cell(r, 2).value) or datetime.datetime.utcnow(),
             "importado":           True,
         }
         try:
@@ -318,6 +325,7 @@ def importar_placebos():
             "observaciones":       clean(ws.cell(r, 13).value),
             "estado":              map_estado_placebo(ws.cell(r, 9).value, vigencia,
                                                       ws.cell(r, 13).value, ws.cell(r, 17).value),
+            "creadoEn":            to_date(ws.cell(r, 2).value) or datetime.datetime.utcnow(),
             "importado":           True,
         }
         try:
