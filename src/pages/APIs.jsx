@@ -7,7 +7,7 @@ import { calcularSemaforo, registrarPesadaAPI, ponerEnUsoInsumo, retirarInsumo }
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useRole } from '../hooks/useRole.jsx'
 import { puedoHacer } from '../lib/roles'
-import { Plus, Search, FileText, Package, History, PlayCircle, PackageX } from 'lucide-react'
+import { Plus, Search, FileText, Package, History, PlayCircle, PackageX, FlaskConical } from 'lucide-react'
 import DocumentosPanel from '../components/shared/DocumentosPanel.jsx'
 import { useClientes } from '../hooks/useClientes.jsx'
  
@@ -664,14 +664,16 @@ export default function APIs() {
                       <td>{vence ? <span className={`badge ${badgeCls}`}>{vence.toLocaleDateString('es-CL')}</span> : <span style={{color:'var(--text-3)'}}>—</span>}</td>
                       <td style={{fontSize:11,color:'var(--text-2)',maxWidth:130,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}} title={i.observacion}>{i.observacion||'—'}</td>
                       <td><span className={`badge ${estCls}`}>{estEfectivo}</span></td>
-                      <td style={{display:'flex',gap:4}}>
+                      <td style={{display:'flex',gap:4,flexWrap:'nowrap',whiteSpace:'nowrap'}}>
                         {puedePonerEnUso && estEfectivo==='Cerrado' && (
                           <button className="btn btn-sm" title="Poner en uso" onClick={()=>handlePonerEnUso(i)}>
-                            <PlayCircle size={13}/> En uso
+                            <PlayCircle size={13}/>
                           </button>
                         )}
                         {puedeOperar && estEfectivo==='En uso' && (
-                          <button className="btn btn-sm" onClick={()=>{setPesadaId(i.id);setShowForm(false);setForm({})}}>Pesada</button>
+                          <button className="btn btn-sm" title="Registrar pesada" onClick={()=>{setPesadaId(i.id);setShowForm(false);setForm({})}}>
+                            <FlaskConical size={13}/>
+                          </button>
                         )}
                         <button className="btn btn-sm" onClick={()=>setDocInsumo(i)} title="Ver documentos">
                           <FileText size={13}/>
@@ -696,7 +698,7 @@ export default function APIs() {
                             onClick={()=>darDeBaja(i.id, i.codigo)} title="Dar de baja">🗑</button>
                         )}
                         {puedeBaja && verPapelera && (
-                          <button className="btn btn-sm" onClick={()=>restaurar(i.id)}>Restaurar</button>
+                          <button className="btn btn-sm" title="Restaurar" onClick={()=>restaurar(i.id)}>↩</button>
                         )}
                       </td>
                     </tr>

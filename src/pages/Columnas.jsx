@@ -761,15 +761,15 @@ export default function Columnas() {
                       <div style={{fontSize:10,color:'var(--text-3)',marginTop:2}}>{c.motivoBaja}</div>
                     )}
                   </td>
-                  <td style={{display:'flex',gap:4}}>
+                  <td style={{display:'flex',gap:4,flexWrap:'nowrap',whiteSpace:'nowrap'}}>
                     {puedePonerEnUso && esNueva && (
                       <button className="btn btn-sm" title="Poner en uso" onClick={() => ponerEnUso(c)}>
-                        <PlayCircle size={13}/> En uso
+                        <PlayCircle size={13}/>
                       </button>
                     )}
                     {puedeRegistrarUso && enUso && (
-                      <button className="btn btn-sm" onClick={() => abrirUso(c)}>
-                        Registrar uso
+                      <button className="btn btn-sm" title="Registrar uso" onClick={() => abrirUso(c)}>
+                        <History size={13}/>
                       </button>
                     )}
                     {puedeDarBaja && !dadaBaja && (

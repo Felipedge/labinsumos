@@ -271,6 +271,7 @@ th {
   white-space: nowrap;
 }
 td { padding: 9px 12px; border-bottom: 1px solid var(--border); color: var(--text-1); vertical-align: middle }
+td:last-child { white-space: nowrap; width: 1% }
 tr:last-child td { border-bottom: none }
 tbody tr:hover { background: var(--azul-1) }
 .mono { font-family: var(--font-mono); font-size: 11px }

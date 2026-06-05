@@ -1008,23 +1008,25 @@ export default function Estandares() {
                       </td>
                       <td style={{fontSize:11,color:'var(--text-2)',maxWidth:130,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}} title={i.observacion}>{i.observacion||'—'}</td>
                       <td><span className={`badge ${estCls}`}>{i.estado}</span></td>
-                      <td style={{display:'flex',gap:4,flexWrap:'wrap'}}>
+                      <td style={{display:'flex',gap:4,flexWrap:'nowrap',whiteSpace:'nowrap'}}>
                         {puedePonerEnUso && i.estado==='Cerrado' && (
                           <button className="btn btn-sm" title="Poner en uso" onClick={()=>handlePonerEnUso(i)}>
-                            <PlayCircle size={13}/> En uso
+                            <PlayCircle size={13}/>
                           </button>
                         )}
                         {puedePesada && i.estado==='En uso' && (
-                          <button className="btn btn-sm" onClick={()=>{setPesadaId(i.id);setShowForm(false)}}>Pesada</button>
+                          <button className="btn btn-sm" title="Registrar pesada" onClick={()=>{setPesadaId(i.id);setShowForm(false)}}>
+                            <FlaskConical size={13}/>
+                          </button>
                         )}
                         <button className="btn btn-sm" onClick={()=>setDocInsumo(i)} title="Ver documentos">
                           <FileText size={13}/>
                         </button>
                         {i.esUSP && (i.estado==='En uso'||i.estado==='Cerrado') && puedePesada && (
-                          <button className="btn btn-sm"
+                          <button className="btn btn-sm" title="Verificar USP"
                             style={uspAlerta?{background:'var(--accent-lt)',color:'var(--accent)',borderColor:'var(--accent)'}:{}}
                             onClick={()=>abrirVerificacionUSP(i)}>
-                            🔵 Verificar
+                            🔵
                           </button>
                         )}
                         {puedeAgregar && !verPapelera && (
@@ -1047,7 +1049,7 @@ export default function Estandares() {
                           <button className="btn btn-sm" style={{color:'var(--danger)',borderColor:'var(--danger)'}} onClick={()=>darDeBaja(i.id,i.codigo)} title="Dar de baja">🗑</button>
                         )}
                         {puedeBaja && verPapelera && (
-                          <button className="btn btn-sm" onClick={()=>restaurar(i.id)}>Restaurar</button>
+                          <button className="btn btn-sm" title="Restaurar" onClick={()=>restaurar(i.id)}>↩</button>
                         )}
                       </td>
                     </tr>

@@ -4,7 +4,7 @@ import { getReactivos, crearReactivo, registrarRetiroReactivo, calcularSemaforo 
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useRole } from '../hooks/useRole.jsx'
 import { puedoHacer } from '../lib/roles'
-import { Plus, FileText, Search } from 'lucide-react'
+import { Plus, FileText, Search, PackageX } from 'lucide-react'
 import DocumentosPanel from '../components/shared/DocumentosPanel.jsx'
 
 const CATEGORIAS = ['HPLC','Solventes','Sales / buffer','Ácidos','Bases','Indicadores','Otro']
@@ -216,9 +216,11 @@ export default function Reactivos() {
                   <td><strong>{r.stockRestante ?? '—'}</strong> <span style={{ color:'var(--text-3)' }}>{r.unidad}</span></td>
                   <td>{vence ? <span className={`badge ${badgeCls}`}>{sem.texto}</span> : <span style={{color:'var(--text-3)'}}>—</span>}</td>
                   <td><span className={`badge ${estCls}`}>{r.estado}</span></td>
-                  <td style={{display:'flex',gap:4}}>
+                  <td style={{display:'flex',gap:4,flexWrap:'nowrap',whiteSpace:'nowrap'}}>
                     {puedeOperar && !esPendiente && (
-                      <button className="btn btn-sm" onClick={() => { setRetiroId(r.id); setShowForm(false); setForm({}) }}>Retirar</button>
+                      <button className="btn btn-sm" title="Retirar" onClick={() => { setRetiroId(r.id); setShowForm(false); setForm({}) }}>
+                        <PackageX size={13}/>
+                      </button>
                     )}
                     <button className="btn btn-sm" onClick={()=>setDocInsumo(r)} title="Ver documentos">
                       <FileText size={13}/>

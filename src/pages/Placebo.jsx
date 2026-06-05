@@ -535,14 +535,16 @@ export default function Placebo() {
                       <td>
                         <span className={({'En uso':'badge badge-ok','Cerrado':'badge badge-info','Sin stock':'badge badge-warn','Retirado por cliente':'badge badge-purple','Dado de baja':'badge badge-gray','Dada de baja':'badge badge-gray'}[p.estado])||'badge badge-gray'}>{p.estado}</span>
                       </td>
-                      <td style={{display:'flex',gap:4}}>
+                      <td style={{display:'flex',gap:4,flexWrap:'nowrap',whiteSpace:'nowrap'}}>
                         {puedePonerEnUso && p.estado==='Cerrado' && (
                           <button className="btn btn-sm" title="Poner en uso" onClick={()=>handlePonerEnUso(p)}>
-                            <PlayCircle size={13}/> En uso
+                            <PlayCircle size={13}/>
                           </button>
                         )}
                         {puedeOperar && p.estado==='En uso' && (
-                          <button className="btn btn-sm" onClick={() => { setUsoId(p.id); setShowForm(false); setForm({}) }}>Registrar uso</button>
+                          <button className="btn btn-sm" title="Registrar uso" onClick={() => { setUsoId(p.id); setShowForm(false); setForm({}) }}>
+                            <Package size={13}/>
+                          </button>
                         )}
                         {puedeAgregar && (
                           <button className="btn btn-sm" title="Reposición de stock" onClick={()=>{
