@@ -154,7 +154,7 @@ export default function Estandares() {
   const [fProducto, setFProducto]         = useState('')
   const [fFabricante, setFabricante]      = useState('')
   const [fObservacion, setFObservacion]   = useState('')
-  const [fSector, setFSector]             = useState('Fq')
+  const [fSector, setFSector]             = useState([])
   const [fAlmacen, setFAlmacen]           = useState('Desecador')
   const [fMes, setFMes]                   = useState('')
   const [fAnio, setFAnio]                 = useState('')
@@ -230,7 +230,7 @@ export default function Estandares() {
       setFrascos([{ letra: 'A', stock: '' }])
       setFNombre(''); setFCliente(''); setFLote(''); setFCas('')
       setFProducto(''); setFabricante(''); setFObservacion('')
-      setFSector('Fq'); setFAlmacen('Desecador'); setFVencimiento('')
+      setFSector([]); setFAlmacen('Desecador'); setFVencimiento('')
       setFXAnalisis('200'); setFTipoPotencia('tal_cual'); setFPotencia('')
       setFTipoInsumo('polvo')
       setFKarlFischer(false); setFSecadoPrevio(false)
@@ -358,7 +358,7 @@ export default function Estandares() {
   }
  
   const guardarSector = async (id) => {
-    if (!editSectorVal) return
+    if (!editSectorVal.length) return
     try {
       await updateDoc(doc(db, 'estandares', id), { sector: editSectorVal, actualizadoEn: serverTimestamp() })
       setEditSectorId(null)
@@ -718,7 +718,15 @@ export default function Estandares() {
                 </div>
                 <div className="form-group"><label>Producto</label><input value={fProducto} onChange={onChangeCapitalizar(setFProducto)} placeholder="ej: Cilosvitae 100"/></div>
                 <div className="form-group"><label>Sector</label>
-                  <select value={fSector} onChange={e=>setFSector(e.target.value)}>{SECTORES.map(s=><option key={s}>{s}</option>)}</select>
+                  <div style={{display:'flex',gap:8}}>
+                    {SECTORES.map(s=>(
+                      <label key={s} style={{display:'flex',alignItems:'center',gap:6,cursor:'pointer',fontSize:13,padding:'5px 11px',borderRadius:'var(--radius-sm)',border:`1px solid ${fSector.includes(s)?'var(--accent)':'var(--border-md)'}`,background:fSector.includes(s)?'var(--accent-lt)':'var(--surface)',color:fSector.includes(s)?'var(--accent)':'var(--text-1)'}}>
+                        <input type="checkbox" style={{display:'none'}} checked={fSector.includes(s)}
+                          onChange={()=>setFSector(p=>p.includes(s)?p.filter(x=>x!==s):[...p,s])}/>
+                        {s}
+                      </label>
+                    ))}
+                  </div>
                 </div>
                 <div className="form-group"><label>Almacenamiento</label>
                   <select value={fAlmacen} onChange={e=>setFAlmacen(e.target.value)}>{ALMACENES.map(a=><option key={a}>{a}</option>)}</select>
@@ -954,18 +962,21 @@ export default function Estandares() {
                       <td style={{color:'var(--text-2)'}}>{i.cliente}</td>
                       <td>
                         {editSectorId === i.id ? (
-                          <div style={{display:'flex',gap:4,alignItems:'center'}}>
-                            <select value={editSectorVal} onChange={e=>setEditSectorVal(e.target.value)}
-                              style={{fontSize:11,padding:'2px 4px'}}>
-                              {SECTORES.map(s=><option key={s}>{s}</option>)}
-                            </select>
+                          <div style={{display:'flex',gap:4,alignItems:'center',flexWrap:'wrap'}}>
+                            {SECTORES.map(s=>(
+                              <label key={s} style={{display:'flex',alignItems:'center',gap:4,cursor:'pointer',fontSize:11,padding:'2px 8px',borderRadius:'var(--radius-sm)',border:`1px solid ${editSectorVal.includes(s)?'var(--accent)':'var(--border-md)'}`,background:editSectorVal.includes(s)?'var(--accent-lt)':'var(--surface)'}}>
+                                <input type="checkbox" style={{display:'none'}} checked={editSectorVal.includes(s)}
+                                  onChange={()=>setEditSectorVal(p=>p.includes(s)?p.filter(x=>x!==s):[...p,s])}/>
+                                {s}
+                              </label>
+                            ))}
                             <button className="btn btn-sm" style={{padding:'2px 5px',color:'var(--ok)'}} onClick={()=>guardarSector(i.id)}>✓</button>
                             <button className="btn btn-sm" style={{padding:'2px 5px'}} onClick={()=>setEditSectorId(null)}>✕</button>
                           </div>
                         ) : (
                           <span style={{cursor:'pointer',fontSize:11,color:'var(--text-2)',borderBottom:'1px dashed var(--border-md)'}}
-                            onClick={()=>{setEditSectorId(i.id);setEditSectorVal(i.sector||SECTORES[0])}}>
-                            {i.sector || '—'}
+                            onClick={()=>{setEditSectorId(i.id);setEditSectorVal(Array.isArray(i.sector)?i.sector:(i.sector?[i.sector]:[]))}}>
+                            {Array.isArray(i.sector) ? i.sector.join(' / ') : (i.sector || '—')}
                           </span>
                         )}
                       </td>
