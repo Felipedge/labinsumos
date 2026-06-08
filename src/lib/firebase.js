@@ -10,19 +10,18 @@
 //      firestore.rules que se incluye en este proyecto
 // ─────────────────────────────────────────────────────────────
 
-// src/lib/firebase.js
 import { initializeApp } from 'firebase/app'
 import { getAuth, GoogleAuthProvider } from 'firebase/auth'
 import { getFirestore } from 'firebase/firestore'
 import { getStorage } from 'firebase/storage'
 
 const firebaseConfig = {
-  apiKey:            "AIzaSyA9Ko7joxu0jQjr1v388-GZmrs5YnEK_pQ",
-  authDomain:        "labinsumos-fqval.firebaseapp.com",
-  projectId:         "labinsumos-fqval",
-  storageBucket:     "labinsumos-fqval.firebasestorage.app",
-  messagingSenderId: "549494651580",
-  appId:             "1:549494651580:web:4b5e982a0f1a3138786eb9",
+  apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain:        import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId:         import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket:     import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId:             import.meta.env.VITE_FIREBASE_APP_ID,
 }
 
 const app      = initializeApp(firebaseConfig)
@@ -30,6 +29,3 @@ export const auth     = getAuth(app)
 export const db       = getFirestore(app)
 export const storage  = getStorage(app)
 export const provider = new GoogleAuthProvider()
-
-// Forzar selección de cuenta institucional en cada login
-//provider.setCustomParameters({ hd: 'tudominio.cl' }) // ← cambiar al dominio del lab
