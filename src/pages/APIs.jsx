@@ -12,6 +12,18 @@ import DocumentosPanel from '../components/shared/DocumentosPanel.jsx'
 import { useClientes } from '../hooks/useClientes.jsx'
  
 const UBICACIONES = ['Desecador', 'Refrigerador', 'Freezer', 'Refrigerador controlado', 'Desecador Validaciones', 'Otro']
+
+async function getSiguienteNumeroAPI(db) {
+  try {
+    const snap = await getDocs(query(collection(db, 'apis'), orderBy('creadoEn', 'desc'), limit(200)))
+    let max = 0
+    snap.docs.forEach(d => {
+      const m = (d.data().codigo || '').match(/^API-(\d+)/i)
+      if (m) { const n = parseInt(m[1]); if (n > max) max = n }
+    })
+    return max + 1
+  } catch { return 1 }
+}
  
 function capitalizar(str) {
   if (!str) return ''
@@ -54,6 +66,7 @@ export default function APIs() {
   const [rForm, setRForm]                   = useState({})
   const [rMsg, setRMsg]                     = useState('')
   const [guardandoR, setGuardandoR]         = useState(false)
+  const [codigoGeneradoAPI, setCodigoGeneradoAPI] = useState('')
 
   // Historial
   const [pesadas, setPesadas]         = useState([])
@@ -82,8 +95,22 @@ export default function APIs() {
  
   useEffect(() => { load() }, [])
   useEffect(() => { if (tab === 'historial' && pesadas.length === 0) loadHistorial() }, [tab])
- 
+
   const f = k => e => setForm(p => ({ ...p, [k]: e.target.value }))
+
+  const abrirFormulario = async () => {
+    if (!showForm) {
+      const n = await getSiguienteNumeroAPI(db)
+      const cod = `API-${String(n).padStart(3, '0')}`
+      setCodigoGeneradoAPI(cod)
+      setForm({ codigo: cod })
+    } else {
+      setForm({})
+      setCodigoGeneradoAPI('')
+    }
+    setShowForm(p => !p)
+    setPesadaId(null)
+  }
  
   const guardar = async () => {
     if (!form.codigo || !form.nombre || !form.laboratorio) {
@@ -310,7 +337,7 @@ export default function APIs() {
                 </button>
               )}
               {puedeAgregar && !verPapelera && (
-                <button className="btn btn-primary btn-sm" onClick={()=>setShowForm(!showForm)}>
+                <button className="btn btn-primary btn-sm" onClick={abrirFormulario}>
                   <Plus size={14}/> Nuevo API
                 </button>
               )}
@@ -347,7 +374,16 @@ export default function APIs() {
               {msg && <div className="alert-item danger" style={{marginBottom:10}}>{msg}</div>}
               <div className="form-grid">
                 <div className="form-group"><label>Código *</label>
-                  <input placeholder="ej: API-034" onChange={f('codigo')} style={{textTransform:'uppercase'}}/>
+                  <div style={{display:'flex',alignItems:'center',gap:6}}>
+                    <input value={form.codigo||''} onChange={f('codigo')} style={{flex:1,textTransform:'uppercase',fontFamily:'var(--font-mono)',fontWeight:600}}/>
+                    {codigoGeneradoAPI && form.codigo?.toUpperCase() !== codigoGeneradoAPI && (
+                      <button type="button" title="Restaurar código sugerido" onClick={()=>setForm(p=>({...p,codigo:codigoGeneradoAPI}))}
+                        style={{padding:'3px 7px',fontSize:13,border:'1px solid var(--border-md)',borderRadius:'var(--radius-sm)',background:'var(--bg)',cursor:'pointer',flexShrink:0}}>↺</button>
+                    )}
+                    {codigoGeneradoAPI && form.codigo?.toUpperCase() === codigoGeneradoAPI && (
+                      <span style={{fontSize:11,color:'var(--ok)',whiteSpace:'nowrap'}}>✓ Auto</span>
+                    )}
+                  </div>
                 </div>
                 <div className="form-group"><label>Nombre *</label>
                   <input placeholder="ej: Metilfenidato HCl" onChange={e=>setForm(p=>({...p,nombre:capitalizar(e.target.value)}))}/>
@@ -381,7 +417,7 @@ export default function APIs() {
               </div>
               <div style={{display:'flex',gap:8}}>
                 <button className="btn btn-primary btn-sm" onClick={guardar}>Guardar API</button>
-                <button className="btn btn-sm" onClick={()=>{setShowForm(false);setForm({});setMsg('')}}>Cancelar</button>
+                <button className="btn btn-sm" onClick={()=>{setShowForm(false);setForm({});setMsg('');setCodigoGeneradoAPI('')}}>Cancelar</button>
               </div>
             </div>
           )}

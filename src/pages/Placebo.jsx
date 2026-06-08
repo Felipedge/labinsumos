@@ -11,6 +11,18 @@ import DocumentosPanel from '../components/shared/DocumentosPanel.jsx'
 import { useClientes } from '../hooks/useClientes.jsx'
  
 const FORMAS = ['Comprimido','Cápsula','Inyectable','Solución oral','Crema / ungüento','Otro']
+
+async function getSiguienteNumeroPlacebo(db) {
+  try {
+    const snap = await getDocs(query(collection(db, 'placebo'), orderBy('creadoEn', 'desc'), limit(200)))
+    let max = 0
+    snap.docs.forEach(d => {
+      const m = (d.data().codigo || '').match(/^SI-(\d+)/i)
+      if (m) { const n = parseInt(m[1]); if (n > max) max = n }
+    })
+    return max + 1
+  } catch { return 1 }
+}
  
 function formatFecha(ts) {
   if (!ts) return '—'
@@ -42,6 +54,7 @@ export default function Placebo() {
   const [rForm, setRForm]                   = useState({})
   const [rMsg, setRMsg]                     = useState('')
   const [guardandoR, setGuardandoR]         = useState(false)
+  const [codigoGeneradoPl, setCodigoGeneradoPl] = useState('')
   const [filtroCliente, setFiltroCliente] = useState('')
   const [search, setSearch]       = useState('')
   const [ordenCampo, setOrdenCampo] = useState('productoReferencia')
@@ -72,8 +85,22 @@ export default function Placebo() {
  
   useEffect(() => { load() }, [])
   useEffect(() => { if (tab === 'historial' && usos.length === 0) loadHistorial() }, [tab])
- 
+
   const f = k => e => setForm(p => ({ ...p, [k]: e.target.value }))
+
+  const abrirFormulario = async (currentlyOpen) => {
+    if (!currentlyOpen) {
+      const n = await getSiguienteNumeroPlacebo(db)
+      const cod = `SI-${String(n).padStart(4, '0')}`
+      setCodigoGeneradoPl(cod)
+      setForm({ codigo: cod })
+    } else {
+      setForm({})
+      setCodigoGeneradoPl('')
+    }
+    setShowForm(p => !p)
+    setUsoId(null)
+  }
  
   const guardar = async () => {
     if (!form.codigo || !form.productoReferencia || !form.cliente) { setMsg('Código, producto y cliente son obligatorios'); return }
@@ -240,7 +267,7 @@ export default function Placebo() {
         <div style={{display:'flex',gap:8}}>
           {tab==='historial' && <button className="btn btn-sm" onClick={loadHistorial}>↻ Actualizar</button>}
           {tab==='inventario' && puedeAgregar && (
-            <button className="btn btn-primary btn-sm" onClick={() => { setShowForm(!showForm); setUsoId(null); setForm({}) }}>
+            <button className="btn btn-primary btn-sm" onClick={() => abrirFormulario(showForm)}>
               <Plus size={14} /> Nuevo lote
             </button>
           )}
@@ -274,7 +301,18 @@ export default function Placebo() {
               <div className="card-title">Registrar lote de placebo</div>
               {msg && <div className="alert-item danger" style={{marginBottom:10}}>{msg}</div>}
               <div className="form-grid">
-                <div className="form-group"><label>Código interno *</label><input placeholder="ej: PL-038" onChange={f('codigo')} /></div>
+                <div className="form-group"><label>Código interno *</label>
+                  <div style={{display:'flex',alignItems:'center',gap:6}}>
+                    <input value={form.codigo||''} onChange={f('codigo')} style={{flex:1,textTransform:'uppercase',fontFamily:'var(--font-mono)',fontWeight:600}}/>
+                    {codigoGeneradoPl && form.codigo?.toUpperCase() !== codigoGeneradoPl && (
+                      <button type="button" title="Restaurar código sugerido" onClick={()=>setForm(p=>({...p,codigo:codigoGeneradoPl}))}
+                        style={{padding:'3px 7px',fontSize:13,border:'1px solid var(--border-md)',borderRadius:'var(--radius-sm)',background:'var(--bg)',cursor:'pointer',flexShrink:0}}>↺</button>
+                    )}
+                    {codigoGeneradoPl && form.codigo?.toUpperCase() === codigoGeneradoPl && (
+                      <span style={{fontSize:11,color:'var(--ok)',whiteSpace:'nowrap'}}>✓ Auto</span>
+                    )}
+                  </div>
+                </div>
                 <div className="form-group"><label>Producto de referencia *</label><input placeholder="ej: Cilosvitae 100 mg" onChange={f('productoReferencia')} /></div>
                 <div className="form-group"><label>Cliente *</label>
                   <select onChange={f('cliente')}><option value="">Seleccionar...</option>{listaClientes.map(c=><option key={c}>{c}</option>)}</select>
@@ -290,7 +328,7 @@ export default function Placebo() {
               </div>
               <div style={{ display:'flex', gap:8 }}>
                 <button className="btn btn-primary btn-sm" onClick={guardar}>Guardar lote</button>
-                <button className="btn btn-sm" onClick={() => { setShowForm(false); setForm({}); setMsg('') }}>Cancelar</button>
+                <button className="btn btn-sm" onClick={() => { setShowForm(false); setForm({}); setMsg(''); setCodigoGeneradoPl('') }}>Cancelar</button>
               </div>
             </div>
           )}

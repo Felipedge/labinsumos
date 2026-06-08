@@ -262,7 +262,8 @@ export default function Estandares() {
       const numero = sigNum || await getSiguienteNumero(db)
       for (let i = 0; i < frascos.length; i++) {
         const frasco = frascos[i]
-        const codigo = generarCodigo(numero, fMes || mesAct, fAnio || anioAct, fLote, frasco.letra)
+        const sugerido = generarCodigo(numero, fMes || mesAct, fAnio || anioAct, fLote, frasco.letra)
+        const codigo = frasco.codigoCustom?.trim() || sugerido
         await addDoc(collection(db, 'estandares'), {
           codigo, numeroStd: numero, frasco: frasco.letra,
           nombre: capitalizar(fNombre), cas: fCas.toUpperCase(), lote: fLote.toUpperCase(),
@@ -838,26 +839,38 @@ export default function Estandares() {
                   <label style={{fontSize:11,fontWeight:600,color:'var(--text-2)'}}>FRASCOS DEL ENVÍO</label>
                   <button className="btn btn-sm" onClick={agregarFrasco}><Plus size={12}/> Agregar frasco</button>
                 </div>
-                {frascos.map((fr,i) => (
-                  <div key={fr.letra} style={{display:'flex',alignItems:'center',gap:10,background:'var(--bg)',padding:'8px 12px',borderRadius:'var(--radius-sm)',border:'1px solid var(--border)',marginBottom:6}}>
-                    <div style={{width:28,height:28,borderRadius:'50%',background:i===0?'var(--accent-lt)':'var(--bg)',border:'1px solid var(--border-md)',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:600,fontSize:12,color:i===0?'var(--accent)':'var(--text-2)',flexShrink:0}}>{fr.letra}</div>
-                    <div style={{fontSize:11,color:'var(--text-2)',minWidth:80}}>{i===0?<span style={{color:'var(--ok)',fontWeight:500}}>En uso</span>:<span>Cerrado</span>}</div>
-                    <div className="form-group" style={{flex:1,margin:0}}>
-                      <input type="number" step="0.01" placeholder="Stock inicial (mg)" value={fr.stock} onChange={e=>updateFrasco(i,e.target.value)}/>
-                    </div>
-                    {frascos.length>1 && <button className="btn btn-sm" onClick={()=>quitarFrasco(i)} style={{padding:'4px 8px',color:'var(--danger)'}}>✕</button>}
-                  </div>
-                ))}
-                {sigNum && fLote && (
-                  <div style={{marginTop:8,padding:'8px 12px',background:'var(--accent-lt)',borderRadius:'var(--radius-sm)',fontSize:11,color:'var(--accent)'}}>
-                    <strong>Códigos que se generarán:</strong><br/>
-                    {frascos.map(fr=>(
-                      <div key={fr.letra} style={{fontFamily:'var(--font-mono)'}}>
-                        {generarCodigo(sigNum, fMes||mesAct, fAnio||anioAct, fLote, fr.letra)}
+                {frascos.map((fr,i) => {
+                  const sugerido = sigNum && fLote ? generarCodigo(sigNum, fMes||mesAct, fAnio||anioAct, fLote, fr.letra) : ''
+                  return (
+                    <div key={fr.letra} style={{background:'var(--bg)',padding:'8px 12px',borderRadius:'var(--radius-sm)',border:'1px solid var(--border)',marginBottom:6}}>
+                      <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:sugerido?6:0}}>
+                        <div style={{width:28,height:28,borderRadius:'50%',background:i===0?'var(--accent-lt)':'var(--bg)',border:'1px solid var(--border-md)',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:600,fontSize:12,color:i===0?'var(--accent)':'var(--text-2)',flexShrink:0}}>{fr.letra}</div>
+                        <div style={{fontSize:11,color:'var(--text-2)',minWidth:80}}>{i===0?<span style={{color:'var(--ok)',fontWeight:500}}>En uso</span>:<span>Cerrado</span>}</div>
+                        <div className="form-group" style={{flex:1,margin:0}}>
+                          <input type="number" step="0.01" placeholder="Stock inicial (mg)" value={fr.stock} onChange={e=>updateFrasco(i,e.target.value)}/>
+                        </div>
+                        {frascos.length>1 && <button className="btn btn-sm" onClick={()=>quitarFrasco(i)} style={{padding:'4px 8px',color:'var(--danger)'}}>✕</button>}
                       </div>
-                    ))}
-                  </div>
-                )}
+                      {sugerido && (
+                        <div style={{display:'flex',alignItems:'center',gap:6}}>
+                          <input
+                            value={fr.codigoCustom ?? sugerido}
+                            onChange={e=>setFrascos(p=>p.map((f,j)=>j===i?{...f,codigoCustom:e.target.value}:f))}
+                            style={{flex:1,fontFamily:'var(--font-mono)',fontSize:11,fontWeight:600,padding:'3px 7px',border:'1px solid var(--border)',borderRadius:'var(--radius-sm)',background:'var(--surface)'}}
+                          />
+                          {fr.codigoCustom !== undefined && fr.codigoCustom !== sugerido && (
+                            <button type="button" title="Restaurar código auto-generado"
+                              onClick={()=>setFrascos(p=>p.map((f,j)=>j===i?{...f,codigoCustom:undefined}:f))}
+                              style={{padding:'2px 7px',fontSize:13,border:'1px solid var(--border-md)',borderRadius:'var(--radius-sm)',background:'var(--bg)',cursor:'pointer',flexShrink:0}}>↺</button>
+                          )}
+                          {(fr.codigoCustom === undefined || fr.codigoCustom === sugerido) && (
+                            <span style={{fontSize:10,color:'var(--ok)',whiteSpace:'nowrap'}}>✓ Auto</span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
  
               <div style={{display:'flex',gap:8}}>

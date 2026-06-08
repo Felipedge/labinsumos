@@ -476,7 +476,12 @@ export default function Columnas() {
                   placeholder={generandoCodigo ? 'Generando...' : 'Selecciona un cliente'}
                   style={{flex:1, fontFamily:'var(--font-mono)', fontWeight:600}}
                 />
-                {codigoGenerado && <span style={{fontSize:11,color:'var(--ok)'}}>✓ Auto</span>}
+                {codigoGenerado && form.codigo !== codigoGenerado && (
+                  <button type="button" title="Restaurar código auto-generado"
+                    onClick={()=>setForm(p=>({...p,codigo:codigoGenerado}))}
+                    style={{padding:'3px 7px',fontSize:13,border:'1px solid var(--border-md)',borderRadius:'var(--radius-sm)',background:'var(--bg)',cursor:'pointer',flexShrink:0}}>↺</button>
+                )}
+                {codigoGenerado && form.codigo === codigoGenerado && <span style={{fontSize:11,color:'var(--ok)'}}>✓ Auto</span>}
               </div>
             </div>
             <div className="form-group"><label>Producto / método</label>
