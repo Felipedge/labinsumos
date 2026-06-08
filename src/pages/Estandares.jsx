@@ -8,7 +8,7 @@ import { useAuth } from '../hooks/useAuth.jsx'
 import { useRole } from '../hooks/useRole.jsx'
 import { puedoHacer } from '../lib/roles'
 import { useClientes } from '../hooks/useClientes.jsx'
-import { Plus, Search, FlaskConical, History, Package, ExternalLink, CheckCircle, XCircle, FileText, PlayCircle, PackageX } from 'lucide-react'
+import { Plus, Search, FlaskConical, History, Package, ExternalLink, CheckCircle, XCircle, FileText, PlayCircle, PackageX, RefreshCw } from 'lucide-react'
 import DocumentosPanel from '../components/shared/DocumentosPanel.jsx'
  
 const CLIENTES  = ['Ascend','Galenicum','Grunenthal','Bamberg','Labomed','Laboratorio Chile','Novartis','Seven Pharma','Emcure','Prater','MSN','Otro']
@@ -23,6 +23,12 @@ const TIPO_POTENCIA = [
   { value: 'base_seca',    label: 'Base seca' },
   { value: 'sin_potencia', label: 'Sin potencia' },
   { value: 'cualitativo',  label: 'Estándar cualitativo' },
+]
+
+const TIPO_INSUMO = [
+  { value: 'polvo',          label: 'Polvo' },
+  { value: 'liquido',        label: 'Líquido' },
+  { value: 'liquido_ampolla',label: 'Líquido-ampolla' },
 ]
  
 function capitalizar(str) {
@@ -81,7 +87,7 @@ function BadgePotencia({ tipoPotencia, potencia }) {
   return potencia ? <span className="badge badge-gray">{potencia}%</span> : <span style={{color:'var(--text-3)'}}>—</span>
 }
  
-function BadgesCondiciones({ karlFischer, secadoPrevio, tempSecado, tiempoSecado }) {
+function BadgesCondiciones({ karlFischer, secadoPrevio, tempSecado, tiempoSecado, secadoDesecador }) {
   return (
     <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
       {karlFischer && <span className="badge badge-warn" title="Requiere Karl Fischer">💧 Karl Fischer</span>}
@@ -90,6 +96,7 @@ function BadgesCondiciones({ karlFischer, secadoPrevio, tempSecado, tiempoSecado
           🌡️ Secado {tempSecado ? `${tempSecado}°C` : ''} {tiempoSecado || ''}
         </span>
       )}
+      {secadoDesecador && <span className="badge badge-warn" title="Secado en desecador — Revisar etiqueta o metodología">🧪 Desecador</span>}
     </div>
   )
 }
@@ -155,10 +162,19 @@ export default function Estandares() {
   const [fXAnalisis, setFXAnalisis]       = useState('200')
   const [fTipoPotencia, setFTipoPotencia] = useState('tal_cual')
   const [fPotencia, setFPotencia]         = useState('')
+  const [fTipoInsumo, setFTipoInsumo]     = useState('polvo')
   const [fKarlFischer, setFKarlFischer]   = useState(false)
   const [fSecadoPrevio, setFSecadoPrevio] = useState(false)
   const [fTempSecado, setFTempSecado]     = useState('')
   const [fTiempoSecado, setFTiempoSecado] = useState('')
+  const [fSecadoDesecador, setFSecadoDesecador] = useState(false)
+
+  const [reposicionItem, setReposicionItem] = useState(null)
+  const [rLote, setRLote]                   = useState('')
+  const [rVencimiento, setRVencimiento]     = useState('')
+  const [rFrascos, setRFrascos]             = useState([{ letra: 'A', stock: '' }])
+  const [rMsg, setRMsg]                     = useState('')
+  const [guardandoR, setGuardandoR]         = useState(false)
   const [fEsUSP, setFEsUSP]               = useState(false)
   const [fFrecuenciaUSP, setFFrecuenciaUSP] = useState('12')
   const [fProxRevisionUSP, setFProxRevisionUSP] = useState('')
@@ -213,8 +229,9 @@ export default function Estandares() {
       setFProducto(''); setFabricante(''); setFObservacion('')
       setFSector('Fq'); setFAlmacen('Desecador'); setFVencimiento('')
       setFXAnalisis('200'); setFTipoPotencia('tal_cual'); setFPotencia('')
+      setFTipoInsumo('polvo')
       setFKarlFischer(false); setFSecadoPrevio(false)
-      setFTempSecado(''); setFTiempoSecado('')
+      setFTempSecado(''); setFTiempoSecado(''); setFSecadoDesecador(false)
       setFEsUSP(false); setFFrecuenciaUSP('12'); setFProxRevisionUSP('')
       setMsg('')
     }
@@ -249,9 +266,11 @@ export default function Estandares() {
           cliente: fCliente, producto: capitalizar(fProducto),
           tipoPotencia: fTipoPotencia,
           potencia: (fTipoPotencia === 'tal_cual' || fTipoPotencia === 'base_seca') ? parseFloat(fPotencia) : null,
+          tipoInsumo: fTipoInsumo,
           karlFischer: fKarlFischer, secadoPrevio: fSecadoPrevio,
           tempSecado: fSecadoPrevio ? capitalizar(fTempSecado) : '',
           tiempoSecado: fSecadoPrevio ? capitalizar(fTiempoSecado) : '',
+          secadoDesecador: fSecadoDesecador,
           sector: fSector, almacenamiento: fAlmacen,
           fabricante: capitalizar(fFabricante), observacion: capitalizar(fObservacion),
           stockInicial: parseFloat(frasco.stock), stockRestante: parseFloat(frasco.stock),
@@ -335,12 +354,44 @@ export default function Estandares() {
     } catch(e) { alert('Error: ' + e.message) }
   }
  
+  const abrirReposicion = (item) => {
+    setReposicionItem(item)
+    setRLote(''); setRVencimiento(''); setRMsg('')
+    const letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    const hermanos = items.filter(h => h.numeroStd === item.numeroStd && h.estado !== 'Dado de baja')
+    const usadas = new Set(hermanos.map(h => h.frasco))
+    const sig = letras.split('').find(l => !usadas.has(l)) || 'A'
+    setRFrascos([{ letra: sig, stock: '' }])
+  }
+
+  const guardarReposicion = async () => {
+    if (!rLote || rFrascos.some(fr => !fr.stock)) { setRMsg('Lote y stock son obligatorios'); return }
+    setGuardandoR(true)
+    try {
+      for (const fr of rFrascos) {
+        const codigo = generarCodigo(reposicionItem.numeroStd, reposicionItem.mesIngreso || mesAct, reposicionItem.anioIngreso || anioAct, rLote, fr.letra)
+        await addDoc(collection(db, 'estandares'), {
+          ...reposicionItem,
+          id: undefined,
+          codigo, frasco: fr.letra, lote: rLote.toUpperCase(),
+          fechaVencimiento: rVencimiento ? new Date(rVencimiento) : null,
+          stockInicial: parseFloat(fr.stock), stockRestante: parseFloat(fr.stock),
+          estado: 'Cerrado',
+          creadoPor: user.email, creadoEn: serverTimestamp(), actualizadoEn: serverTimestamp(),
+          bajaPor: null, bajaRazon: null, bajaFecha: null,
+        })
+      }
+      setReposicionItem(null); load()
+    } catch(e) { setRMsg('Error: ' + e.message) }
+    finally { setGuardandoR(false) }
+  }
+
   const abrirVerificacionUSP = (item) => {
     setUspModalId(item.id)
     setUspResultado('vigente')
     setUspFechaVerif(new Date().toISOString().split('T')[0])
     setUspFrecuencia(String(item.frecuenciaRevUSP || 12))
-    setUspProxRevision(calcularProximaRevision(new Date().toISOString().split('T')[0], item.frecuenciaRevUSP || 12))
+    setUspProxRevision(calcularProximaRevision(new Date().toISOString().split('T')[0], 1))
     setUspObs('')
   }
  
@@ -456,6 +507,38 @@ export default function Estandares() {
  
   return (
     <>
+      {reposicionItem && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
+          <div style={{background:'var(--surface)',borderRadius:'var(--radius-lg)',padding:24,width:'100%',maxWidth:480}}>
+            <p style={{fontSize:15,fontWeight:600,marginBottom:4}}>Reposición de stock</p>
+            <p style={{fontSize:12,color:'var(--text-2)',marginBottom:16}}>{reposicionItem.nombre} · {reposicionItem.cliente} · STD-{String(reposicionItem.numeroStd).padStart(4,'0')}</p>
+            {rMsg && <div className="alert-item danger" style={{marginBottom:10}}>{rMsg}</div>}
+            <div className="form-grid">
+              <div className="form-group"><label>N° Lote nuevo *</label><input value={rLote} onChange={e=>setRLote(e.target.value.toUpperCase())} placeholder="ej: LRAD9999"/></div>
+              <div className="form-group"><label>Fecha vencimiento</label><input type="date" value={rVencimiento} onChange={e=>setRVencimiento(e.target.value)}/></div>
+            </div>
+            <div style={{marginBottom:12}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
+                <label style={{fontSize:11,fontWeight:600,color:'var(--text-2)'}}>FRASCOS</label>
+                <button className="btn btn-sm" onClick={()=>{ const letras='ABCDEFGHIJKLMNOPQRSTUVWXYZ'; const sig=letras[rFrascos.length]; if(sig) setRFrascos(p=>[...p,{letra:sig,stock:''}]) }}><Plus size={12}/> Agregar</button>
+              </div>
+              {rFrascos.map((fr,i)=>(
+                <div key={fr.letra} style={{display:'flex',alignItems:'center',gap:10,background:'var(--bg)',padding:'8px 12px',borderRadius:'var(--radius-sm)',border:'1px solid var(--border)',marginBottom:6}}>
+                  <div style={{width:24,height:24,borderRadius:'50%',background:'var(--accent-lt)',border:'1px solid var(--border-md)',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:600,fontSize:11,color:'var(--accent)',flexShrink:0}}>{fr.letra}</div>
+                  <input type="number" step="0.01" placeholder="Stock inicial (mg)" value={fr.stock} style={{flex:1}} onChange={e=>setRFrascos(p=>p.map((f,j)=>j===i?{...f,stock:e.target.value}:f))}/>
+                  {rFrascos.length>1 && <button className="btn btn-sm" style={{color:'var(--danger)'}} onClick={()=>setRFrascos(p=>p.filter((_,j)=>j!==i))}>✕</button>}
+                </div>
+              ))}
+            </div>
+            <div style={{display:'flex',gap:8}}>
+              <button className="btn btn-primary btn-sm" onClick={guardarReposicion} disabled={guardandoR}>
+                {guardandoR?<div className="spinner" style={{width:14,height:14,borderWidth:2}}/>:<RefreshCw size={14}/>} Guardar reposición
+              </button>
+              <button className="btn btn-sm" onClick={()=>setReposicionItem(null)}>Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
       {retiroItem && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:1000,
           display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
@@ -681,6 +764,18 @@ export default function Estandares() {
                 )}
               </div>
  
+              <div style={{background:'var(--bg)',borderRadius:'var(--radius-md)',padding:'12px 14px',marginBottom:14}}>
+                <p style={{fontSize:11,fontWeight:600,color:'var(--text-2)',marginBottom:10}}>TIPO DE INSUMO</p>
+                <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                  {TIPO_INSUMO.map(t=>(
+                    <label key={t.value} style={{display:'flex',alignItems:'center',gap:6,cursor:'pointer',fontSize:13,padding:'6px 12px',borderRadius:'var(--radius-sm)',border:`1px solid ${fTipoInsumo===t.value?'var(--accent)':'var(--border-md)'}`,background:fTipoInsumo===t.value?'var(--accent-lt)':'var(--surface)',color:fTipoInsumo===t.value?'var(--accent)':'var(--text-1)'}}>
+                      <input type="radio" name="tipoInsumo" value={t.value} checked={fTipoInsumo===t.value} onChange={e=>setFTipoInsumo(e.target.value)} style={{display:'none'}}/>
+                      {t.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
               <div style={{background:'var(--warn-lt)',borderRadius:'var(--radius-md)',padding:'12px 14px',marginBottom:14}}>
                 <p style={{fontSize:11,fontWeight:600,color:'var(--text-2)',marginBottom:10}}>CONDICIONES ESPECIALES PREVIAS</p>
                 <div style={{display:'flex',gap:12,flexWrap:'wrap',marginBottom:10}}>
@@ -689,6 +784,9 @@ export default function Estandares() {
                   </label>
                   <label style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer',fontSize:13}}>
                     <input type="checkbox" checked={fSecadoPrevio} onChange={e=>setFSecadoPrevio(e.target.checked)}/> 🌡️ Secado previo
+                  </label>
+                  <label style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer',fontSize:13}}>
+                    <input type="checkbox" checked={fSecadoDesecador} onChange={e=>setFSecadoDesecador(e.target.checked)}/> 🧪 Secado en desecador
                   </label>
                 </div>
                 {fSecadoPrevio && (
@@ -701,6 +799,11 @@ export default function Estandares() {
                       <label>Tiempo / condición</label>
                       <input value={fTiempoSecado} onChange={onChangeCapitalizar(setFTiempoSecado)} placeholder="ej: 2 horas"/>
                     </div>
+                  </div>
+                )}
+                {fSecadoDesecador && (
+                  <div style={{background:'var(--warn-lt)',border:'1px solid var(--warn)',borderRadius:'var(--radius-sm)',padding:'8px 12px',fontSize:12,color:'var(--warn)',marginTop:8}}>
+                    ⚠️ Revisar etiqueta o metodología antes de usar.
                   </div>
                 )}
               </div>
@@ -752,10 +855,11 @@ export default function Estandares() {
               <div className="card-title">Registrar pesada — {items.find(i=>i.id===pesadaId)?.nombre} · Frasco {items.find(i=>i.id===pesadaId)?.frasco}</div>
               {(() => {
                 const std = items.find(i=>i.id===pesadaId)
-                return std && (std.karlFischer || std.secadoPrevio) ? (
+                return std && (std.karlFischer || std.secadoPrevio || std.secadoDesecador) ? (
                   <div style={{background:'var(--warn-lt)',borderRadius:'var(--radius-sm)',padding:'8px 12px',marginBottom:12,fontSize:12}}>
                     <strong style={{color:'var(--warn)'}}>⚠️ Condiciones especiales requeridas:</strong>
-                    <BadgesCondiciones karlFischer={std.karlFischer} secadoPrevio={std.secadoPrevio} tempSecado={std.tempSecado} tiempoSecado={std.tiempoSecado}/>
+                    <BadgesCondiciones karlFischer={std.karlFischer} secadoPrevio={std.secadoPrevio} tempSecado={std.tempSecado} tiempoSecado={std.tiempoSecado} secadoDesecador={std.secadoDesecador}/>
+                    {std.secadoDesecador && <div style={{marginTop:4,color:'var(--warn)',fontWeight:500}}>Revisar etiqueta o metodología antes de pesar.</div>}
                   </div>
                 ) : null
               })()}
@@ -809,8 +913,8 @@ export default function Estandares() {
             <table>
               <thead>
                 <tr>
-                  <th>Código</th><th>Nombre</th><th>Frasco</th><th>Cliente</th>
-                  <th>Potencia / Tipo</th><th>Condiciones</th><th>Stock (mg)</th>
+                  <th>Código</th><th>Nombre / Producto</th><th>Frasco</th><th>Cliente</th>
+                  <th>Potencia</th><th>Condiciones</th><th>Stock (mg)</th>
                   <th>Vencimiento / Revisión</th><th>Estado</th><th></th>
                 </tr>
               </thead>
@@ -826,8 +930,9 @@ export default function Estandares() {
                     <tr key={i.id}>
                       <td className="mono" style={{fontSize:10}}>{i.codigo}</td>
                       <td style={{fontWeight:500}}>
-                        {i.nombre}
-                        {i.esUSP && <span className="badge badge-info" style={{marginLeft:4,fontSize:10}}>USP</span>}
+                        <div>{i.nombre}{i.esUSP && <span className="badge badge-info" style={{marginLeft:4,fontSize:10}}>USP</span>}</div>
+                        {i.producto && <div style={{fontSize:10,color:'var(--text-3)'}}>{i.producto}</div>}
+                        {i.observacion && <div style={{fontSize:10,color:'var(--text-3)',fontStyle:'italic'}}>{i.observacion}</div>}
                       </td>
                       <td>
                         <span style={{width:24,height:24,borderRadius:'50%',background:i.estado==='En uso'?'var(--accent-lt)':'var(--bg)',border:'1px solid var(--border-md)',display:'inline-flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:600,color:i.estado==='En uso'?'var(--accent)':'var(--text-2)'}}>
@@ -837,8 +942,8 @@ export default function Estandares() {
                       <td style={{color:'var(--text-2)'}}>{i.cliente}</td>
                       <td><BadgePotencia tipoPotencia={i.tipoPotencia} potencia={i.potencia}/></td>
                       <td>
-                        {(i.karlFischer||i.secadoPrevio)
-                          ?<BadgesCondiciones karlFischer={i.karlFischer} secadoPrevio={i.secadoPrevio} tempSecado={i.tempSecado} tiempoSecado={i.tiempoSecado}/>
+                        {(i.karlFischer||i.secadoPrevio||i.secadoDesecador)
+                          ?<BadgesCondiciones karlFischer={i.karlFischer} secadoPrevio={i.secadoPrevio} tempSecado={i.tempSecado} tiempoSecado={i.tiempoSecado} secadoDesecador={i.secadoDesecador}/>
                           :<span style={{color:'var(--text-3)',fontSize:11}}>—</span>}
                       </td>
                       <td><strong>{i.stockRestante??'—'}</strong></td>
@@ -849,36 +954,35 @@ export default function Estandares() {
                         }
                       </td>
                       <td><span className={`badge ${estCls}`}>{i.estado}</span></td>
-                      <td style={{display:'flex',gap:4,flexWrap:'wrap'}}>
-                        {puedePonerEnUso && i.estado==='Cerrado' && (
-                          <button className="btn btn-sm" title="Poner en uso" onClick={()=>handlePonerEnUso(i)}>
-                            <PlayCircle size={13}/> En uso
-                          </button>
-                        )}
-                        {puedePesada && i.estado==='En uso' && (
-                          <button className="btn btn-sm" onClick={()=>{setPesadaId(i.id);setShowForm(false)}}>Pesada</button>
-                        )}
-                        <button className="btn btn-sm" onClick={()=>setDocInsumo(i)} title="Ver documentos">
-                          <FileText size={13}/>
-                        </button>
-                        {i.esUSP && (i.estado==='En uso'||i.estado==='Cerrado') && puedePesada && (
-                          <button className="btn btn-sm"
-                            style={uspAlerta?{background:'var(--accent-lt)',color:'var(--accent)',borderColor:'var(--accent)'}:{}}
-                            onClick={()=>abrirVerificacionUSP(i)}>
-                            🔵 Verificar
-                          </button>
-                        )}
-                        {puedeBaja && !verPapelera && i.estado!=='Retirado por cliente' && (
-                          <button className="btn btn-sm" title="Retirar por cliente" onClick={()=>setRetiroItem(i)}>
-                            <PackageX size={13}/>
-                          </button>
-                        )}
-                        {puedeBaja && !verPapelera && (
-                          <button className="btn btn-sm" style={{color:'var(--danger)',borderColor:'var(--danger)'}} onClick={()=>darDeBaja(i.id,i.codigo)} title="Dar de baja">🗑</button>
-                        )}
-                        {puedeBaja && verPapelera && (
-                          <button className="btn btn-sm" onClick={()=>restaurar(i.id)}>Restaurar</button>
-                        )}
+                      <td>
+                        <div style={{display:'flex',gap:4,alignItems:'center'}}>
+                          <span style={{visibility: puedePonerEnUso && i.estado==='Cerrado' ? 'visible':'hidden'}}>
+                            <button className="btn btn-sm" title="Poner en uso" onClick={()=>handlePonerEnUso(i)}><PlayCircle size={13}/></button>
+                          </span>
+                          <span style={{visibility: puedePesada && i.estado==='En uso' ? 'visible':'hidden'}}>
+                            <button className="btn btn-sm" title="Registrar pesada" onClick={()=>{setPesadaId(i.id);setShowForm(false)}}><FlaskConical size={13}/></button>
+                          </span>
+                          <span style={{visibility: i.esUSP && (i.estado==='En uso'||i.estado==='Cerrado') && puedePesada ? 'visible':'hidden'}}>
+                            <button className="btn btn-sm" title="Verificar USP"
+                              style={uspAlerta?{background:'var(--accent-lt)',color:'var(--accent)',borderColor:'var(--accent)'}:{}}
+                              onClick={()=>abrirVerificacionUSP(i)}>
+                              <CheckCircle size={13}/>
+                            </button>
+                          </span>
+                          <span style={{visibility: puedeAgregar && !verPapelera ? 'visible':'hidden'}}>
+                            <button className="btn btn-sm" title="Reposición de stock" onClick={()=>abrirReposicion(i)}><RefreshCw size={13}/></button>
+                          </span>
+                          <button className="btn btn-sm" onClick={()=>setDocInsumo(i)} title="Ver documentos"><FileText size={13}/></button>
+                          <span style={{visibility: puedeBaja && !verPapelera && i.estado!=='Retirado por cliente' ? 'visible':'hidden'}}>
+                            <button className="btn btn-sm" title="Retirar por cliente" onClick={()=>setRetiroItem(i)}><PackageX size={13}/></button>
+                          </span>
+                          <span style={{visibility: puedeBaja && !verPapelera ? 'visible':'hidden'}}>
+                            <button className="btn btn-sm" style={{color:'var(--danger)',borderColor:'var(--danger)'}} onClick={()=>darDeBaja(i.id,i.codigo)} title="Dar de baja"><PackageX size={13} style={{transform:'rotate(180deg)'}}/></button>
+                          </span>
+                          <span style={{visibility: puedeBaja && verPapelera ? 'visible':'hidden'}}>
+                            <button className="btn btn-sm" onClick={()=>restaurar(i.id)} title="Restaurar"><RefreshCw size={13}/></button>
+                          </span>
+                        </div>
                       </td>
                     </tr>
                   )

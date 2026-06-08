@@ -6,7 +6,7 @@ import { db } from '../lib/firebase'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useRole } from '../hooks/useRole.jsx'
 import { puedoHacer } from '../lib/roles'
-import { Plus, FileText, Search, Package, History, PlayCircle, PackageX } from 'lucide-react'
+import { Plus, FileText, Search, Package, History, PlayCircle, PackageX, RefreshCw } from 'lucide-react'
 import DocumentosPanel from '../components/shared/DocumentosPanel.jsx'
 import { useClientes } from '../hooks/useClientes.jsx'
  
@@ -38,6 +38,10 @@ export default function Placebo() {
   const [form, setForm]           = useState({})
   const [msg, setMsg]             = useState('')
   const [docInsumo, setDocInsumo] = useState(null)
+  const [reposicionItem, setReposicionItem] = useState(null)
+  const [rForm, setRForm]                   = useState({})
+  const [rMsg, setRMsg]                     = useState('')
+  const [guardandoR, setGuardandoR]         = useState(false)
   const [filtroCliente, setFiltroCliente] = useState('')
   const [search, setSearch]       = useState('')
   const [ordenCampo, setOrdenCampo] = useState('productoReferencia')
@@ -118,6 +122,23 @@ export default function Placebo() {
     } catch(e) { alert('Error: ' + e.message) }
   }
  
+  const guardarReposicion = async () => {
+    if (!rForm.lote || !rForm.stock) { setRMsg('Lote y stock son obligatorios'); return }
+    setGuardandoR(true)
+    try {
+      await crearPlacebo({
+        ...reposicionItem, id: undefined,
+        lote: rForm.lote.toUpperCase(),
+        fechaVencimiento: rForm.vencimiento || null,
+        stockUnidades: parseInt(rForm.stock) || 0,
+        estado: 'Cerrado', creadoPorRol: rol,
+        bajaPor: null, bajaRazon: null, bajaFecha: null,
+      }, user.email)
+      setReposicionItem(null); setRForm({}); load()
+    } catch(e) { setRMsg('Error: ' + e.message) }
+    finally { setGuardandoR(false) }
+  }
+
   const toggleOrden = (campo) => {
     if (ordenCampo === campo) setOrdenDir(d => d === 'asc' ? 'desc' : 'asc')
     else { setOrdenCampo(campo); setOrdenDir('asc') }
@@ -166,6 +187,26 @@ export default function Placebo() {
  
   return (
     <>
+      {reposicionItem && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
+          <div style={{background:'var(--surface)',borderRadius:'var(--radius-lg)',padding:24,width:'100%',maxWidth:460}}>
+            <p style={{fontSize:15,fontWeight:600,marginBottom:4}}>Reposición de stock — Placebo</p>
+            <p style={{fontSize:12,color:'var(--text-2)',marginBottom:16}}>{reposicionItem.productoReferencia} · {reposicionItem.codigo}</p>
+            {rMsg && <div className="alert-item danger" style={{marginBottom:10}}>{rMsg}</div>}
+            <div className="form-grid">
+              <div className="form-group"><label>N° Lote nuevo *</label><input value={rForm.lote||''} onChange={e=>setRForm(p=>({...p,lote:e.target.value.toUpperCase()}))} placeholder="ej: LOT9999"/></div>
+              <div className="form-group"><label>Fecha vencimiento</label><input type="date" value={rForm.vencimiento||''} onChange={e=>setRForm(p=>({...p,vencimiento:e.target.value}))}/></div>
+              <div className="form-group"><label>Stock inicial (unidades) *</label><input type="number" value={rForm.stock||''} onChange={e=>setRForm(p=>({...p,stock:e.target.value}))} placeholder="ej: 200"/></div>
+            </div>
+            <div style={{display:'flex',gap:8}}>
+              <button className="btn btn-primary btn-sm" onClick={guardarReposicion} disabled={guardandoR}>
+                {guardandoR?<div className="spinner" style={{width:14,height:14,borderWidth:2}}/>:<RefreshCw size={14}/>} Guardar reposición
+              </button>
+              <button className="btn btn-sm" onClick={()=>{setReposicionItem(null);setRForm({})}}>Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
       {retiroItem && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:1000,
           display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
@@ -309,23 +350,22 @@ export default function Placebo() {
                       <td>
                         <span className={({'En uso':'badge badge-ok','Cerrado':'badge badge-info','Sin stock':'badge badge-warn','Retirado por cliente':'badge badge-purple','Dado de baja':'badge badge-gray','Dada de baja':'badge badge-gray'}[p.estado])||'badge badge-gray'}>{p.estado}</span>
                       </td>
-                      <td style={{display:'flex',gap:4}}>
-                        {puedePonerEnUso && p.estado==='Cerrado' && (
-                          <button className="btn btn-sm" title="Poner en uso" onClick={()=>handlePonerEnUso(p)}>
-                            <PlayCircle size={13}/> En uso
-                          </button>
-                        )}
-                        {puedeOperar && p.estado==='En uso' && (
-                          <button className="btn btn-sm" onClick={() => { setUsoId(p.id); setShowForm(false); setForm({}) }}>Registrar uso</button>
-                        )}
-                        {puedeBaja && p.estado!=='Retirado por cliente' && p.estado!=='Dado de baja' && p.estado!=='Dada de baja' && (
-                          <button className="btn btn-sm" title="Retirar por cliente" onClick={()=>setRetiroItem(p)}>
-                            <PackageX size={13}/>
-                          </button>
-                        )}
-                        <button className="btn btn-sm" onClick={()=>setDocInsumo(p)} title="Ver documentos">
-                          <FileText size={13}/>
-                        </button>
+                      <td>
+                        <div style={{display:'flex',gap:4,alignItems:'center'}}>
+                          <span style={{visibility: puedePonerEnUso && p.estado==='Cerrado' ? 'visible':'hidden'}}>
+                            <button className="btn btn-sm" title="Poner en uso" onClick={()=>handlePonerEnUso(p)}><PlayCircle size={13}/></button>
+                          </span>
+                          <span style={{visibility: puedeOperar && p.estado==='En uso' ? 'visible':'hidden'}}>
+                            <button className="btn btn-sm" title="Registrar uso" onClick={()=>{setUsoId(p.id);setShowForm(false);setForm({})}}><FileText size={13}/></button>
+                          </span>
+                          <span style={{visibility: puedeAgregar ? 'visible':'hidden'}}>
+                            <button className="btn btn-sm" title="Reposición de stock" onClick={()=>{setReposicionItem(p);setRForm({});setRMsg('')}}><RefreshCw size={13}/></button>
+                          </span>
+                          <button className="btn btn-sm" onClick={()=>setDocInsumo(p)} title="Ver documentos"><FileText size={13}/></button>
+                          <span style={{visibility: puedeBaja && p.estado!=='Retirado por cliente' && p.estado!=='Dado de baja' && p.estado!=='Dada de baja' ? 'visible':'hidden'}}>
+                            <button className="btn btn-sm" title="Retirar por cliente" onClick={()=>setRetiroItem(p)}><PackageX size={13}/></button>
+                          </span>
+                        </div>
                       </td>
                     </tr>
                   )

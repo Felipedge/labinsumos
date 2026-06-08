@@ -80,6 +80,7 @@ const COLOR_VARIANTES = {
 }
 
 const AREAS = ['Fisicoquímico', 'Validaciones']
+const TIPOS_ANALISIS = ['Valoración','Identidad','Quiralidad','Sustancias relacionadas','Uniformidad','Disolución']
 
 function FaseBadge({ fase }) {
   const key = FASE_COLOR[fase] || 'gris'
@@ -205,6 +206,7 @@ export default function Columnas() {
         fechaRetiro:       '',                              // se completa al retirar
         // — uso acumulado (reemplaza el sistema de inyecciones/límite) —
         inyeccionesAcumuladas: 0,
+        tiposAnalisis:     form.tiposAnalisis || [],
         estado:            'Nueva',
         creadoPorRol:      rol,
       }, user.email)
@@ -520,6 +522,25 @@ export default function Columnas() {
             </div>
           </div>
 
+          <div style={{background:'var(--bg)',borderRadius:'var(--radius-md)',padding:'12px 14px',marginBottom:14}}>
+            <p style={{fontSize:11,fontWeight:600,color:'var(--text-2)',marginBottom:8}}>TIPOS DE ANÁLISIS COMPATIBLES</p>
+            <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+              {TIPOS_ANALISIS.map(t => {
+                const sel = (form.tiposAnalisis || []).includes(t)
+                return (
+                  <label key={t} style={{display:'flex',alignItems:'center',gap:6,cursor:'pointer',fontSize:13,padding:'5px 11px',borderRadius:'var(--radius-sm)',border:`1px solid ${sel?'var(--accent)':'var(--border-md)'}`,background:sel?'var(--accent-lt)':'var(--surface)',color:sel?'var(--accent)':'var(--text-1)'}}>
+                    <input type="checkbox" style={{display:'none'}} checked={sel}
+                      onChange={()=>setForm(p=>{
+                        const prev = p.tiposAnalisis || []
+                        return { ...p, tiposAnalisis: sel ? prev.filter(x=>x!==t) : [...prev,t] }
+                      })}/>
+                    {t}
+                  </label>
+                )
+              })}
+            </div>
+          </div>
+
           {form.codigo && form.cliente && (
             <div style={{background:'var(--accent-lt)',borderRadius:'var(--radius-sm)',padding:'8px 14px',marginBottom:14,fontSize:12,color:'var(--accent)'}}>
               <strong>Código generado:</strong>{' '}
@@ -680,7 +701,7 @@ export default function Columnas() {
         <table>
           <thead>
             <tr>
-              <th>Código</th><th>Fase</th><th>Área</th><th>Largo</th><th>Diám.</th><th>Micra</th>
+              <th>Código</th><th>Fase</th><th>Área</th><th>Análisis</th><th>Largo</th><th>Diám.</th><th>Micra</th>
               <th>Platos ini.</th><th>Lote/Serie</th><th>Cliente</th>
               <th>Recepción</th><th>Inicio uso</th><th>Uso (inyecc.)</th><th>Estado</th><th></th>
             </tr>
@@ -695,6 +716,9 @@ export default function Columnas() {
                   <td className="mono" style={{fontWeight:600}}>{c.codigo}</td>
                   <td><FaseBadge fase={c.fase} /></td>
                   <td style={{color:'var(--text-2)',fontSize:12}}>{c.area || '—'}</td>
+                  <td style={{fontSize:11}}>
+                    {c.tiposAnalisis?.length ? c.tiposAnalisis.map(t=><span key={t} className="badge badge-gray" style={{marginRight:2,fontSize:9}}>{t}</span>) : <span style={{color:'var(--text-3)'}}>—</span>}
+                  </td>
                   <td style={{color:'var(--text-2)',fontSize:12}}>{c.largo ? `${c.largo} mm` : c.dimensiones || '—'}</td>
                   <td style={{color:'var(--text-2)',fontSize:12}}>{c.diametro ? `${c.diametro} mm` : '—'}</td>
                   <td style={{color:'var(--text-2)',fontSize:12}}>{c.micra ? `${c.micra} µm` : c.tamanoParticula || '—'}</td>
@@ -720,35 +744,26 @@ export default function Columnas() {
                       <div style={{fontSize:10,color:'var(--text-3)',marginTop:2}}>{c.motivoBaja}</div>
                     )}
                   </td>
-                  <td style={{display:'flex',gap:4}}>
-                    {puedePonerEnUso && esNueva && (
-                      <button className="btn btn-sm" title="Poner en uso" onClick={() => ponerEnUso(c)}>
-                        <PlayCircle size={13}/> En uso
-                      </button>
-                    )}
-                    {puedeRegistrarUso && enUso && (
-                      <button className="btn btn-sm" onClick={() => abrirUso(c)}>
-                        Registrar uso
-                      </button>
-                    )}
-                    {puedeDarBaja && !dadaBaja && (
-                      <button className="btn btn-sm" title="Dar de baja (retiro cliente / System Suitability)"
-                        onClick={() => abrirRetiro(c)}>
-                        <PackageX size={13}/>
-                      </button>
-                    )}
-                    <button className="btn btn-sm" onClick={()=>abrirHistorial(c)} title="Ver historial de uso">
-                      <History size={13}/>
-                    </button>
-                    <button className="btn btn-sm" onClick={()=>setDocInsumo(c)} title="Ver documentos">
-                      <FileText size={13}/>
-                    </button>
+                  <td>
+                    <div style={{display:'flex',gap:4,alignItems:'center'}}>
+                      <span style={{visibility: puedePonerEnUso && esNueva ? 'visible':'hidden'}}>
+                        <button className="btn btn-sm" title="Poner en uso" onClick={()=>ponerEnUso(c)}><PlayCircle size={13}/></button>
+                      </span>
+                      <span style={{visibility: puedeRegistrarUso && enUso ? 'visible':'hidden'}}>
+                        <button className="btn btn-sm" title="Registrar uso" onClick={()=>abrirUso(c)}><Beaker size={13}/></button>
+                      </span>
+                      <span style={{visibility: puedeDarBaja && !dadaBaja ? 'visible':'hidden'}}>
+                        <button className="btn btn-sm" title="Dar de baja" onClick={()=>abrirRetiro(c)}><PackageX size={13}/></button>
+                      </span>
+                      <button className="btn btn-sm" onClick={()=>abrirHistorial(c)} title="Historial"><History size={13}/></button>
+                      <button className="btn btn-sm" onClick={()=>setDocInsumo(c)} title="Documentos"><FileText size={13}/></button>
+                    </div>
                   </td>
                 </tr>
               )
             })}
             {filtradas.length === 0 && (
-              <tr><td colSpan={14} style={{textAlign:'center',padding:24,color:'var(--text-3)'}}>
+              <tr><td colSpan={15} style={{textAlign:'center',padding:24,color:'var(--text-3)'}}>
                 No hay columnas que coincidan
               </td></tr>
             )}

@@ -7,7 +7,7 @@ import { calcularSemaforo, registrarPesadaAPI, ponerEnUsoInsumo, retirarInsumo }
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useRole } from '../hooks/useRole.jsx'
 import { puedoHacer } from '../lib/roles'
-import { Plus, Search, FileText, Package, History, PlayCircle, PackageX } from 'lucide-react'
+import { Plus, Search, FileText, Package, History, PlayCircle, PackageX, RefreshCw } from 'lucide-react'
 import DocumentosPanel from '../components/shared/DocumentosPanel.jsx'
 import { useClientes } from '../hooks/useClientes.jsx'
  
@@ -50,7 +50,11 @@ export default function APIs() {
   const [docInsumo, setDocInsumo]   = useState(null)
   const [filtroCliente, setFiltroCliente] = useState('')
   const [verPapelera, setVerPapelera] = useState(false)
- 
+  const [reposicionItem, setReposicionItem] = useState(null)
+  const [rForm, setRForm]                   = useState({})
+  const [rMsg, setRMsg]                     = useState('')
+  const [guardandoR, setGuardandoR]         = useState(false)
+
   // Historial
   const [pesadas, setPesadas]         = useState([])
   const [loadingH, setLoadingH]       = useState(false)
@@ -154,6 +158,27 @@ export default function APIs() {
     } catch(e) { alert('Error: ' + e.message) }
   }
  
+  const guardarReposicion = async () => {
+    if (!rForm.lote || !rForm.stock) { setRMsg('Lote y stock son obligatorios'); return }
+    setGuardandoR(true)
+    try {
+      const { addDoc: aDoc, collection: col, serverTimestamp: sts } = await import('firebase/firestore')
+      await aDoc(col(db, 'apis'), {
+        ...reposicionItem, id: undefined,
+        lote: rForm.lote.toUpperCase(),
+        fechaVencimiento: rForm.vencimiento ? new Date(rForm.vencimiento) : null,
+        stockRestante: parseFloat(rForm.stock) || 0,
+        cantidadRecibida: rForm.cantidad || reposicionItem.cantidadRecibida,
+        observacion: rForm.observacion || '',
+        estado: 'Cerrado',
+        creadoPor: user.email, creadoEn: sts(), actualizadoEn: sts(),
+        bajaPor: null, bajaRazon: null, bajaFecha: null,
+      })
+      setReposicionItem(null); setRForm({}); load()
+    } catch(e) { setRMsg('Error: ' + e.message) }
+    finally { setGuardandoR(false) }
+  }
+
   const restaurar = async (id) => {
     try {
       await updateDoc(doc(db, 'apis', id), {
@@ -219,6 +244,28 @@ export default function APIs() {
  
   return (
     <>
+      {reposicionItem && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
+          <div style={{background:'var(--surface)',borderRadius:'var(--radius-lg)',padding:24,width:'100%',maxWidth:460}}>
+            <p style={{fontSize:15,fontWeight:600,marginBottom:4}}>Reposición de stock — API</p>
+            <p style={{fontSize:12,color:'var(--text-2)',marginBottom:16}}>{reposicionItem.nombre} · {reposicionItem.codigo}</p>
+            {rMsg && <div className="alert-item danger" style={{marginBottom:10}}>{rMsg}</div>}
+            <div className="form-grid">
+              <div className="form-group"><label>N° Lote nuevo *</label><input value={rForm.lote||''} onChange={e=>setRForm(p=>({...p,lote:e.target.value.toUpperCase()}))} placeholder="ej: LOT9999"/></div>
+              <div className="form-group"><label>Fecha vencimiento</label><input type="date" value={rForm.vencimiento||''} onChange={e=>setRForm(p=>({...p,vencimiento:e.target.value}))}/></div>
+              <div className="form-group"><label>Cantidad recibida</label><input value={rForm.cantidad||''} onChange={e=>setRForm(p=>({...p,cantidad:e.target.value}))} placeholder="ej: 20 g"/></div>
+              <div className="form-group"><label>Stock inicial (mg) *</label><input type="number" step="0.01" value={rForm.stock||''} onChange={e=>setRForm(p=>({...p,stock:e.target.value}))} placeholder="ej: 20000"/></div>
+              <div className="form-group" style={{gridColumn:'1/-1'}}><label>Observaciones</label><input value={rForm.observacion||''} onChange={e=>setRForm(p=>({...p,observacion:e.target.value}))}/></div>
+            </div>
+            <div style={{display:'flex',gap:8}}>
+              <button className="btn btn-primary btn-sm" onClick={guardarReposicion} disabled={guardandoR}>
+                {guardandoR?<div className="spinner" style={{width:14,height:14,borderWidth:2}}/>:<RefreshCw size={14}/>} Guardar reposición
+              </button>
+              <button className="btn btn-sm" onClick={()=>{setReposicionItem(null);setRForm({})}}>Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
       {retiroItem && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:1000,
           display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
@@ -417,7 +464,7 @@ export default function APIs() {
             <table>
               <thead>
                 <tr>
-                  <th>Código</th><th>Nombre</th><th>Laboratorio</th>
+                  <th>Código</th><th>Nombre / Obs.</th><th>Laboratorio</th>
                   <th>Lote</th><th>Stock (mg)</th><th>Vencimiento</th><th>Estado</th><th></th>
                 </tr>
               </thead>
@@ -437,37 +484,37 @@ export default function APIs() {
                   return (
                     <tr key={i.id}>
                       <td className="mono" style={{fontWeight:600}}>{i.codigo}</td>
-                      <td style={{fontWeight:500}}>{i.nombre}</td>
+                      <td style={{fontWeight:500}}>
+                        <div>{i.nombre}</div>
+                        {i.observacion && <div style={{fontSize:10,color:'var(--text-3)',fontStyle:'italic'}}>{i.observacion}</div>}
+                      </td>
                       <td style={{color:'var(--text-2)'}}>{i.laboratorio}</td>
                       <td style={{color:'var(--text-2)',fontSize:11}}>{i.lote || '—'}</td>
                       <td><strong>{stockMostrado}</strong></td>
                       <td>{vence ? <span className={`badge ${badgeCls}`}>{sem.texto}</span> : <span style={{color:'var(--text-3)'}}>—</span>}</td>
                       <td><span className={`badge ${estCls}`}>{i.estado}</span></td>
-                      <td style={{display:'flex',gap:4}}>
-                        {puedePonerEnUso && i.estado==='Cerrado' && (
-                          <button className="btn btn-sm" title="Poner en uso" onClick={()=>handlePonerEnUso(i)}>
-                            <PlayCircle size={13}/> En uso
-                          </button>
-                        )}
-                        {puedeOperar && i.estado==='En uso' && (
-                          <button className="btn btn-sm" onClick={()=>{setPesadaId(i.id);setShowForm(false);setForm({})}}>Pesada</button>
-                        )}
-                        <button className="btn btn-sm" onClick={()=>setDocInsumo(i)} title="Ver documentos">
-                          <FileText size={13}/>
-                        </button>
-                        {puedeBaja && !verPapelera && i.estado!=='Retirado por cliente' && i.estado!=='Dado de baja' && i.estado!=='Dada de baja' && (
-                          <button className="btn btn-sm" title="Retirar por cliente" onClick={()=>setRetiroItem(i)}>
-                            <PackageX size={13}/>
-                          </button>
-                        )}
-                        {puedeBaja && !verPapelera && (
-                          <button className="btn btn-sm"
-                            style={{color:'var(--danger)',borderColor:'var(--danger)'}}
-                            onClick={()=>darDeBaja(i.id, i.codigo)} title="Dar de baja">🗑</button>
-                        )}
-                        {puedeBaja && verPapelera && (
-                          <button className="btn btn-sm" onClick={()=>restaurar(i.id)}>Restaurar</button>
-                        )}
+                      <td>
+                        <div style={{display:'flex',gap:4,alignItems:'center'}}>
+                          <span style={{visibility: puedePonerEnUso && i.estado==='Cerrado' ? 'visible':'hidden'}}>
+                            <button className="btn btn-sm" title="Poner en uso" onClick={()=>handlePonerEnUso(i)}><PlayCircle size={13}/></button>
+                          </span>
+                          <span style={{visibility: puedeOperar && i.estado==='En uso' ? 'visible':'hidden'}}>
+                            <button className="btn btn-sm" title="Registrar pesada" onClick={()=>{setPesadaId(i.id);setShowForm(false);setForm({})}}><FileText size={13}/></button>
+                          </span>
+                          <span style={{visibility: puedeAgregar && !verPapelera ? 'visible':'hidden'}}>
+                            <button className="btn btn-sm" title="Reposición de stock" onClick={()=>{setReposicionItem(i);setRForm({});setRMsg('')}}><RefreshCw size={13}/></button>
+                          </span>
+                          <button className="btn btn-sm" onClick={()=>setDocInsumo(i)} title="Ver documentos"><FileText size={13}/></button>
+                          <span style={{visibility: puedeBaja && !verPapelera && i.estado!=='Retirado por cliente' && i.estado!=='Dado de baja' && i.estado!=='Dada de baja' ? 'visible':'hidden'}}>
+                            <button className="btn btn-sm" title="Retirar por cliente" onClick={()=>setRetiroItem(i)}><PackageX size={13}/></button>
+                          </span>
+                          <span style={{visibility: puedeBaja && !verPapelera ? 'visible':'hidden'}}>
+                            <button className="btn btn-sm" style={{color:'var(--danger)',borderColor:'var(--danger)'}} onClick={()=>darDeBaja(i.id, i.codigo)} title="Dar de baja"><PackageX size={13} style={{transform:'rotate(180deg)'}}/></button>
+                          </span>
+                          <span style={{visibility: puedeBaja && verPapelera ? 'visible':'hidden'}}>
+                            <button className="btn btn-sm" onClick={()=>restaurar(i.id)} title="Restaurar"><RefreshCw size={13}/></button>
+                          </span>
+                        </div>
                       </td>
                     </tr>
                   )

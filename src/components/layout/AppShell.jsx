@@ -100,14 +100,14 @@ export default function AppShell() {
         reacts.docs.forEach(d => {
           const data = d.data()
           const vence = parseFecha(data.fechaVencimiento)
-          if (vence) { const dias = Math.round((vence - hoy) / 86400000); if (dias <= 90) count++ }
+          if (vence) { const dias = Math.round((vence - hoy) / 86400000); if (dias <= 45) count++ }
           if (data.estado === 'STOCK BAJO') count++
         })
         pls.docs.forEach(d => {
           const data = d.data()
           if (['Retirado por cliente','SIN STOCK','Dado de baja','Dada de baja'].includes(data.estado)) return
           const vence = parseFecha(data.fechaVencimiento)
-          if (vence) { const dias = Math.round((vence - hoy) / 86400000); if (dias <= 90) count++ }
+          if (vence) { const dias = Math.round((vence - hoy) / 86400000); if (dias <= 45) count++ }
         })
         setAlertasCount(count)
       } catch {}
