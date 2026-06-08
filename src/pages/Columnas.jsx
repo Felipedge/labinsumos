@@ -689,7 +689,7 @@ export default function Columnas() {
             {filtradas.map(c => {
               const esNueva  = c.estado === 'Nueva'
               const enUso    = c.estado === 'En uso'
-              const dadaBaja = c.estado === 'Dada de baja' || c.estado === 'DADA DE BAJA' || c.estado === 'RETIRADA'
+              const dadaBaja = c.estado === 'Dada de baja'
               return (
                 <tr key={c.id} style={dadaBaja?{opacity:0.6}:{}}>
                   <td className="mono" style={{fontWeight:600}}>{c.codigo}</td>

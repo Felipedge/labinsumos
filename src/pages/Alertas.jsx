@@ -75,7 +75,7 @@ export default function Alertas() {
         const all = []
  
         stds.forEach(s => {
-          if (s.estado === 'SIN STOCK') return
+          if (['SIN STOCK','Dado de baja','Dada de baja','Retirado por cliente'].includes(s.estado)) return
           const vence = s.fechaVencimiento?.toDate?.() || (s.fechaVencimiento ? new Date(s.fechaVencimiento) : null)
           // USP
           if (s.esUSP) {
@@ -114,6 +114,7 @@ export default function Alertas() {
         })
  
         pls.forEach(p => {
+          if (['Retirado por cliente','SIN STOCK','Dado de baja','Dada de baja'].includes(p.estado)) return
           const vence = p.fechaVencimiento?.toDate?.() || (p.fechaVencimiento ? new Date(p.fechaVencimiento) : null)
           const sem = calcularSemaforo(vence)
           if (sem.color !== 'success') {

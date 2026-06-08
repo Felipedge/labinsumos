@@ -41,7 +41,7 @@ export default function Dashboard() {
         }
 
         stds.forEach(s => {
-          if (['SIN STOCK','Sin stock','Dado de baja','Dada de baja','Retirado por cliente'].includes(s.estado)) return
+          if (['SIN STOCK','Dado de baja','Dada de baja','Retirado por cliente'].includes(s.estado)) return
           const vence = parseFecha(s.fechaVencimiento)
           if (!vence) return
           const dias = Math.round((vence - hoy) / 86400000)
@@ -66,7 +66,7 @@ export default function Dashboard() {
         })
 
         pls.forEach(p => {
-          if (['Retirado por cliente','Sin stock','SIN STOCK'].includes(p.estado)) return
+          if (['Retirado por cliente','SIN STOCK','Dado de baja','Dada de baja'].includes(p.estado)) return
           const vence = parseFecha(p.fechaVencimiento)
           if (!vence) return
           const dias = Math.round((vence - hoy) / 86400000)
@@ -79,8 +79,8 @@ export default function Dashboard() {
  
         setStats({
           stds:     { total: stds.filter(s => s.estado === 'En uso').length },
-          cols:     { total: cols.filter(c => c.estado !== 'DADA DE BAJA' && c.estado !== 'RETIRADA' && c.estado !== 'Pendiente de aprobación').length },
-          reacts:   { total: reacts.filter(r => r.estado === 'ACTIVO' || r.estado === 'Activo').length },
+          cols:     { total: cols.filter(c => c.estado !== 'Dada de baja' && c.estado !== 'Pendiente de aprobación').length },
+          reacts:   { total: reacts.filter(r => r.estado === 'ACTIVO' || r.estado === 'STOCK BAJO').length },
           pls:      { total: pls.filter(p => p.estado === 'En uso' || p.estado === 'Cerrado').length },
           criticas: allAlerts.filter(a => a.sem.color === 'danger').length,
           adv:      allAlerts.filter(a => a.sem.color === 'warning').length,

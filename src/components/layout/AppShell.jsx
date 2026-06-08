@@ -93,7 +93,7 @@ export default function AppShell() {
         let count = 0
         stds.docs.forEach(d => {
           const data = d.data()
-          if (['SIN STOCK','Sin stock','Dado de baja','Dada de baja','Retirado por cliente'].includes(data.estado)) return
+          if (['SIN STOCK','Dado de baja','Dada de baja','Retirado por cliente'].includes(data.estado)) return
           const vence = parseFecha(data.fechaVencimiento)
           if (vence) { const dias = Math.round((vence - hoy) / 86400000); if (dias <= 90) count++ }
         })
@@ -105,7 +105,7 @@ export default function AppShell() {
         })
         pls.docs.forEach(d => {
           const data = d.data()
-          if (['Retirado por cliente','Sin stock','SIN STOCK'].includes(data.estado)) return
+          if (['Retirado por cliente','SIN STOCK','Dado de baja','Dada de baja'].includes(data.estado)) return
           const vence = parseFecha(data.fechaVencimiento)
           if (vence) { const dias = Math.round((vence - hoy) / 86400000); if (dias <= 90) count++ }
         })
