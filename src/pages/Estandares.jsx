@@ -117,7 +117,7 @@ export default function Estandares() {
   const puedeAgregar    = puedoHacer(rol, 'agregarInsumo')
   const puedePesada     = puedoHacer(rol, 'registrarUso')
   const puedeBaja       = puedoHacer(rol, 'darDeBaja')
-  const puedePonerEnUso = puedoHacer(rol, 'ponerEnUso')
+  const puedePonerEnUso = puedoHacer(rol, 'ponerEnUso') && rol !== 'analista'
  
   const [tab, setTab] = useState('inventario')
   const [items, setItems]         = useState([])
@@ -307,7 +307,41 @@ export default function Estandares() {
     } catch(e) { setMsg(e.message) }
   }
  
-  const handlePonerEnUso = async (item) => {
+  const handlePonerEnUso = async (item, forzar = false) => {
+    const parseFecha = v => {
+      if (!v) return new Date('9999-12-31')
+      if (v?.toDate) return v.toDate()
+      return new Date(v)
+    }
+    const hermanos = items.filter(h =>
+      h.numeroStd === item.numeroStd &&
+      !['Dado de baja','Dada de baja','Retirado por cliente','SIN STOCK'].includes(h.estado)
+    )
+    const hayEnUso = hermanos.some(h => h.estado === 'En uso')
+    if (hayEnUso) {
+      alert('Ya hay un frasco En uso de este estándar. Debe agotarse antes de abrir otro.')
+      return
+    }
+    const cerrados = hermanos.filter(h => h.estado === 'Cerrado')
+    cerrados.sort((a, b) => {
+      const dA = parseFecha(a.fechaVencimiento)
+      const dB = parseFecha(b.fechaVencimiento)
+      if (dA - dB !== 0) return dA - dB
+      return (a.frasco || '').localeCompare(b.frasco || '')
+    })
+    const correcto = cerrados[0]
+    const esCorrecto = correcto?.id === item.id
+    if (!esCorrecto && !forzar) {
+      const puedeForazar = rol === 'jefe' || rol === 'admin'
+      if (!puedeForazar) {
+        alert(`No es el frasco correcto. El siguiente a abrir es: ${correcto?.codigo || ''}`)
+        return
+      }
+      const confirmar = window.confirm(
+        `El frasco correcto a abrir es ${correcto?.codigo || ''}.\n¿Deseas abrir ${item.codigo} de todas formas?`
+      )
+      if (!confirmar) return
+    }
     try {
       await ponerEnUsoInsumo({ coleccion:'estandares', insumoId:item.id,
         usuario: user.displayName || user.email, email: user.email })
