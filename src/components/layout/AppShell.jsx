@@ -18,6 +18,7 @@ export default function AppShell() {
   const navigate         = useNavigate()
  
   const [pendientes, setPendientes]           = useState(0)
+  const [alertasCount, setAlertasCount]       = useState(0)
   const [editandoNombre, setEditandoNombre]   = useState(false)
   const [nuevoNombre, setNuevoNombre]         = useState('')
   const [nombreMostrado, setNombreMostrado]   = useState('')
@@ -72,6 +73,43 @@ export default function AppShell() {
     return () => clearInterval(interval)
   }, [puedeAprobar])
  
+  // Contar alertas activas
+  useEffect(() => {
+    async function contarAlertas() {
+      try {
+        const hoy = new Date(); hoy.setHours(0,0,0,0)
+        const [stds, reacts, pls] = await Promise.all([
+          getDocs(collection(db, 'estandares')),
+          getDocs(collection(db, 'reactivos')),
+          getDocs(collection(db, 'placebo')),
+        ])
+        let count = 0
+        stds.docs.forEach(d => {
+          const data = d.data()
+          if (['SIN STOCK','Sin stock','Dado de baja','Dada de baja','Retirado por cliente'].includes(data.estado)) return
+          const vence = data.fechaVencimiento?.toDate?.() || (data.fechaVencimiento ? new Date(data.fechaVencimiento + 'T12:00:00') : null)
+          if (vence) { const dias = Math.round((vence - hoy) / 86400000); if (dias <= 90) count++ }
+        })
+        reacts.docs.forEach(d => {
+          const data = d.data()
+          const vence = data.fechaVencimiento?.toDate?.() || (data.fechaVencimiento ? new Date(data.fechaVencimiento + 'T12:00:00') : null)
+          if (vence) { const dias = Math.round((vence - hoy) / 86400000); if (dias <= 90) count++ }
+          if (data.estado === 'STOCK BAJO') count++
+        })
+        pls.docs.forEach(d => {
+          const data = d.data()
+          if (['Retirado por cliente','Sin stock'].includes(data.estado)) return
+          const vence = data.fechaVencimiento?.toDate?.() || (data.fechaVencimiento ? new Date(data.fechaVencimiento + 'T12:00:00') : null)
+          if (vence) { const dias = Math.round((vence - hoy) / 86400000); if (dias <= 90) count++ }
+        })
+        setAlertasCount(count)
+      } catch {}
+    }
+    contarAlertas()
+    const interval = setInterval(contarAlertas, 60000)
+    return () => clearInterval(interval)
+  }, [])
+
   const guardarNombre = async () => {
     if (!nuevoNombre.trim() || !docUsuarioId) return
     setGuardandoNombre(true)
@@ -145,7 +183,17 @@ export default function AppShell() {
  
           <div className="nav-section">Sistema</div>
           <NavLink to="/alertas" className={({ isActive }) => `nav-link${isActive?' active':''}`}>
-            <Bell size={16}/> Alertas
+            <Bell size={16}/>
+            <span style={{flex:1}}>Alertas</span>
+            {alertasCount > 0 && (
+              <span style={{
+                background:'var(--danger)', color:'#fff',
+                borderRadius:10, fontSize:10, fontWeight:600,
+                padding:'1px 6px', minWidth:18, textAlign:'center'
+              }}>
+                {alertasCount}
+              </span>
+            )}
           </NavLink>
           <NavLink to="/metodos" className={({ isActive }) => `nav-link${isActive?' active':''}`}>
             <BookOpen size={16}/> Métodos
