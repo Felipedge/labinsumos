@@ -31,37 +31,57 @@ export default function Dashboard() {
         const allAlerts = []
         const hoy = new Date(); hoy.setHours(0,0,0,0)
  
+        const parseFecha = v => {
+          if (!v) return null
+          if (v?.toDate) return v.toDate()
+          const s = String(v)
+          const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/)
+          if (m) return new Date(parseInt(m[1]), parseInt(m[2])-1, parseInt(m[3]))
+          return null
+        }
+
         stds.forEach(s => {
-          if (!s.fechaVencimiento) return
-          const sem = calcularSemaforo(s.fechaVencimiento?.toDate?.() || s.fechaVencimiento)
-          if (sem.color !== 'success' && s.estado !== 'SIN STOCK') {
-            allAlerts.push({ tipo:'Estándar', icono:'flask', codigo:s.codigo, nombre:s.nombre, sem, id:s.id })
-          }
+          if (['SIN STOCK','Sin stock','Dado de baja','Dada de baja','Retirado por cliente'].includes(s.estado)) return
+          const vence = parseFecha(s.fechaVencimiento)
+          if (!vence) return
+          const dias = Math.round((vence - hoy) / 86400000)
+          if (dias > 90) return
+          const sem = { color: dias <= 45 ? 'danger' : 'warning', texto: dias < 0 ? 'Vencido' : `${dias} días`, dias }
+          allAlerts.push({ tipo:'Estándar', codigo:s.codigo, nombre:s.nombre, sem, id:s.id })
         })
-        // Las columnas ya no generan alertas por inyecciones (se dan de baja
-        // manualmente por retiro), por lo que se omiten del cálculo de alertas.
+
         reacts.forEach(r => {
-          if (!r.fechaVencimiento) return
-          const sem = calcularSemaforo(r.fechaVencimiento?.toDate?.() || r.fechaVencimiento)
-          if (sem.color !== 'success') {
-            allAlerts.push({ tipo:'Reactivo', icono:'droplet', codigo:r.codigo, nombre:r.nombre, sem, id:r.id })
+          const vence = parseFecha(r.fechaVencimiento)
+          if (vence) {
+            const dias = Math.round((vence - hoy) / 86400000)
+            if (dias <= 90) {
+              const sem = { color: dias <= 45 ? 'danger' : 'warning', texto: dias < 0 ? 'Vencido' : `${dias} días`, dias }
+              allAlerts.push({ tipo:'Reactivo', codigo:r.codigo, nombre:r.nombre, sem, id:r.id })
+            }
+          }
+          if (r.estado === 'STOCK BAJO') {
+            allAlerts.push({ tipo:'Reactivo', codigo:r.codigo, nombre:r.nombre,
+              sem:{ color:'danger', texto:'Stock bajo', dias:0 }, id:r.id })
           }
         })
+
         pls.forEach(p => {
-          if (!p.fechaVencimiento) return
-          const sem = calcularSemaforo(p.fechaVencimiento?.toDate?.() || p.fechaVencimiento)
-          if (sem.color !== 'success') {
-            allAlerts.push({ tipo:'Placebo', icono:'pill', codigo:p.codigo, nombre:p.productoReferencia, sem, id:p.id })
-          }
+          if (['Retirado por cliente','Sin stock','SIN STOCK'].includes(p.estado)) return
+          const vence = parseFecha(p.fechaVencimiento)
+          if (!vence) return
+          const dias = Math.round((vence - hoy) / 86400000)
+          if (dias > 90) return
+          const sem = { color: dias <= 45 ? 'danger' : 'warning', texto: dias < 0 ? 'Vencido' : `${dias} días`, dias }
+          allAlerts.push({ tipo:'Placebo', codigo:p.codigo, nombre:p.productoReferencia, sem, id:p.id })
         })
  
         allAlerts.sort((a,b) => (a.sem.dias ?? 0) - (b.sem.dias ?? 0))
  
         setStats({
-          stds:     { total: stds.filter(s => s.estado === 'EN USO').length },
+          stds:     { total: stds.filter(s => s.estado === 'En uso').length },
           cols:     { total: cols.filter(c => c.estado !== 'DADA DE BAJA' && c.estado !== 'RETIRADA' && c.estado !== 'Pendiente de aprobación').length },
-          reacts:   { total: reacts.filter(r => r.estado === 'ACTIVO').length },
-          pls:      { total: pls.filter(p => p.estado === 'ACTIVO').length },
+          reacts:   { total: reacts.filter(r => r.estado === 'ACTIVO' || r.estado === 'Activo').length },
+          pls:      { total: pls.filter(p => p.estado === 'En uso' || p.estado === 'Cerrado').length },
           criticas: allAlerts.filter(a => a.sem.color === 'danger').length,
           adv:      allAlerts.filter(a => a.sem.color === 'warning').length,
         })
@@ -96,7 +116,7 @@ export default function Dashboard() {
         <KPI label="Reactivos activos"  value={stats.reacts.total} type="ok"     icon={Droplets} />
         <KPI label="Lotes placebo"      value={stats.pls.total}    type="info"   icon={Pill} />
         <KPI label="Alertas críticas"   value={stats.criticas}     type="danger" icon={AlertTriangle} />
-        <KPI label="Por vencer (60d)"   value={stats.adv}          type="warn"   icon={Clock} />
+        <KPI label="Advertencias (90d)" value={stats.adv}          type="warn"   icon={Clock} />
       </div>
  
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>

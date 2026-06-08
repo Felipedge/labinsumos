@@ -73,11 +73,18 @@ export default function AppShell() {
     return () => clearInterval(interval)
   }, [puedeAprobar])
  
-  // Contar alertas activas
+  // Contar alertas activas — misma lógica que Alertas.jsx (45/90 días)
   useEffect(() => {
     async function contarAlertas() {
       try {
         const hoy = new Date(); hoy.setHours(0,0,0,0)
+        const parseFecha = v => {
+          if (!v) return null
+          if (v?.toDate) return v.toDate()
+          const s = String(v), m = s.match(/^(\d{4})-(\d{2})-(\d{2})/)
+          if (m) return new Date(parseInt(m[1]), parseInt(m[2])-1, parseInt(m[3]))
+          return null
+        }
         const [stds, reacts, pls] = await Promise.all([
           getDocs(collection(db, 'estandares')),
           getDocs(collection(db, 'reactivos')),
@@ -87,19 +94,19 @@ export default function AppShell() {
         stds.docs.forEach(d => {
           const data = d.data()
           if (['SIN STOCK','Sin stock','Dado de baja','Dada de baja','Retirado por cliente'].includes(data.estado)) return
-          const vence = data.fechaVencimiento?.toDate?.() || (data.fechaVencimiento ? new Date(data.fechaVencimiento + 'T12:00:00') : null)
+          const vence = parseFecha(data.fechaVencimiento)
           if (vence) { const dias = Math.round((vence - hoy) / 86400000); if (dias <= 90) count++ }
         })
         reacts.docs.forEach(d => {
           const data = d.data()
-          const vence = data.fechaVencimiento?.toDate?.() || (data.fechaVencimiento ? new Date(data.fechaVencimiento + 'T12:00:00') : null)
+          const vence = parseFecha(data.fechaVencimiento)
           if (vence) { const dias = Math.round((vence - hoy) / 86400000); if (dias <= 90) count++ }
           if (data.estado === 'STOCK BAJO') count++
         })
         pls.docs.forEach(d => {
           const data = d.data()
-          if (['Retirado por cliente','Sin stock'].includes(data.estado)) return
-          const vence = data.fechaVencimiento?.toDate?.() || (data.fechaVencimiento ? new Date(data.fechaVencimiento + 'T12:00:00') : null)
+          if (['Retirado por cliente','Sin stock','SIN STOCK'].includes(data.estado)) return
+          const vence = parseFecha(data.fechaVencimiento)
           if (vence) { const dias = Math.round((vence - hoy) / 86400000); if (dias <= 90) count++ }
         })
         setAlertasCount(count)
