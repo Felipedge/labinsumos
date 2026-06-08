@@ -12,9 +12,9 @@ import { Plus, Search, FlaskConical, History, Package, ExternalLink, CheckCircle
 import DocumentosPanel from '../components/shared/DocumentosPanel.jsx'
  
 const CLIENTES  = ['Ascend','Galenicum','Grunenthal','Bamberg','Labomed','Laboratorio Chile','Novartis','Seven Pharma','Emcure','Prater','MSN','Otro']
-const SECTORES  = ['Fq','Val','Fq/val','Mb','T-r']
+const SECTORES  = ['Fisicoquímico', 'Validaciones']
 const ESTADOS   = ['En uso','Cerrado','Vencido','Sin stock','Dado de baja','Retirado por cliente']
-const ALMACENES = ['Desecador','Refrigerador','Freezer','Desecador-oncológico','Refrigerador-oncológico','Refrigerador-controlado']
+const ALMACENES = ['Desecador','Refrigerador','Freezer','Desecador-controlado','Refrigerador-controlado','Freezer-controlado','Desecador-oncológico','Refrigerador-oncológico']
 const MESES     = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
 const MESES_NUM = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC']
  
@@ -168,6 +168,9 @@ export default function Estandares() {
   const [fTempSecado, setFTempSecado]     = useState('')
   const [fTiempoSecado, setFTiempoSecado] = useState('')
   const [fSecadoDesecador, setFSecadoDesecador] = useState(false)
+
+  const [editSectorId, setEditSectorId]     = useState(null)
+  const [editSectorVal, setEditSectorVal]   = useState('')
 
   const [reposicionItem, setReposicionItem] = useState(null)
   const [rLote, setRLote]                   = useState('')
@@ -354,6 +357,15 @@ export default function Estandares() {
     } catch(e) { alert('Error: ' + e.message) }
   }
  
+  const guardarSector = async (id) => {
+    if (!editSectorVal) return
+    try {
+      await updateDoc(doc(db, 'estandares', id), { sector: editSectorVal, actualizadoEn: serverTimestamp() })
+      setEditSectorId(null)
+      load()
+    } catch(e) { alert('Error: ' + e.message) }
+  }
+
   const abrirReposicion = (item) => {
     setReposicionItem(item)
     setRLote(''); setRVencimiento(''); setRMsg('')
@@ -914,7 +926,7 @@ export default function Estandares() {
               <thead>
                 <tr>
                   <th>Código</th><th>Nombre / Producto</th><th>Frasco</th><th>Cliente</th>
-                  <th>Potencia</th><th>Condiciones</th><th>Stock (mg)</th>
+                  <th>Sector</th><th>Potencia</th><th>Condiciones</th><th>Stock (mg)</th>
                   <th>Vencimiento / Revisión</th><th>Estado</th><th></th>
                 </tr>
               </thead>
@@ -940,6 +952,23 @@ export default function Estandares() {
                         </span>
                       </td>
                       <td style={{color:'var(--text-2)'}}>{i.cliente}</td>
+                      <td>
+                        {editSectorId === i.id ? (
+                          <div style={{display:'flex',gap:4,alignItems:'center'}}>
+                            <select value={editSectorVal} onChange={e=>setEditSectorVal(e.target.value)}
+                              style={{fontSize:11,padding:'2px 4px'}}>
+                              {SECTORES.map(s=><option key={s}>{s}</option>)}
+                            </select>
+                            <button className="btn btn-sm" style={{padding:'2px 5px',color:'var(--ok)'}} onClick={()=>guardarSector(i.id)}>✓</button>
+                            <button className="btn btn-sm" style={{padding:'2px 5px'}} onClick={()=>setEditSectorId(null)}>✕</button>
+                          </div>
+                        ) : (
+                          <span style={{cursor:'pointer',fontSize:11,color:'var(--text-2)',borderBottom:'1px dashed var(--border-md)'}}
+                            onClick={()=>{setEditSectorId(i.id);setEditSectorVal(i.sector||SECTORES[0])}}>
+                            {i.sector || '—'}
+                          </span>
+                        )}
+                      </td>
                       <td><BadgePotencia tipoPotencia={i.tipoPotencia} potencia={i.potencia}/></td>
                       <td>
                         {(i.karlFischer||i.secadoPrevio||i.secadoDesecador)
@@ -988,7 +1017,7 @@ export default function Estandares() {
                   )
                 })}
                 {filtrados.length===0 && (
-                  <tr><td colSpan={10} style={{textAlign:'center',padding:24,color:'var(--text-3)'}}>
+                  <tr><td colSpan={11} style={{textAlign:'center',padding:24,color:'var(--text-3)'}}>
                     {verPapelera?'La papelera está vacía':'No hay estándares que coincidan'}
                   </td></tr>
                 )}
