@@ -2,7 +2,9 @@ dist/
 .vite/
 node_modules/
 .vscode/
-
+.env.development
+.env.production
+.env.local
 # Firebase credentials
 serviceAccountKey.json
 
