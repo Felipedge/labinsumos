@@ -18,7 +18,7 @@ const MODULOS = [
 
 // Estado inicial tras aprobación según módulo
 function estadoTrasAprobacion(item) {
-  if (item.modulo === 'columnas')   return 'Nueva'    // Nueva → Encargado/Jefe la pone En uso
+  if (item.modulo === 'columnas')   return 'Cerrado'  // Cerrado → Encargado/Jefe la pone En uso
   return 'Cerrado'                                    // Todos los demás: Cerrado → poner en uso manual
 }
 
@@ -71,7 +71,7 @@ export default function Aprobaciones() {
   // Admin siempre puede aprobar, otros según jerarquía
   const puedeAprobarItem = (item) => {
     if (rol === 'admin') return true
-    return puedeAprobarA(rol, item.creadoPorRol || 'encargado')
+    return puedeAprobarA(rol, item.creadoPorRol || 'administrativo')
   }
 
   const aprobar = async (item) => {

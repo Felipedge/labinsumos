@@ -34,7 +34,7 @@ export default function Dashboard() {
         stds.forEach(s => {
           if (!s.fechaVencimiento) return
           const sem = calcularSemaforo(s.fechaVencimiento?.toDate?.() || s.fechaVencimiento)
-          if (sem.color !== 'success' && s.estado !== 'SIN STOCK') {
+          if (sem.color !== 'success' && s.estado !== 'Sin stock') {
             allAlerts.push({ tipo:'Estándar', icono:'flask', codigo:s.codigo, nombre:s.nombre, sem, id:s.id })
           }
         })
@@ -58,10 +58,10 @@ export default function Dashboard() {
         allAlerts.sort((a,b) => (a.sem.dias ?? 0) - (b.sem.dias ?? 0))
  
         setStats({
-          stds:     { total: stds.filter(s => s.estado === 'EN USO').length },
-          cols:     { total: cols.filter(c => c.estado !== 'DADA DE BAJA' && c.estado !== 'RETIRADA' && c.estado !== 'Pendiente de aprobación').length },
-          reacts:   { total: reacts.filter(r => r.estado === 'ACTIVO').length },
-          pls:      { total: pls.filter(p => p.estado === 'ACTIVO').length },
+          stds:     { total: stds.filter(s => s.estado === 'En uso').length },
+          cols:     { total: cols.filter(c => c.estado !== 'Dado de baja' && c.estado !== 'Retirado por cliente' && c.estado !== 'Pendiente de aprobación').length },
+          reacts:   { total: reacts.filter(r => r.estado === 'Activo' || r.estado === 'Stock bajo').length },
+          pls:      { total: pls.filter(p => p.estado !== 'Retirado por cliente' && p.estado !== 'Pendiente de aprobación' && p.estado !== 'Sin stock').length },
           criticas: allAlerts.filter(a => a.sem.color === 'danger').length,
           adv:      allAlerts.filter(a => a.sem.color === 'warning').length,
         })

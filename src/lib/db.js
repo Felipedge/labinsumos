@@ -161,7 +161,7 @@ export async function retirarColumna({ columnaId, fechaRetiro, motivo, usuario, 
   const actual = snap.data()
  
   await updateDoc(ref, {
-    estado: 'Dada de baja',
+    estado: 'Dado de baja',
     motivoBaja: 'Retirada por cliente',
     fechaRetiro,
     motivoRetiro: motivo || 'Cliente solicitó devolución del insumo',
@@ -169,15 +169,15 @@ export async function retirarColumna({ columnaId, fechaRetiro, motivo, usuario, 
     retiradoPorEmail: email || '',
     actualizadoEn: serverTimestamp(),
   })
- 
+
   await registrarAudit({
     coleccion: 'columnas', documentoId: columnaId, accion: 'dar_de_baja',
     antes:   { estado: actual.estado },
-    despues: { estado: 'Dada de baja', fechaRetiro },
+    despues: { estado: 'Dado de baja', fechaRetiro },
     detalle: `Columna ${actual.codigo} retirada el ${fechaRetiro}. Motivo: ${motivo || 'Cliente solicitó devolución del insumo'}`,
   })
- 
-  return { estado: 'Dada de baja' }
+
+  return { estado: 'Dado de baja' }
 }
  
 // Poner columna en uso (Encargado/Jefe). Solo desde estado "Nueva".
@@ -212,7 +212,7 @@ export async function darBajaColumnaSST({ columnaId, motivo, usuario, email }) {
   const actual = snap.data()
  
   await updateDoc(ref, {
-    estado: 'Dada de baja',
+    estado: 'Dado de baja',
     motivoBaja: 'No cumple System Suitability',
     motivoRetiro: motivo || 'No cumple System Suitability',
     retiradoPor: usuario || '',
@@ -220,15 +220,15 @@ export async function darBajaColumnaSST({ columnaId, motivo, usuario, email }) {
     fechaBaja: new Date().toISOString().split('T')[0],
     actualizadoEn: serverTimestamp(),
   })
- 
+
   await registrarAudit({
     coleccion: 'columnas', documentoId: columnaId, accion: 'dar_de_baja',
     antes:   { estado: actual.estado },
-    despues: { estado: 'Dada de baja' },
+    despues: { estado: 'Dado de baja' },
     detalle: `Columna ${actual.codigo} dada de baja por falla de System Suitability. ${motivo || ''}`.trim(),
   })
- 
-  return { estado: 'Dada de baja' }
+
+  return { estado: 'Dado de baja' }
 }
  
 export async function reasignarColumna(columnaId, { cliente, producto }) {
@@ -275,7 +275,7 @@ export async function registrarRetiroReactivo({ reactivoId, cantidad, unidad, nA
   const actual = snap.data()
  
   const nuevoStock  = Math.max(0, (actual.stockRestante || 0) - cantidad)
-  const nuevoEstado = nuevoStock === 0 ? 'SIN STOCK' : nuevoStock <= (actual.stockMinimo || 0) ? 'STOCK BAJO' : 'ACTIVO'
+  const nuevoEstado = nuevoStock === 0 ? 'Sin stock' : nuevoStock <= (actual.stockMinimo || 0) ? 'Stock bajo' : 'Activo'
  
   await updateDoc(ref, {
     stockRestante: nuevoStock, estado: nuevoEstado,
@@ -328,7 +328,7 @@ export async function registrarUsoPlacebo({ placeboId, unidades, nAnalisis, anal
   const actual = snap.data()
  
   const nuevoStock  = Math.max(0, (actual.stockUnidades || 0) - unidades)
-  const nuevoEstado = nuevoStock === 0 ? 'SIN STOCK' : actual.estado
+  const nuevoEstado = nuevoStock === 0 ? 'Sin stock' : actual.estado
  
   await updateDoc(ref, {
     stockUnidades: nuevoStock, ultimoUso: serverTimestamp(),
@@ -369,7 +369,7 @@ export async function registrarPesadaAPI({ apiId, mgPesados, nAnalisis, producto
  
   const stockActual = actual.stockRestante ?? actual.cantidadRecibida ?? 0
   const nuevoStock  = Math.max(0, parseFloat(stockActual) - mgPesados)
-  const nuevoEstado = nuevoStock === 0 ? 'SIN STOCK' : actual.estado
+  const nuevoEstado = nuevoStock === 0 ? 'Sin stock' : actual.estado
  
   await updateDoc(ref, {
     stockRestante: nuevoStock, estado: nuevoEstado,

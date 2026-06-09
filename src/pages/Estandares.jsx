@@ -343,7 +343,7 @@ export default function Estandares() {
           proximaRevisionUSP: fEsUSP ? fProxRevisionUSP : null,
           ultimaRevisionUSP: null,
           fechaVencimiento: !fEsUSP && fVencimiento ? new Date(fVencimiento) : null,
-          estado: (rol === 'jefe' || rol === 'admin') ? estadoFrasco : 'Pendiente de aprobación', creadoPorRol: rol,
+          estado: rol === 'administrativo' ? 'Pendiente de aprobación' : estadoFrasco, creadoPorRol: rol,
           mesIngreso: fMes || mesAct, anioIngreso: parseInt(fAnio || anioAct),
           creadoPor: user.email, creadoEn: serverTimestamp(), actualizadoEn: serverTimestamp(),
         })
@@ -377,7 +377,7 @@ export default function Estandares() {
     }
     const hermanos = items.filter(h =>
       h.numeroStd === item.numeroStd &&
-      !['Dado de baja','Dada de baja','Retirado por cliente','SIN STOCK'].includes(h.estado)
+      !['Dado de baja','Dada de baja','Retirado por cliente','Sin stock'].includes(h.estado)
     )
     const hayEnUso = hermanos.some(h => h.estado === 'En uso')
     if (hayEnUso) {
