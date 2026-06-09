@@ -343,7 +343,7 @@ export default function Estandares() {
           proximaRevisionUSP: fEsUSP ? fProxRevisionUSP : null,
           ultimaRevisionUSP: null,
           fechaVencimiento: !fEsUSP && fVencimiento ? new Date(fVencimiento) : null,
-          estado: estadoFrasco, creadoPorRol: rol,
+          estado: (rol === 'jefe' || rol === 'admin') ? estadoFrasco : 'Pendiente de aprobación', creadoPorRol: rol,
           mesIngreso: fMes || mesAct, anioIngreso: parseInt(fAnio || anioAct),
           creadoPor: user.email, creadoEn: serverTimestamp(), actualizadoEn: serverTimestamp(),
         })
