@@ -260,10 +260,69 @@ export default function Estandares() {
     setGuardando(true)
     try {
       const numero = sigNum || await getSiguienteNumero(db)
+
+      // ── FEFO: verificar si ya existe algún frasco del mismo STD-XXXX ──
+      // Buscar todos los frascos existentes con el mismo numeroStd
+      const snapExist = await getDocs(
+        query(collection(db, 'estandares'), where('numeroStd', '==', numero))
+      )
+      const existentes = snapExist.docs.map(d => ({ id:d.id, ...d.data() }))
+        .filter(h => !['Dado de baja','Dada de baja','Retirado por cliente'].includes(h.estado))
+
+      const hayEnUsoExist = existentes.some(h => h.estado === 'En uso')
+
+      // Combinar existentes + nuevos frascos para calcular FEFO
+      const parseFecha = v => {
+        if (!v) return new Date('9999-12-31')
+        if (v?.toDate) return v.toDate()
+        const m = String(v).match(/^(\d{4})-(\d{2})-(\d{2})/)
+        if (m) return new Date(parseInt(m[1]), parseInt(m[2])-1, parseInt(m[3]))
+        return new Date(v)
+      }
+
+      // Todos los frascos nuevos con sus fechas
+      const nuevosConFecha = frascos.map(fr => ({
+        letra: fr.letra,
+        stock: fr.stock,
+        codigoCustom: fr.codigoCustom,
+        fechaVenc: !fEsUSP && fVencimiento ? parseFecha(fVencimiento) : new Date('9999-12-31'),
+      }))
+
+      // Si no hay ninguno En uso (ni existentes ni nuevos serán los primeros),
+      // el frasco a poner En uso es el de fecha más próxima entre todos
+      let frascoAbrirLetra = null
+      if (!hayEnUsoExist) {
+        // Combinar existentes cerrados + nuevos para encontrar el de menor vencimiento
+        const candidatos = [
+          ...existentes.filter(h => h.estado === 'Cerrado').map(h => ({
+            letra: h.frasco,
+            fechaVenc: parseFecha(h.fechaVencimiento),
+            esExistente: true,
+          })),
+          ...nuevosConFecha.map(fr => ({ letra: fr.letra, fechaVenc: fr.fechaVenc, esExistente: false })),
+        ]
+        candidatos.sort((a,b) => {
+          if (a.fechaVenc - b.fechaVenc !== 0) return a.fechaVenc - b.fechaVenc
+          return (a.letra||'').localeCompare(b.letra||'')
+        })
+        const primero = candidatos[0]
+        // Solo abrir si es uno de los nuevos frascos (los existentes ya están en Firestore)
+        if (primero && !primero.esExistente) frascoAbrirLetra = primero.letra
+        // Si el primero es un existente, hay que actualizarlo a En uso
+        if (primero && primero.esExistente) {
+          const docExist = existentes.find(h => h.frasco === primero.letra && h.estado === 'Cerrado')
+          if (docExist) {
+            await updateDoc(doc(db, 'estandares', docExist.id), { estado: 'En uso', actualizadoEn: serverTimestamp() })
+          }
+        }
+      }
+
       for (let i = 0; i < frascos.length; i++) {
         const frasco = frascos[i]
         const sugerido = generarCodigo(numero, fMes || mesAct, fAnio || anioAct, fLote, frasco.letra)
         const codigo = frasco.codigoCustom?.trim() || sugerido
+        // Determinar estado: En uso solo para el frasco FEFO correcto
+        const estadoFrasco = (!hayEnUsoExist && frasco.letra === frascoAbrirLetra) ? 'En uso' : 'Cerrado'
         await addDoc(collection(db, 'estandares'), {
           codigo, numeroStd: numero, frasco: frasco.letra,
           nombre: capitalizar(fNombre), cas: fCas.toUpperCase(), lote: fLote.toUpperCase(),
@@ -284,7 +343,7 @@ export default function Estandares() {
           proximaRevisionUSP: fEsUSP ? fProxRevisionUSP : null,
           ultimaRevisionUSP: null,
           fechaVencimiento: !fEsUSP && fVencimiento ? new Date(fVencimiento) : null,
-          estado: 'Cerrado', creadoPorRol: rol,
+          estado: estadoFrasco, creadoPorRol: rol,
           mesIngreso: fMes || mesAct, anioIngreso: parseInt(fAnio || anioAct),
           creadoPor: user.email, creadoEn: serverTimestamp(), actualizadoEn: serverTimestamp(),
         })
@@ -311,6 +370,9 @@ export default function Estandares() {
     const parseFecha = v => {
       if (!v) return new Date('9999-12-31')
       if (v?.toDate) return v.toDate()
+      // Parsear string ISO sin problemas de timezone
+      const m = String(v).match(/^(\d{4})-(\d{2})-(\d{2})/)
+      if (m) return new Date(parseInt(m[1]), parseInt(m[2])-1, parseInt(m[3]))
       return new Date(v)
     }
     const hermanos = items.filter(h =>
@@ -334,7 +396,7 @@ export default function Estandares() {
     if (!esCorrecto && !forzar) {
       const puedeForazar = rol === 'jefe' || rol === 'admin'
       if (!puedeForazar) {
-        alert(`No es el frasco correcto. El siguiente a abrir es: ${correcto?.codigo || ''}`)
+        alert(`⚠️ Orden FEFO: El siguiente frasco a abrir es:\n${correcto?.codigo || ''}\n\nVence: ${correcto?.fechaVencimiento ? new Date(correcto.fechaVencimiento?.toDate?.() || correcto.fechaVencimiento).toLocaleDateString('es-CL') : 'Sin fecha'}`)
         return
       }
       const confirmar = window.confirm(
