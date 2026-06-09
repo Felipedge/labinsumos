@@ -43,8 +43,8 @@ export default function APIs() {
   const puedeAgregar    = puedoHacer(rol, 'agregarInsumo')
   const puedeOperar     = puedoHacer(rol, 'registrarUso')
   const puedeBaja       = puedoHacer(rol, 'darDeBaja')
-  const puedePonerEnUso = puedoHacer(rol, 'ponerEnUso')
- 
+  const puedePonerEnUso = puedoHacer(rol, 'ponerEnUso') && rol !== 'analista'
+
   const [tab, setTab]             = useState('inventario')
   const [items, setItems]         = useState([])
   const [retiroItem, setRetiroItem]     = useState(null)
@@ -128,7 +128,7 @@ export default function APIs() {
         stockRestante:    parseFloat(form.stock) || 0,
         observacion:      capitalizar(form.observacion || ''),
         stock:            true,
-        estado:           'Cerrado',
+        estado:           rol === 'administrativo' ? 'Pendiente de aprobación' : 'Cerrado',
         creadoPorRol:     rol,
         creadoPor:        user.email,
         creadoEn:         serverTimestamp(),
@@ -197,7 +197,7 @@ export default function APIs() {
         stockRestante: parseFloat(rForm.stock) || 0,
         cantidadRecibida: rForm.cantidad || reposicionItem.cantidadRecibida,
         observacion: rForm.observacion || '',
-        estado: 'Cerrado',
+        estado: rol === 'administrativo' ? 'Pendiente de aprobación' : 'Cerrado',
         creadoPor: user.email, creadoEn: sts(), actualizadoEn: sts(),
         bajaPor: null, bajaRazon: null, bajaFecha: null,
       })

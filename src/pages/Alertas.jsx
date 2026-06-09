@@ -50,7 +50,7 @@ export default function Alertas() {
   const { user } = useAuth()
   const { rol }  = useRole()
  
-  const puedeSolicitar = rol === 'admin' || rol === 'jefe' || rol === 'encargado'
+  const puedeSolicitar = rol === 'admin' || rol === 'jefe' || rol === 'coordinador'
   const puedeAprobar   = rol === 'admin' || rol === 'jefe'
  
   const [alertas, setAlertas]         = useState([])
@@ -75,7 +75,7 @@ export default function Alertas() {
         const all = []
  
         stds.forEach(s => {
-          if (['SIN STOCK','Dado de baja','Dada de baja','Retirado por cliente'].includes(s.estado)) return
+          if (['Sin stock','Dado de baja','Retirado por cliente'].includes(s.estado)) return
           const vence = s.fechaVencimiento?.toDate?.() || (s.fechaVencimiento ? new Date(s.fechaVencimiento) : null)
           // USP
           if (s.esUSP) {
@@ -105,7 +105,7 @@ export default function Alertas() {
         reacts.forEach(r => {
           const vence = r.fechaVencimiento?.toDate?.() || (r.fechaVencimiento ? new Date(r.fechaVencimiento) : null)
           const sem = calcularSemaforo(vence)
-          if (sem.color !== 'success' || r.estado === 'STOCK BAJO') {
+          if (sem.color !== 'success' || r.estado === 'Stock bajo') {
             all.push({ tipo:'Reactivo', codigo:r.codigo, nombre:r.nombre,
               cliente:'—', insumoId:r.id, sem,
               detalle:`Stock: ${r.stockRestante ?? '—'} ${r.unidad||''}`,
@@ -114,7 +114,7 @@ export default function Alertas() {
         })
  
         pls.forEach(p => {
-          if (['Retirado por cliente','SIN STOCK','Dado de baja','Dada de baja'].includes(p.estado)) return
+          if (['Retirado por cliente','Sin stock','Dado de baja'].includes(p.estado)) return
           const vence = p.fechaVencimiento?.toDate?.() || (p.fechaVencimiento ? new Date(p.fechaVencimiento) : null)
           const sem = calcularSemaforo(vence)
           if (sem.color !== 'success') {

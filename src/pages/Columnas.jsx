@@ -118,7 +118,7 @@ export default function Columnas() {
   const puedeAgregar = puedoHacer(rol, 'agregarInsumo')
   const puedeOperar  = puedoHacer(rol, 'registrarUso')
   const puedeDarBaja = puedoHacer(rol, 'darDeBaja')
-  const puedePonerEnUso = puedoHacer(rol, 'ponerEnUso')
+  const puedePonerEnUso = puedoHacer(rol, 'ponerEnUso') && rol !== 'analista'
   // Solo el Analista registra uso de columna (regla específica de este módulo)
   const puedeRegistrarUso = rol === 'analista'
 
@@ -207,7 +207,7 @@ export default function Columnas() {
         // — uso acumulado (reemplaza el sistema de inyecciones/límite) —
         inyeccionesAcumuladas: 0,
         tiposAnalisis:     form.tiposAnalisis || [],
-        estado:            'Nueva',
+        estado:            rol === 'administrativo' ? 'Pendiente de aprobación' : 'Cerrado',
         creadoPorRol:      rol,
       }, user.email)
       setShowForm(false); setForm({}); setCodigoGenerado(''); setMsg(''); load()
@@ -713,9 +713,9 @@ export default function Columnas() {
           </thead>
           <tbody>
             {filtradas.map(c => {
-              const esNueva  = c.estado === 'Nueva'
-              const enUso    = c.estado === 'En uso'
-              const dadaBaja = c.estado === 'Dada de baja'
+              const esCerrado = c.estado === 'Cerrado'
+              const enUso     = c.estado === 'En uso'
+              const dadaBaja  = c.estado === 'Dado de baja'
               return (
                 <tr key={c.id} style={dadaBaja?{opacity:0.6}:{}}>
                   <td className="mono" style={{fontWeight:600}}>{c.codigo}</td>
@@ -737,12 +737,12 @@ export default function Columnas() {
                     <span style={{color:'var(--text-3)',fontSize:11}}> inyecc.</span>
                   </td>
                   <td>
-                    {esNueva
-                      ? <span className="badge badge-info">Nueva</span>
+                    {esCerrado
+                      ? <span className="badge badge-info">Cerrado</span>
                       : enUso
                         ? <span className="badge badge-ok">En uso</span>
                         : dadaBaja
-                          ? <span className="badge badge-danger">Dada de baja{c.fechaRetiro ? ` · ${c.fechaRetiro}` : c.fechaBaja ? ` · ${c.fechaBaja}` : ''}</span>
+                          ? <span className="badge badge-danger">Dado de baja{c.fechaRetiro ? ` · ${c.fechaRetiro}` : c.fechaBaja ? ` · ${c.fechaBaja}` : ''}</span>
                           : <span className="badge badge-gray">{c.estado}</span>
                     }
                     {dadaBaja && c.motivoBaja && (
@@ -751,7 +751,7 @@ export default function Columnas() {
                   </td>
                   <td>
                     <div style={{display:'flex',gap:4,alignItems:'center'}}>
-                      <span style={{visibility: puedePonerEnUso && esNueva ? 'visible':'hidden'}}>
+                      <span style={{visibility: puedePonerEnUso && esCerrado ? 'visible':'hidden'}}>
                         <button className="btn btn-sm" title="Poner en uso" onClick={()=>ponerEnUso(c)}><PlayCircle size={13}/></button>
                       </span>
                       <span style={{visibility: puedeRegistrarUso && enUso ? 'visible':'hidden'}}>

@@ -52,7 +52,7 @@ export default function Reactivos() {
         unidad:        form.unidad || 'mL',
         fechaVencimiento: form.vencimiento || null,
         almacenamiento: form.almacen || '',
-        estado:        'Pendiente de aprobación',
+        estado:        rol === 'administrativo' ? 'Pendiente de aprobación' : 'Activo',
         creadoPorRol:  rol,
       }, user.email)
       setShowForm(false); setForm({}); setMsg(''); load()
@@ -206,7 +206,7 @@ export default function Reactivos() {
               const sem   = calcularSemaforo(vence)
               const badgeCls = sem.color==='danger'?'badge-danger':sem.color==='warning'?'badge-warn':sem.color==='success'?'badge-ok':'badge-gray'
               const esPendiente = r.estado === 'Pendiente de aprobación'
-              const estCls = esPendiente ? 'badge-warn' : r.estado==='ACTIVO'?'badge-ok':r.estado==='STOCK BAJO'?'badge-warn':'badge-danger'
+              const estCls = esPendiente ? 'badge-warn' : r.estado==='Activo'?'badge-ok':r.estado==='Stock bajo'?'badge-warn':'badge-danger'
               return (
                 <tr key={r.id}>
                   <td className="mono">{r.codigo}</td>

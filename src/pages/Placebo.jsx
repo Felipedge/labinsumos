@@ -37,8 +37,8 @@ export default function Placebo() {
   const puedeAgregar    = puedoHacer(rol, 'agregarInsumo')
   const puedeOperar     = puedoHacer(rol, 'registrarUso')
   const puedeBaja       = puedoHacer(rol, 'darDeBaja')
-  const puedePonerEnUso = puedoHacer(rol, 'ponerEnUso')
- 
+  const puedePonerEnUso = puedoHacer(rol, 'ponerEnUso') && rol !== 'analista'
+
   const [tab, setTab]             = useState('inventario')
   const [items, setItems]         = useState([])
   const [loading, setLoading]     = useState(true)
@@ -112,7 +112,7 @@ export default function Placebo() {
         stockUnidades: parseInt(form.stock) || 0,
         fechaVencimiento: form.vencimiento || null,
         almacenamiento: form.almacen || 'Temperatura ambiente',
-        estado: 'Cerrado', creadoPorRol: rol,
+        estado: rol === 'administrativo' ? 'Pendiente de aprobación' : 'Cerrado', creadoPorRol: rol,
       }, user.email)
       setShowForm(false); setForm({}); setMsg(''); load()
     } catch(e) { setMsg(e.message) }
@@ -158,7 +158,7 @@ export default function Placebo() {
         lote: rForm.lote.toUpperCase(),
         fechaVencimiento: rForm.vencimiento || null,
         stockUnidades: parseInt(rForm.stock) || 0,
-        estado: 'Cerrado', creadoPorRol: rol,
+        estado: rol === 'administrativo' ? 'Pendiente de aprobación' : 'Cerrado', creadoPorRol: rol,
         bajaPor: null, bajaRazon: null, bajaFecha: null,
       }, user.email)
       setReposicionItem(null); setRForm({}); load()
