@@ -19,10 +19,12 @@ const PLAC_VACIO  = { codigo:'', cantidad:'' }
 // ── Helpers ───────────────────────────────────────────────────
 function BadgeEstado({ estado }) {
   const map = {
-    'EN USO':  { cls:'badge-ok',     label:'EN USO' },
+    'En uso':  { cls:'badge-ok',     label:'En uso' },
+    'EN USO':  { cls:'badge-ok',     label:'En uso' },
     'CERRADO': { cls:'badge-info',   label:'CERRADO' },
     'VENCIDO': { cls:'badge-danger', label:'VENCIDO' },
-    'SIN STOCK':{ cls:'badge-warn',  label:'SIN STOCK' },
+    'Sin stock':{ cls:'badge-warn',  label:'Sin stock' },
+    'SIN STOCK':{ cls:'badge-warn',  label:'Sin stock' },
   }
   const b = map[estado] || { cls:'badge-gray', label: estado }
   return <span className={`badge ${b.cls}`}>{b.label}</span>
@@ -101,7 +103,7 @@ export default function Metodos() {
     if (!viales.length) return { ok: false, mensaje: 'No encontrado en inventario', frasco: null }
 
     // Frasco EN USO
-    const enUso = viales.find(v => v.estado === 'EN USO')
+    const enUso = viales.find(v => v.estado === 'En uso' || v.estado === 'EN USO')
     if (!enUso) {
       const vencido = viales.every(v => v.estado === 'VENCIDO')
       return { ok: false, mensaje: vencido ? 'Vencido' : 'Sin frasco activo', frasco: null }
