@@ -68,7 +68,6 @@ export default function APIs() {
   const [guardandoR, setGuardandoR]         = useState(false)
   const [codigoGeneradoAPI, setCodigoGeneradoAPI] = useState('')
 
-  // Historial
   const [pesadas, setPesadas]         = useState([])
   const [loadingH, setLoadingH]       = useState(false)
   const [searchH, setSearchH]         = useState('')
@@ -124,7 +123,6 @@ export default function APIs() {
         laboratorio:      form.laboratorio,
         ubicacion:        form.ubicacion || 'Desecador',
         fechaVencimiento: form.vencimiento ? new Date(form.vencimiento) : null,
-        cantidadRecibida: form.cantidad || '',
         stockRestante:    parseFloat(form.stock) || 0,
         observacion:      capitalizar(form.observacion || ''),
         stock:            true,
@@ -195,7 +193,6 @@ export default function APIs() {
         lote: rForm.lote.toUpperCase(),
         fechaVencimiento: rForm.vencimiento ? new Date(rForm.vencimiento) : null,
         stockRestante: parseFloat(rForm.stock) || 0,
-        cantidadRecibida: rForm.cantidad || reposicionItem.cantidadRecibida,
         observacion: rForm.observacion || '',
         estado: rol === 'administrativo' ? 'Pendiente de aprobación' : 'Cerrado',
         creadoPor: user.email, creadoEn: sts(), actualizadoEn: sts(),
@@ -280,7 +277,6 @@ export default function APIs() {
             <div className="form-grid">
               <div className="form-group"><label>N° Lote nuevo *</label><input value={rForm.lote||''} onChange={e=>setRForm(p=>({...p,lote:e.target.value.toUpperCase()}))} placeholder="ej: LOT9999"/></div>
               <div className="form-group"><label>Fecha vencimiento</label><input type="date" value={rForm.vencimiento||''} onChange={e=>setRForm(p=>({...p,vencimiento:e.target.value}))}/></div>
-              <div className="form-group"><label>Cantidad recibida</label><input value={rForm.cantidad||''} onChange={e=>setRForm(p=>({...p,cantidad:e.target.value}))} placeholder="ej: 20 g"/></div>
               <div className="form-group"><label>Stock inicial (mg) *</label><input type="number" step="0.01" value={rForm.stock||''} onChange={e=>setRForm(p=>({...p,stock:e.target.value}))} placeholder="ej: 20000"/></div>
               <div className="form-group" style={{gridColumn:'1/-1'}}><label>Observaciones</label><input value={rForm.observacion||''} onChange={e=>setRForm(p=>({...p,observacion:e.target.value}))}/></div>
             </div>
@@ -346,7 +342,6 @@ export default function APIs() {
         </div>
       </div>
  
-      {/* Tabs */}
       <div style={{display:'flex',gap:4,marginBottom:16,borderBottom:'1px solid var(--border)'}}>
         {[
           { id:'inventario', label:'Inventario', count:activos.length },
@@ -405,9 +400,6 @@ export default function APIs() {
                     {UBICACIONES.map(u=><option key={u}>{u}</option>)}
                   </select>
                 </div>
-                <div className="form-group"><label>Cantidad recibida</label>
-                  <input placeholder="ej: 20 g" onChange={f('cantidad')}/>
-                </div>
                 <div className="form-group"><label>Stock inicial (mg)</label>
                   <input type="number" step="0.01" placeholder="ej: 20000" onChange={f('stock')}/>
                 </div>
@@ -444,7 +436,6 @@ export default function APIs() {
             </div>
           )}
  
-          {/* Barra búsqueda */}
           <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:12}}>
             <div className="search-bar">
               <Search size={16} style={{color:'var(--text-3)',flexShrink:0}}/>
@@ -481,7 +472,6 @@ export default function APIs() {
             </div>
           </div>
  
-          {/* KPIs */}
           <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10,marginBottom:14}}>
             {[
               { label:'Total',      valor: activos.length, color:'var(--accent)' },
@@ -515,8 +505,8 @@ export default function APIs() {
                     'Retirado por cliente':'badge-purple',
                     'Dado de baja':'badge-gray','Dada de baja':'badge-gray',
                   }[i.estado] || 'badge-gray'
-                  const stockMostrado = i.stockRestante ?? i.cantidadRecibida ?? '—'
- 
+                  const stockMostrado = i.stockRestante ?? '—'
+
                   return (
                     <tr key={i.id}>
                       <td className="mono" style={{fontWeight:600}}>{i.codigo}</td>

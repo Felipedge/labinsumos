@@ -22,26 +22,23 @@ const FASES   = [
   'SIL','Alquimide','NAP','ODS 3V','ODS 2','C1','L9','ODS 3','MOS','ODS','AMINO','Otro'
 ]
 
-// Color por grupo de fase. Editable: agrega/ajusta entradas aquí.
-// Cada fase mapea a una variante de badge (color + texto) definida en COLOR_VARIANTES.
 const FASE_COLOR = {
   'C18':   'rojo',
   'C8':    'verde',
   'CN':    'morado',
   'Fenil': 'naranjo',
   'RP18':  'azul',
-  // — asignados a criterio (relacionados con su familia donde aplica) —
-  'RP8':       'cian',     // par de RP18
+  'RP8':       'cian',
   'PH':        'rosa',
   'CPS':       'ambar',
   'Quiral':    'indigo',
   'SCX':       'teal',
   'T3':        'lima',
-  'RP':        'cielo',    // familia RP
+  'RP':        'cielo',
   'SIL':       'pizarra',
   'Alquimide': 'fucsia',
   'NAP':       'esmeralda',
-  'ODS 3V':    'vino',     // familia ODS (tonos cálidos)
+  'ODS 3V':    'vino',
   'ODS 2':     'coral',
   'ODS 3':     'tomate',
   'ODS':       'ladrillo',
@@ -51,7 +48,6 @@ const FASE_COLOR = {
   'AMINO':     'turquesa',
 }
 
-// Paleta de variantes (fondo translúcido + texto). No depende de clases CSS externas.
 const COLOR_VARIANTES = {
   rojo:      { bg:'#fee2e2', fg:'#b91c1c' },
   verde:     { bg:'#dcfce7', fg:'#15803d' },
@@ -80,7 +76,7 @@ const COLOR_VARIANTES = {
 }
 
 const AREAS = ['Fisicoquímico', 'Validaciones']
-const TIPOS_ANALISIS = ['Valoración','Identidad','Quiralidad','Sustancias relacionadas','Uniformidad','Disolución']
+const TIPOS_ANALISIS = ['Valoración','Identidad','Quiralidad','Sustancias relacionadas','Uniformidad','Disolución','Test límite']
 
 function FaseBadge({ fase }) {
   const key = FASE_COLOR[fase] || 'gris'
@@ -92,7 +88,6 @@ function FaseBadge({ fase }) {
   )
 }
 
-// Obtener siguiente número correlativo para un cliente
 async function getSiguienteCorrelativo(sigla) {
   try {
     const snap = await getDocs(
@@ -119,24 +114,22 @@ export default function Columnas() {
   const puedeOperar  = puedoHacer(rol, 'registrarUso')
   const puedeDarBaja = puedoHacer(rol, 'darDeBaja')
   const puedePonerEnUso = puedoHacer(rol, 'ponerEnUso') && rol !== 'analista'
-  // Solo el Analista registra uso de columna (regla específica de este módulo)
   const puedeRegistrarUso = rol === 'analista'
 
   const [clientesDB, setClientesDB] = useState(CLIENTES_FALLBACK)
   const [columnas, setColumnas]     = useState([])
   const [loading, setLoading]       = useState(true)
   const [showForm, setShowForm]     = useState(false)
-  const [useForm, setUseForm]       = useState(null)   // columna en la que se registra uso
-  const [retiroForm, setRetiroForm] = useState(null)   // columna que se está retirando
-  const [motivoBaja, setMotivoBaja] = useState('retiro_cliente') // 'retiro_cliente' | 'sst'
+  const [useForm, setUseForm]       = useState(null)
+  const [retiroForm, setRetiroForm] = useState(null)
+  const [motivoBaja, setMotivoBaja] = useState('retiro_cliente')
   const [fechaRetiroCliente, setFechaRetiroCliente] = useState('')
   const [obsRetiro, setObsRetiro] = useState('')
   const [form, setForm]             = useState({})
-  // Líneas de análisis del registro de uso: [{ nAnalisis, inyecciones }]
   const [usoLineas, setUsoLineas]   = useState([{ nAnalisis:'', inyecciones:'' }])
   const [msg, setMsg]               = useState('')
   const [docInsumo, setDocInsumo]   = useState(null)
-  const [historialCol, setHistorialCol] = useState(null)   // columna cuyo historial se muestra
+  const [historialCol, setHistorialCol] = useState(null)
   const [historialData, setHistorialData] = useState([])
   const [historialLoading, setHistorialLoading] = useState(false)
   const [search, setSearch]         = useState('')
@@ -146,7 +139,6 @@ export default function Columnas() {
   const [codigoGenerado, setCodigoGenerado] = useState('')
   const [generandoCodigo, setGenerandoCodigo] = useState(false)
 
-  // mapa nombre -> sigla a partir de los clientes cargados
   const SIGLAS_CLIENTE = Object.fromEntries(clientesDB.map(c => [c.nombre, c.sigla]))
   const NOMBRES_CLIENTE = clientesDB.map(c => c.nombre)
 
@@ -168,7 +160,6 @@ export default function Columnas() {
 
   const f = k => e => setForm(p => ({ ...p, [k]: e.target.value }))
 
-  // Generar código automático al seleccionar cliente
   const onClienteChange = async (e) => {
     const cliente = e.target.value
     setForm(p => ({ ...p, cliente }))
@@ -197,14 +188,12 @@ export default function Columnas() {
         tamanoParticula:   form.micra ? `${form.micra}µm` : '',
         dimensiones:       form.largo && form.diametro ? `${form.largo} x ${form.diametro} mm` : '',
         fabricante:        form.fabricante || '',
-        // — campos nuevos —
         platosTeoricosIniciales: parseInt(form.platosTeoricos) || null,
-        area:              form.area || '',                 // Fisicoquímico | Validaciones (editable)
+        area:              form.area || '',
         loteSerie:         form.loteSerie || '',
         fechaRecepcion:    form.fechaRecepcion || '',
         fechaInicioUso:    form.fechaInicioUso || '',
-        fechaRetiro:       '',                              // se completa al retirar
-        // — uso acumulado (reemplaza el sistema de inyecciones/límite) —
+        fechaRetiro:       '',
         inyeccionesAcumuladas: 0,
         tiposAnalisis:     form.tiposAnalisis || [],
         estado:            rol === 'administrativo' ? 'Pendiente de aprobación' : 'Cerrado',
@@ -214,7 +203,6 @@ export default function Columnas() {
     } catch(e) { setMsg(e.message) }
   }
 
-  // ——— Registro de uso (solo Analista) ———
   const setLinea = (i, k, val) =>
     setUsoLineas(prev => prev.map((l, idx) => idx === i ? { ...l, [k]: val } : l))
   const addLinea = () => setUsoLineas(prev => [...prev, { nAnalisis:'', inyecciones:'' }])
@@ -236,8 +224,8 @@ export default function Columnas() {
     try {
       await registrarUsoColumna({
         columnaId:    useForm.id,
-        analisis:     lineasValidas,            // [{ nAnalisis, inyecciones }]
-        totalInyecciones: totalInyeccionesUso,  // se suma a inyeccionesAcumuladas en lib/db
+        analisis:     lineasValidas,
+        totalInyecciones: totalInyeccionesUso,
         analista:     user.displayName || user.email,
         email:        user.email,
       })
@@ -245,7 +233,6 @@ export default function Columnas() {
     } catch(e) { setMsg(e.message) }
   }
 
-  // ——— Retiro de columna (cliente pide el insumo de vuelta -> dada de baja) ———
   const abrirRetiro = (c) => {
     setRetiroForm(c); setUseForm(null); setShowForm(false)
     setMotivoBaja('retiro_cliente')
@@ -279,7 +266,6 @@ export default function Columnas() {
     } catch(e) { setMsg(e.message) }
   }
 
-  // ——— Poner en uso (Encargado/Jefe) ———
   const ponerEnUso = async (c) => {
     try {
       await ponerEnUsoColumna({
@@ -290,8 +276,6 @@ export default function Columnas() {
       load()
     } catch(e) { setMsg(e.message) }
   }
-
-  // bajaPorSST integrado en confirmarRetiro
 
   const abrirHistorial = async (c) => {
     setHistorialCol(c)
@@ -349,14 +333,12 @@ export default function Columnas() {
         />
       )}
 
-      {/* ——— Panel historial de uso ——— */}
       {historialCol && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:1000,
           display:'flex',alignItems:'flex-start',justifyContent:'flex-end',padding:16}}>
           <div style={{background:'var(--surface)',borderRadius:'var(--radius-lg)',
             width:'100%',maxWidth:680,height:'calc(100vh - 32px)',display:'flex',flexDirection:'column',overflow:'hidden'}}>
 
-            {/* Header */}
             <div style={{padding:'16px 20px',borderBottom:'1px solid var(--border)',
               display:'flex',justifyContent:'space-between',alignItems:'flex-start',flexShrink:0}}>
               <div>
@@ -374,7 +356,6 @@ export default function Columnas() {
               <button className="btn btn-sm" onClick={()=>setHistorialCol(null)}><X size={14}/></button>
             </div>
 
-            {/* Contenido */}
             <div style={{flex:1,overflowY:'auto',padding:'12px 20px'}}>
               {historialLoading ? (
                 <div style={{display:'flex',justifyContent:'center',padding:40}}><div className="spinner"/></div>
@@ -391,7 +372,6 @@ export default function Columnas() {
                     borderBottom: i < historialData.length-1 ? '1px solid var(--border)' : 'none',
                     padding:'12px 0',
                   }}>
-                    {/* Cabecera del registro */}
                     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
                       <div style={{display:'flex',alignItems:'center',gap:8}}>
                         <Clock size={12} style={{color:'var(--text-3)'}}/>
@@ -406,7 +386,6 @@ export default function Columnas() {
                       </div>
                     </div>
 
-                    {/* Líneas de análisis */}
                     {(u.analisis && u.analisis.length > 0) ? (
                       <div style={{background:'var(--bg)',borderRadius:'var(--radius-sm)',padding:'8px 12px'}}>
                         <div style={{fontSize:11,color:'var(--text-3)',marginBottom:6,fontWeight:500}}>
@@ -426,14 +405,12 @@ export default function Columnas() {
                         ))}
                       </div>
                     ) : (
-                      /* Formato viejo sin array de análisis */
                       <div style={{background:'var(--bg)',borderRadius:'var(--radius-sm)',padding:'6px 12px',
                         fontSize:12,color:'var(--text-2)'}}>
                         N° análisis: {u.nAnalisis || '—'} · {u.inyecciones || 0} inyecciones
                       </div>
                     )}
 
-                    {/* Total acumulado después de este registro */}
                     <div style={{fontSize:11,color:'var(--text-3)',marginTop:6,textAlign:'right'}}>
                       Acumulado tras este registro: <strong>{u.totalAcum || '—'}</strong>
                     </div>
@@ -507,7 +484,7 @@ export default function Columnas() {
             <div className="form-group"><label>Micra (µm)</label>
               <select value={form.micra || ''} onChange={f('micra')}>
                 <option value="">Seleccionar...</option>
-                {['1.8','3','3.5','5','10'].map(m=><option key={m} value={m}>{m} µm</option>)}
+                {['1.6','1.7','1.8','2','2.5','3','3.5','5','10'].map(m=><option key={m} value={m}>{m} µm</option>)}
               </select>
             </div>
             <div className="form-group"><label>Platos teóricos iniciales</label>
@@ -561,7 +538,6 @@ export default function Columnas() {
         </div>
       )}
 
-      {/* ——— Registro de uso (solo Analista) ——— */}
       {useForm && puedeRegistrarUso && (
         <div className="card">
           <div className="card-title">Registrar uso — {useForm.codigo}</div>
@@ -606,7 +582,6 @@ export default function Columnas() {
         </div>
       )}
 
-      {/* ——— Modal dar de baja columna ——— */}
       {retiroForm && puedeDarBaja && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:1000,
           display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
@@ -617,7 +592,6 @@ export default function Columnas() {
             </p>
             {msg && <div className="alert-item danger" style={{marginBottom:10}}>{msg}</div>}
 
-            {/* Selector de motivo */}
             <div style={{display:'flex',gap:8,marginBottom:16}}>
               {[
                 { val:'retiro_cliente', label:'Retiro de cliente' },
@@ -638,7 +612,6 @@ export default function Columnas() {
               ))}
             </div>
 
-            {/* Fecha solo para retiro de cliente */}
             {motivoBaja === 'retiro_cliente' && (
               <div className="form-group" style={{marginBottom:12}}>
                 <label>Fecha en que el cliente retiró la columna *</label>
@@ -670,7 +643,6 @@ export default function Columnas() {
         </div>
       )}
 
-      {/* Barra búsqueda, filtro cliente y ordenamiento */}
       <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:12}}>
         <div className="search-bar">
           <Search size={16} style={{color:'var(--text-3)',flexShrink:0}}/>

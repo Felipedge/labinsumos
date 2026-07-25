@@ -45,7 +45,6 @@ export default function Reactivos() {
         nombre:        form.nombre,
         lote:          form.lote || '',
         categoria:     form.categoria || 'Otro',
-        grado:         form.grado || '',
         fabricante:    form.fabricante || '',
         stockRestante: parseFloat(form.stock) || 0,
         stockMinimo:   parseFloat(form.minimo) || 0,
@@ -136,7 +135,6 @@ export default function Reactivos() {
             <div className="form-group"><label>Categoría</label>
               <select onChange={f('categoria')}><option value="">Seleccionar...</option>{CATEGORIAS.map(c=><option key={c}>{c}</option>)}</select>
             </div>
-            <div className="form-group"><label>Grado / calidad</label><input placeholder="ej: HPLC, PA" onChange={f('grado')} /></div>
             <div className="form-group"><label>Fabricante</label><input onChange={f('fabricante')} /></div>
             <div className="form-group"><label>Stock inicial</label><input type="number" step="0.01" onChange={f('stock')} /></div>
             <div className="form-group"><label>Unidad</label>
@@ -171,7 +169,6 @@ export default function Reactivos() {
         </div>
       )}
 
-      {/* Filtros por categoría */}
       <div style={{ display:'flex', gap:8, marginBottom:12, flexWrap:'wrap' }}>
         {['', ...CATEGORIAS].map(c => (
           <button key={c} className="btn btn-sm"
@@ -180,7 +177,6 @@ export default function Reactivos() {
         ))}
       </div>
 
-      {/* Barra búsqueda y ordenamiento */}
       <div className="search-bar">
         <Search size={16} style={{color:'var(--text-3)',flexShrink:0}}/>
         <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por código o nombre..." style={{flex:1}}/>
@@ -199,7 +195,7 @@ export default function Reactivos() {
 
       <div className="table-wrap">
         <table>
-          <thead><tr><th>Código</th><th>Nombre</th><th>Categoría</th><th>Grado</th><th>Stock</th><th>Vencimiento</th><th>Estado</th><th></th></tr></thead>
+          <thead><tr><th>Código</th><th>Nombre</th><th>Categoría</th><th>Stock</th><th>Vencimiento</th><th>Estado</th><th></th></tr></thead>
           <tbody>
             {filtrados.map(r => {
               const vence = r.fechaVencimiento?.toDate?.() || (r.fechaVencimiento ? new Date(r.fechaVencimiento) : null)
@@ -212,7 +208,6 @@ export default function Reactivos() {
                   <td className="mono">{r.codigo}</td>
                   <td style={{ fontWeight:500 }}>{r.nombre}</td>
                   <td><span className="badge badge-info">{r.categoria}</span></td>
-                  <td style={{ color:'var(--text-2)' }}>{r.grado || '—'}</td>
                   <td><strong>{r.stockRestante ?? '—'}</strong> <span style={{ color:'var(--text-3)' }}>{r.unidad}</span></td>
                   <td>{vence ? <span className={`badge ${badgeCls}`}>{sem.texto}</span> : <span style={{color:'var(--text-3)'}}>—</span>}</td>
                   <td><span className={`badge ${estCls}`}>{r.estado}</span></td>
@@ -228,7 +223,7 @@ export default function Reactivos() {
               )
             })}
             {filtrados.length === 0 && (
-              <tr><td colSpan={8} style={{textAlign:'center',padding:24,color:'var(--text-3)'}}>No hay reactivos que coincidan</td></tr>
+              <tr><td colSpan={7} style={{textAlign:'center',padding:24,color:'var(--text-3)'}}>No hay reactivos que coincidan</td></tr>
             )}
           </tbody>
         </table>
@@ -238,6 +233,6 @@ export default function Reactivos() {
 }
 
 const DEMO_R = [
-  { id:'1', codigo:'REA-041', nombre:'Acetonitrilo', categoria:'HPLC', grado:'HPLC', stockRestante:2.1, unidad:'L', fechaVencimiento:'2026-06-22', estado:'ACTIVO' },
-  { id:'2', codigo:'REA-018', nombre:'Metanol', categoria:'HPLC', grado:'HPLC', stockRestante:8.5, unidad:'L', fechaVencimiento:'2027-01-15', estado:'ACTIVO' },
+  { id:'1', codigo:'REA-041', nombre:'Acetonitrilo', categoria:'HPLC', stockRestante:2.1, unidad:'L', fechaVencimiento:'2026-06-22', estado:'Activo' },
+  { id:'2', codigo:'REA-018', nombre:'Metanol', categoria:'HPLC', stockRestante:8.5, unidad:'L', fechaVencimiento:'2027-01-15', estado:'Activo' },
 ]
