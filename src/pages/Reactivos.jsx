@@ -29,13 +29,6 @@ export default function Reactivos() {
   const [ordenCampo, setOrdenCampo] = useState('nombre')
   const [ordenDir, setOrdenDir]     = useState('asc')
 
-  // Calcula umbral automático según peso total del frasco
-  const calcUmbral = (pesoFrasco, nFrascos) => {
-    const peso = parseFloat(pesoFrasco) || 0
-    if (peso > 100) return 1
-    return 3
-  }
-
   const load = async () => {
     try { setItems(await getReactivos()) }
     catch { setItems(DEMO_R) }
@@ -45,14 +38,18 @@ export default function Reactivos() {
 
   const f = k => e => setForm(p => ({ ...p, [k]: e.target.value }))
 
-  const onPesoFrascoChange = (e) => {
-    const pesoFrasco = e.target.value
-    const umbralAuto = calcUmbral(pesoFrasco, form.nFrascos)
-    setForm(p => ({ ...p, pesoFrasco, umbralAlerta: String(umbralAuto) }))
+  // Auto-calc nFrascos según pesoFrasco
+  const handlePesoFrasco = e => {
+    const peso = parseFloat(e.target.value) || 0
+    const nFrascos = peso > 100 ? 1 : 3
+    setForm(p => ({ ...p, pesoFrasco: e.target.value, nFrascos }))
   }
 
   const guardar = async () => {
     if (!form.codigo || !form.nombre) { setMsg('Código y nombre son obligatorios'); return }
+    const pesoFrasco = parseFloat(form.pesoFrasco) || 0
+    const nFrascos   = pesoFrasco > 100 ? 1 : 3
+    const umbralAlerta = parseFloat(form.umbralAlerta) || 0
     try {
       await crearReactivo({
         codigo:        form.codigo,
@@ -60,14 +57,13 @@ export default function Reactivos() {
         lote:          form.lote || '',
         categoria:     form.categoria || 'Otro',
         fabricante:    form.fabricante || '',
+        pesoFrasco,
+        nFrascos,
+        umbralAlerta,
         stockRestante: parseFloat(form.stock) || 0,
-        stockMinimo:   parseFloat(form.minimo) || 0,
         unidad:        form.unidad || 'mL',
         fechaVencimiento: form.vencimiento || null,
         almacenamiento: form.almacen || '',
-        pesoFrasco:    parseFloat(form.pesoFrasco) || null,
-        nFrascos:      parseInt(form.nFrascos) || null,
-        umbralAlerta:  parseInt(form.umbralAlerta) || calcUmbral(form.pesoFrasco, form.nFrascos),
         estado:        rol === 'administrativo' ? 'Espera Aprobación' : 'Activo',
         creadoPorRol:  rol,
       }, user.email)
@@ -153,32 +149,25 @@ export default function Reactivos() {
               <select onChange={f('categoria')}><option value="">Seleccionar...</option>{CATEGORIAS.map(c=><option key={c}>{c}</option>)}</select>
             </div>
             <div className="form-group"><label>Fabricante</label><input onChange={f('fabricante')} /></div>
+            <div className="form-group">
+              <label>Peso por frasco (g)</label>
+              <input type="number" step="0.01" value={form.pesoFrasco || ''} onChange={handlePesoFrasco} />
+              {form.pesoFrasco && (
+                <span style={{fontSize:12,color:'var(--text-3)',marginTop:4,display:'block'}}>
+                  → {form.nFrascos} frasco{form.nFrascos > 1 ? 's' : ''} por lote
+                </span>
+              )}
+            </div>
+            <div className="form-group"><label>N° de frascos</label>
+              <input type="number" value={form.nFrascos || ''} readOnly style={{background:'var(--bg-2)',cursor:'default'}} />
+            </div>
             <div className="form-group"><label>Stock inicial</label><input type="number" step="0.01" onChange={f('stock')} /></div>
             <div className="form-group"><label>Unidad</label>
               <select onChange={f('unidad')}>{UNIDADES.map(u=><option key={u}>{u}</option>)}</select>
             </div>
-            <div className="form-group"><label>Stock mínimo alerta</label><input type="number" step="0.01" onChange={f('minimo')} /></div>
+            <div className="form-group"><label>Umbral de alerta (stock mínimo)</label><input type="number" step="0.01" onChange={f('umbralAlerta')} /></div>
             <div className="form-group"><label>Fecha vencimiento</label><input type="date" onChange={f('vencimiento')} /></div>
             <div className="form-group"><label>Almacenamiento</label><input placeholder="ej: Solventes, Ácidos" onChange={f('almacen')} /></div>
-            <div className="form-group">
-              <label>Peso por frasco (g)</label>
-              <input type="number" step="0.01" placeholder="ej: 500" value={form.pesoFrasco || ''} onChange={onPesoFrascoChange} />
-              <p style={{fontSize:11,color:'var(--text-3)',marginTop:3}}>
-                Determina la alerta: {'>'}100 g → alerta al último 1 frasco · {'≤'}100 g → últimos 3 frascos
-              </p>
-            </div>
-            <div className="form-group"><label>N° de frascos</label>
-              <input type="number" placeholder="ej: 6" value={form.nFrascos || ''} onChange={f('nFrascos')} />
-            </div>
-            <div className="form-group">
-              <label>Umbral alerta (frascos)</label>
-              <input type="number" placeholder="auto" value={form.umbralAlerta || ''} onChange={f('umbralAlerta')} />
-              <p style={{fontSize:11,color:'var(--text-3)',marginTop:3}}>
-                {form.pesoFrasco
-                  ? `Auto-calculado: ${calcUmbral(form.pesoFrasco, form.nFrascos)} frasco(s). Edita para sobreescribir.`
-                  : 'Ingresa el peso por frasco para calcular automáticamente.'}
-              </p>
-            </div>
           </div>
           <div style={{ display:'flex', gap:8 }}>
             <button className="btn btn-primary btn-sm" onClick={guardar}>Guardar</button>
@@ -231,7 +220,7 @@ export default function Reactivos() {
         ))}
       </div>
 
-      {/* Vista condensada para analista */}
+      {/* Vista analista: tabla resumida */}
       {esAnalista ? (
         <div className="table-wrap">
           <table>
@@ -241,15 +230,19 @@ export default function Reactivos() {
                 const vence = r.fechaVencimiento?.toDate?.() || (r.fechaVencimiento ? new Date(r.fechaVencimiento) : null)
                 const sem   = calcularSemaforo(vence)
                 const badgeCls = sem.color==='danger'?'badge-danger':sem.color==='warning'?'badge-warn':sem.color==='success'?'badge-ok':'badge-gray'
-                const esPendiente = r.estado === 'Espera Aprobación'
+                const bajStock = r.umbralAlerta > 0 && (r.stockRestante ?? 0) <= r.umbralAlerta
                 return (
                   <tr key={r.id}>
                     <td style={{ fontWeight:500 }}>{r.nombre}</td>
                     <td><span className="badge badge-info">{r.categoria}</span></td>
-                    <td><strong>{r.stockRestante ?? '—'}</strong> <span style={{color:'var(--text-3)'}}>{r.unidad}</span></td>
+                    <td>
+                      <strong style={bajStock?{color:'var(--danger)'}:{}}>{r.stockRestante ?? '—'}</strong>{' '}
+                      <span style={{ color:'var(--text-3)' }}>{r.unidad}</span>
+                      {bajStock && <span className="badge badge-warn" style={{marginLeft:6}}>Stock bajo</span>}
+                    </td>
                     <td>{vence ? <span className={`badge ${badgeCls}`}>{sem.texto}</span> : <span style={{color:'var(--text-3)'}}>—</span>}</td>
                     <td style={{display:'flex',gap:4}}>
-                      {puedeOperar && !esPendiente && (
+                      {puedeOperar && r.estado === 'Activo' && (
                         <button className="btn btn-sm" onClick={() => { setRetiroId(r.id); setShowForm(false); setForm({}) }}>Retirar</button>
                       )}
                       <button className="btn btn-sm" onClick={()=>setDocInsumo(r)} title="Ver documentos">
@@ -266,27 +259,29 @@ export default function Reactivos() {
           </table>
         </div>
       ) : (
-        /* Vista completa para el resto de roles */
+        /* Vista completa para otros roles */
         <div className="table-wrap">
           <table>
-            <thead><tr><th>Código</th><th>Nombre</th><th>Categoría</th><th>Stock</th><th>Alerta (frascos)</th><th>Vencimiento</th><th>Estado</th><th></th></tr></thead>
+            <thead><tr><th>Código</th><th>Nombre</th><th>Categoría</th><th>Frascos</th><th>Stock</th><th>Umbral alerta</th><th>Vencimiento</th><th>Estado</th><th></th></tr></thead>
             <tbody>
               {filtrados.map(r => {
                 const vence = r.fechaVencimiento?.toDate?.() || (r.fechaVencimiento ? new Date(r.fechaVencimiento) : null)
                 const sem   = calcularSemaforo(vence)
                 const badgeCls = sem.color==='danger'?'badge-danger':sem.color==='warning'?'badge-warn':sem.color==='success'?'badge-ok':'badge-gray'
                 const esPendiente = r.estado === 'Espera Aprobación'
-                const estCls = esPendiente ? 'badge-warn' : r.estado==='Activo'?'badge-ok':r.estado==='Stock bajo'?'badge-warn':'badge-danger'
+                const estCls = esPendiente ? 'badge-warn' : r.estado==='Activo'?'badge-ok':'badge-danger'
+                const bajStock = r.umbralAlerta > 0 && (r.stockRestante ?? 0) <= r.umbralAlerta
                 return (
                   <tr key={r.id}>
                     <td className="mono">{r.codigo}</td>
                     <td style={{ fontWeight:500 }}>{r.nombre}</td>
                     <td><span className="badge badge-info">{r.categoria}</span></td>
-                    <td><strong>{r.stockRestante ?? '—'}</strong> <span style={{ color:'var(--text-3)' }}>{r.unidad}</span></td>
-                    <td style={{color:'var(--text-2)',fontSize:12}}>
-                      {r.umbralAlerta != null ? `${r.umbralAlerta} frasco(s)` : '—'}
-                      {r.pesoFrasco ? <span style={{color:'var(--text-3)'}}> · {r.pesoFrasco}g/frasco</span> : ''}
+                    <td style={{color:'var(--text-2)'}}>{r.nFrascos ?? '—'}</td>
+                    <td>
+                      <strong style={bajStock?{color:'var(--danger)'}:{}}>{r.stockRestante ?? '—'}</strong>{' '}
+                      <span style={{ color:'var(--text-3)' }}>{r.unidad}</span>
                     </td>
+                    <td style={{color:'var(--text-2)'}}>{r.umbralAlerta ?? '—'} <span style={{color:'var(--text-3)'}}>{r.unidad}</span></td>
                     <td>{vence ? <span className={`badge ${badgeCls}`}>{sem.texto}</span> : <span style={{color:'var(--text-3)'}}>—</span>}</td>
                     <td><span className={`badge ${estCls}`}>{r.estado}</span></td>
                     <td style={{display:'flex',gap:4}}>
@@ -301,7 +296,7 @@ export default function Reactivos() {
                 )
               })}
               {filtrados.length === 0 && (
-                <tr><td colSpan={8} style={{textAlign:'center',padding:24,color:'var(--text-3)'}}>No hay reactivos que coincidan</td></tr>
+                <tr><td colSpan={9} style={{textAlign:'center',padding:24,color:'var(--text-3)'}}>No hay reactivos que coincidan</td></tr>
               )}
             </tbody>
           </table>
@@ -310,3 +305,4 @@ export default function Reactivos() {
     </>
   )
 }
+
