@@ -1,5 +1,4 @@
 // src/lib/db.js
-// Todas las operaciones de base de datos centralizadas aquí
 import {
   collection, doc, addDoc, updateDoc,
   getDocs, getDoc, query, where, orderBy, serverTimestamp,
@@ -8,9 +7,6 @@ import {
 import { db } from './firebase'
 import { getAuth } from 'firebase/auth'
  
-// ─────────────────────────────────────────────────────────────
-// AUDIT TRAIL — CFR 21 Parte 11 §11.10(e)
-// ─────────────────────────────────────────────────────────────
 export async function registrarAudit({ coleccion, documentoId, accion, antes = null, despues = null, detalle = '' }) {
   try {
     const user = getAuth().currentUser
@@ -26,9 +22,6 @@ export async function registrarAudit({ coleccion, documentoId, accion, antes = n
   }
 }
  
-// ─────────────────────────────────────────────────────────────
-// ESTÁNDARES
-// ─────────────────────────────────────────────────────────────
 export const estandaresCol = () => collection(db, 'estandares')
  
 export async function getEstandares(filtros = {}) {
@@ -86,9 +79,6 @@ export async function registrarPesada({ estandarId, mgPesados, nAnalisis, produc
   return { nuevoStock, nuevoEstado }
 }
  
-// ─────────────────────────────────────────────────────────────
-// COLUMNAS CROMATOGRÁFICAS
-// ─────────────────────────────────────────────────────────────
 export async function getColumnas(filtros = {}) {
   const constraints = [orderBy('cliente')]
   if (filtros.cliente) constraints.push(where('cliente', '==', filtros.cliente))
@@ -112,9 +102,6 @@ export async function crearColumna(data, usuarioEmail) {
   return ref
 }
  
-// Registro de uso: suma inyecciones al acumulado y guarda el detalle de
-// uno o más números de análisis. Ya NO modifica el estado por límite —
-// la baja de la columna es manual (ver retirarColumna).
 export async function registrarUsoColumna({ columnaId, analisis = [], totalInyecciones, analista, email }) {
   const ref  = doc(db, 'columnas', columnaId)
   const snap = await getDoc(ref)
@@ -135,8 +122,8 @@ export async function registrarUsoColumna({ columnaId, analisis = [], totalInyec
   await addDoc(collection(db, 'usos_columnas'), {
     columnaId, codigo: actual.codigo, fase: actual.fase, tamano: actual.tamanoParticula,
     cliente: actual.cliente,
-    analisis,                       // [{ nAnalisis, inyecciones }]
-    inyecciones: total,             // total de este registro
+    analisis,
+    inyecciones: total,
     totalAcum: nuevasInyecciones,
     analista, email, fecha: serverTimestamp(),
   })
@@ -152,8 +139,6 @@ export async function registrarUsoColumna({ columnaId, analisis = [], totalInyec
   return { nuevasInyecciones }
 }
  
-// Retiro de columna: el cliente solicita la devolución del insumo.
-// La columna pasa a estado "Dada de baja" (no se elimina de la base).
 export async function retirarColumna({ columnaId, fechaRetiro, motivo, usuario, email }) {
   const ref  = doc(db, 'columnas', columnaId)
   const snap = await getDoc(ref)
@@ -161,7 +146,7 @@ export async function retirarColumna({ columnaId, fechaRetiro, motivo, usuario, 
   const actual = snap.data()
  
   await updateDoc(ref, {
-    estado: 'Dado de baja',
+    estado: 'Retirado por cliente',
     motivoBaja: 'Retirada por cliente',
     fechaRetiro,
     motivoRetiro: motivo || 'Cliente solicitó devolución del insumo',
@@ -171,16 +156,15 @@ export async function retirarColumna({ columnaId, fechaRetiro, motivo, usuario, 
   })
 
   await registrarAudit({
-    coleccion: 'columnas', documentoId: columnaId, accion: 'dar_de_baja',
+    coleccion: 'columnas', documentoId: columnaId, accion: 'retiro_cliente',
     antes:   { estado: actual.estado },
-    despues: { estado: 'Dado de baja', fechaRetiro },
-    detalle: `Columna ${actual.codigo} retirada el ${fechaRetiro}. Motivo: ${motivo || 'Cliente solicitó devolución del insumo'}`,
+    despues: { estado: 'Retirado por cliente', fechaRetiro },
+    detalle: `Columna ${actual.codigo} retirada por cliente el ${fechaRetiro}. Motivo: ${motivo || 'Cliente solicitó devolución del insumo'}`,
   })
 
-  return { estado: 'Dado de baja' }
+  return { estado: 'Retirado por cliente' }
 }
  
-// Poner columna en uso (Encargado/Jefe). Solo desde estado "Nueva".
 export async function ponerEnUsoColumna({ columnaId, usuario, email }) {
   const ref  = doc(db, 'columnas', columnaId)
   const snap = await getDoc(ref)
@@ -204,7 +188,6 @@ export async function ponerEnUsoColumna({ columnaId, usuario, email }) {
   return { estado: 'En uso' }
 }
  
-// Dar de baja por falla de System Suitability (no es retiro del cliente).
 export async function darBajaColumnaSST({ columnaId, motivo, usuario, email }) {
   const ref  = doc(db, 'columnas', columnaId)
   const snap = await getDoc(ref)
@@ -212,7 +195,7 @@ export async function darBajaColumnaSST({ columnaId, motivo, usuario, email }) {
   const actual = snap.data()
  
   await updateDoc(ref, {
-    estado: 'Dado de baja',
+    estado: 'No cumple SST',
     motivoBaja: 'No cumple System Suitability',
     motivoRetiro: motivo || 'No cumple System Suitability',
     retiradoPor: usuario || '',
@@ -222,13 +205,13 @@ export async function darBajaColumnaSST({ columnaId, motivo, usuario, email }) {
   })
 
   await registrarAudit({
-    coleccion: 'columnas', documentoId: columnaId, accion: 'dar_de_baja',
+    coleccion: 'columnas', documentoId: columnaId, accion: 'no_cumple_sst',
     antes:   { estado: actual.estado },
-    despues: { estado: 'Dado de baja' },
-    detalle: `Columna ${actual.codigo} dada de baja por falla de System Suitability. ${motivo || ''}`.trim(),
+    despues: { estado: 'No cumple SST' },
+    detalle: `Columna ${actual.codigo} no cumple System Suitability. ${motivo || ''}`.trim(),
   })
 
-  return { estado: 'Dado de baja' }
+  return { estado: 'No cumple SST' }
 }
  
 export async function reasignarColumna(columnaId, { cliente, producto }) {
@@ -246,9 +229,6 @@ export async function reasignarColumna(columnaId, { cliente, producto }) {
   })
 }
  
-// ─────────────────────────────────────────────────────────────
-// REACTIVOS
-// ─────────────────────────────────────────────────────────────
 export async function getReactivos(filtros = {}) {
   const constraints = [orderBy('nombre')]
   if (filtros.categoria) constraints.push(where('categoria', '==', filtros.categoria))
@@ -299,9 +279,6 @@ export async function registrarRetiroReactivo({ reactivoId, cantidad, unidad, nA
   return { nuevoStock, nuevoEstado }
 }
  
-// ─────────────────────────────────────────────────────────────
-// PLACEBO
-// ─────────────────────────────────────────────────────────────
 export async function getPlacebos(filtros = {}) {
   const constraints = [orderBy('cliente')]
   if (filtros.cliente) constraints.push(where('cliente', '==', filtros.cliente))
@@ -351,9 +328,6 @@ export async function registrarUsoPlacebo({ placeboId, unidades, nAnalisis, anal
   return { nuevoStock, nuevoEstado }
 }
  
-// ─────────────────────────────────────────────────────────────
-// APIs — PRINCIPIOS ACTIVOS
-// ─────────────────────────────────────────────────────────────
 export async function getAPIs(filtros = {}) {
   const constraints = [orderBy('nombre')]
   if (filtros.laboratorio) constraints.push(where('laboratorio', '==', filtros.laboratorio))
@@ -393,9 +367,6 @@ export async function registrarPesadaAPI({ apiId, mgPesados, nAnalisis, producto
   return { nuevoStock, nuevoEstado }
 }
  
-// ─────────────────────────────────────────────────────────────
-// ALERTAS (calculadas en cliente)
-// ─────────────────────────────────────────────────────────────
 export function calcularSemaforo(fechaVencimiento, diasCritico = 45, diasAdv = 90) {
   if (!fechaVencimiento) return { texto: 'Sin fecha', color: 'gray', dias: null }
   const hoy   = new Date(); hoy.setHours(0, 0, 0, 0)
@@ -407,9 +378,6 @@ export function calcularSemaforo(fechaVencimiento, diasCritico = 45, diasAdv = 9
   return                          { texto: `${dias} días`, color: 'success', dias }
 }
  
-// ─────────────────────────────────────────────────────────────
-// HISTORIAL DE USOS
-// ─────────────────────────────────────────────────────────────
 export async function getUsosPorInsumo(insumoId, coleccion = 'usos_estandares', limitN = 20) {
   const q = query(
     collection(db, coleccion),
@@ -428,9 +396,6 @@ export async function getUsosRecientes(col = 'usos_estandares', limitN = 50) {
   return snap.docs.map(d => ({ id: d.id, ...d.data() }))
 }
  
-// ─────────────────────────────────────────────────────────────
-// AUDIT LOG — consulta (solo Admin y Jefe)
-// ─────────────────────────────────────────────────────────────
 export async function getAuditLog({ coleccion, accion, limitN = 100 } = {}) {
   const constraints = [orderBy('timestamp', 'desc'), limit(limitN)]
   if (coleccion) constraints.push(where('coleccion', '==', coleccion))
@@ -439,18 +404,13 @@ export async function getAuditLog({ coleccion, accion, limitN = 100 } = {}) {
   return snap.docs.map(d => ({ id: d.id, ...d.data() }))
 }
  
-// Listener en tiempo real para el dashboard
 export function suscribirAlertas(callback) {
   return onSnapshot(
     query(collection(db, 'estandares'), where('estado', 'in', ['En uso', 'Cerrado'])),
     snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() })))
   )
 }
-// ─────────────────────────────────────────────────────────────
-// TRANSICIONES DE ESTADO — INSUMOS (Estándar / Placebo / API)
-// ─────────────────────────────────────────────────────────────
 
-// Poner en uso: Cerrado → En uso (Encargado / Jefe / Admin)
 export async function ponerEnUsoInsumo({ coleccion, insumoId, usuario, email }) {
   const ref  = doc(db, coleccion, insumoId)
   const snap = await getDoc(ref)
@@ -474,7 +434,6 @@ export async function ponerEnUsoInsumo({ coleccion, insumoId, usuario, email }) 
   return { estado: 'En uso' }
 }
 
-// Retirado por cliente: requiere fecha de retiro → pasa a baja
 export async function retirarInsumo({ coleccion, insumoId, fechaRetiro, motivo, usuario, email }) {
   const ref  = doc(db, coleccion, insumoId)
   const snap = await getDoc(ref)

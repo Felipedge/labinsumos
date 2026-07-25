@@ -10,14 +10,13 @@ import { puedoHacer } from '../lib/roles'
 import { useClientes } from '../hooks/useClientes.jsx'
 import { Plus, Search, FlaskConical, History, Package, ExternalLink, CheckCircle, XCircle, FileText, PlayCircle, PackageX, RefreshCw } from 'lucide-react'
 import DocumentosPanel from '../components/shared/DocumentosPanel.jsx'
- 
-const CLIENTES  = ['Ascend','Galenicum','Grunenthal','Bamberg','Labomed','Laboratorio Chile','Novartis','Seven Pharma','Emcure','Prater','MSN','Otro']
+
 const SECTORES  = ['Fisicoquímico', 'Validaciones']
-const ESTADOS   = ['En uso','Cerrado','Vencido','Sin stock','Dado de baja','Retirado por cliente']
+const ESTADOS   = ['Espera Aprobación','En uso','Cerrado','Sin stock','Vencido','Vigente','Retirado por cliente']
 const ALMACENES = ['Desecador','Refrigerador','Freezer','Desecador-controlado','Refrigerador-controlado','Freezer-controlado','Desecador-oncológico','Refrigerador-oncológico','Freezer-oncológico']
 const MESES     = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
 const MESES_NUM = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC']
- 
+
 const TIPO_POTENCIA = [
   { value: 'tal_cual',     label: 'Tal cual' },
   { value: 'base_seca',    label: 'Base seca' },
@@ -31,12 +30,12 @@ const TIPO_INSUMO = [
   { value: 'liquido',        label: 'Líquido' },
   { value: 'liquido_ampolla',label: 'Líquido-ampolla' },
 ]
- 
+
 function capitalizar(str) {
   if (!str) return ''
   return str.charAt(0).toUpperCase() + str.slice(1)
 }
- 
+
 function onChangeCapitalizar(setter) {
   return (e) => {
     const val = e.target.value
@@ -44,7 +43,7 @@ function onChangeCapitalizar(setter) {
     setter(val.charAt(0).toUpperCase() + val.slice(1))
   }
 }
- 
+
 async function getSiguienteNumero(db) {
   try {
     const q    = query(collection(db, 'estandares'), orderBy('numeroStd', 'desc'), limit(1))
@@ -53,33 +52,33 @@ async function getSiguienteNumero(db) {
     return (snap.docs[0].data().numeroStd || 0) + 1
   } catch { return 1 }
 }
- 
+
 function generarCodigo(numero, mes, anio, lote, frasco) {
   const num     = String(numero).padStart(4, '0')
   const mesStr  = MESES_NUM[parseInt(mes) - 1]
   const anioStr = String(anio).slice(-2)
   return `STD-${num}/${mesStr}${anioStr}/${lote}/${frasco}`
 }
- 
+
 function formatFecha(ts) {
   if (!ts) return '—'
   const d = ts.toDate ? ts.toDate() : new Date(ts)
   return d.toLocaleDateString('es-CL') + ' ' + d.toLocaleTimeString('es-CL', { hour:'2-digit', minute:'2-digit' })
 }
- 
+
 function calcularProximaRevision(fechaBase, meses) {
   const d = new Date(fechaBase)
   d.setMonth(d.getMonth() + parseInt(meses))
   return d.toISOString().split('T')[0]
 }
- 
+
 function diasHastaRevision(fechaRevision) {
   if (!fechaRevision) return null
   const hoy  = new Date(); hoy.setHours(0,0,0,0)
   const rev  = new Date(fechaRevision)
   return Math.round((rev - hoy) / 86400000)
 }
- 
+
 function BadgePotencia({ tipoPotencia, potencia }) {
   if (tipoPotencia === 'cualitativo')  return <span className="badge badge-purple">Cualitativo</span>
   if (tipoPotencia === 'sin_potencia') return <span className="badge badge-gray">Sin potencia</span>
@@ -88,7 +87,7 @@ function BadgePotencia({ tipoPotencia, potencia }) {
   if (tipoPotencia === 'tal_cual')     return <span className="badge badge-ok">{potencia}% Tal cual</span>
   return potencia ? <span className="badge badge-gray">{potencia}%</span> : <span style={{color:'var(--text-3)'}}>—</span>
 }
- 
+
 function BadgesCondiciones({ karlFischer, secadoPrevio, tempSecado, tiempoSecado, secadoDesecador }) {
   return (
     <div style={{display:'flex',gap:4,flexWrap:'wrap'}}>
@@ -102,7 +101,7 @@ function BadgesCondiciones({ karlFischer, secadoPrevio, tempSecado, tiempoSecado
     </div>
   )
 }
- 
+
 function BadgeRevisionUSP({ proximaRevision }) {
   const dias = diasHastaRevision(proximaRevision)
   if (dias === null) return <span className="badge badge-gray">USP — Sin fecha</span>
@@ -111,16 +110,15 @@ function BadgeRevisionUSP({ proximaRevision }) {
   if (dias <= 60)    return <span className="badge badge-warn">🟡 USP — Revisar en {dias}d</span>
   return <span className="badge badge-info">🔵 USP — Revisar en {dias}d</span>
 }
- 
+
 export default function Estandares() {
   const { user } = useAuth()
   const { rol }  = useRole()
   const { clientes: listaClientes } = useClientes()
   const puedeAgregar    = puedoHacer(rol, 'agregarInsumo')
   const puedePesada     = puedoHacer(rol, 'registrarUso')
-  const puedeBaja       = puedoHacer(rol, 'darDeBaja')
   const puedePonerEnUso = puedoHacer(rol, 'ponerEnUso') && rol !== 'analista'
- 
+
   const [tab, setTab] = useState('inventario')
   const [items, setItems]         = useState([])
   const [loading, setLoading]     = useState(true)
@@ -136,11 +134,10 @@ export default function Estandares() {
   const [filtroCliente, setFiltroCliente] = useState('')
   const [sigNum, setSigNum]       = useState(null)
   const [guardando, setGuardando] = useState(false)
-  const [verPapelera, setVerPapelera] = useState(false)
   const [docInsumo, setDocInsumo]     = useState(null)
   const [ordenCampo, setOrdenCampo]   = useState('nombre')
   const [ordenDir, setOrdenDir]       = useState('asc')
- 
+
   const [uspModalId, setUspModalId]           = useState(null)
   const [uspResultado, setUspResultado]       = useState('vigente')
   const [uspFechaVerif, setUspFechaVerif]     = useState('')
@@ -148,7 +145,7 @@ export default function Estandares() {
   const [uspFrecuencia, setUspFrecuencia]     = useState('')
   const [uspObs, setUspObs]                   = useState('')
   const [guardandoUSP, setGuardandoUSP]       = useState(false)
- 
+
   const [fNombre, setFNombre]             = useState('')
   const [fCliente, setFCliente]           = useState('')
   const [fLote, setFLote]                 = useState('')
@@ -171,8 +168,8 @@ export default function Estandares() {
   const [fTiempoSecado, setFTiempoSecado] = useState('')
   const [fSecadoDesecador, setFSecadoDesecador] = useState(false)
 
-  const [editSectorId, setEditSectorId]     = useState(null)
-  const [editSectorVal, setEditSectorVal]   = useState('')
+  const [editSectorId, setEditSectorId]   = useState(null)
+  const [editSectorVal, setEditSectorVal] = useState('')
 
   const [reposicionItem, setReposicionItem] = useState(null)
   const [rLote, setRLote]                   = useState('')
@@ -180,33 +177,33 @@ export default function Estandares() {
   const [rFrascos, setRFrascos]             = useState([{ letra: 'A', stock: '' }])
   const [rMsg, setRMsg]                     = useState('')
   const [guardandoR, setGuardandoR]         = useState(false)
-  const [fEsUSP, setFEsUSP]               = useState(false)
+  const [fEsUSP, setFEsUSP]                 = useState(false)
   const [fFrecuenciaUSP, setFFrecuenciaUSP] = useState('12')
   const [fProxRevisionUSP, setFProxRevisionUSP] = useState('')
-  const [fMg, setFMg]                     = useState('')
-  const [fNAnalisis, setFNAnalisis]       = useState('')
-  const [fProducto2, setFProducto2]       = useState('')
- 
-  const [pesadas, setPesadas]             = useState([])
-  const [loadingH, setLoadingH]           = useState(false)
-  const [searchH, setSearchH]             = useState('')
+  const [fMg, setFMg]                       = useState('')
+  const [fNAnalisis, setFNAnalisis]         = useState('')
+  const [fProducto2, setFProducto2]         = useState('')
+
+  const [pesadas, setPesadas]         = useState([])
+  const [loadingH, setLoadingH]       = useState(false)
+  const [searchH, setSearchH]         = useState('')
   const [filtroUsuario, setFiltroUsuario] = useState('')
-  const [filtroStd, setFiltroStd]         = useState('')
-  const [fechaDesde, setFechaDesde]       = useState('')
-  const [fechaHasta, setFechaHasta]       = useState('')
- 
+  const [filtroStd, setFiltroStd]     = useState('')
+  const [fechaDesde, setFechaDesde]   = useState('')
+  const [fechaHasta, setFechaHasta]   = useState('')
+
   const hoy     = new Date()
   const mesAct  = String(hoy.getMonth() + 1).padStart(2, '0')
   const anioAct = hoy.getFullYear()
- 
+
   const load = async () => {
     try {
       const snap = await getDocs(query(collection(db, 'estandares'), orderBy('creadoEn', 'desc')))
       setItems(snap.docs.map(d => ({ id: d.id, ...d.data() })))
-    } catch { setItems(DEMO_E) }
+    } catch { setItems([]) }
     finally { setLoading(false) }
   }
- 
+
   const loadHistorial = async () => {
     setLoadingH(true)
     try {
@@ -215,7 +212,7 @@ export default function Estandares() {
     } catch { setPesadas([]) }
     finally { setLoadingH(false) }
   }
- 
+
   useEffect(() => { load() }, [])
   useEffect(() => { if (tab === 'historial' && pesadas.length === 0) loadHistorial() }, [tab])
   useEffect(() => {
@@ -223,7 +220,7 @@ export default function Estandares() {
       setFProxRevisionUSP(calcularProximaRevision(new Date().toISOString().split('T')[0], fFrecuenciaUSP))
     }
   }, [fEsUSP, fFrecuenciaUSP])
- 
+
   const abrirFormulario = async () => {
     if (!showForm) {
       const n = await getSiguienteNumero(db)
@@ -243,7 +240,7 @@ export default function Estandares() {
     setShowForm(!showForm)
     setPesadaId(null)
   }
- 
+
   const agregarFrasco = () => {
     const letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
     const sig = letras[frascos.length]
@@ -251,7 +248,7 @@ export default function Estandares() {
   }
   const quitarFrasco = (i) => { if (frascos.length > 1) setFrascos(p => p.filter((_,idx)=>idx!==i)) }
   const updateFrasco = (i, valor) => setFrascos(p => p.map((fr,idx)=>idx===i?{...fr,stock:valor}:fr))
- 
+
   const guardar = async () => {
     if (!fLote || !fNombre || !fCliente) { setMsg('Nombre, cliente y lote son obligatorios'); return }
     if (frascos.some(fr => !fr.stock || isNaN(fr.stock))) { setMsg('Ingresa el stock de cada frasco'); return }
@@ -263,17 +260,14 @@ export default function Estandares() {
     try {
       const numero = sigNum || await getSiguienteNumero(db)
 
-      // ── FEFO: verificar si ya existe algún frasco del mismo STD-XXXX ──
-      // Buscar todos los frascos existentes con el mismo numeroStd
       const snapExist = await getDocs(
         query(collection(db, 'estandares'), where('numeroStd', '==', numero))
       )
       const existentes = snapExist.docs.map(d => ({ id:d.id, ...d.data() }))
-        .filter(h => !['Dado de baja','Dada de baja','Retirado por cliente'].includes(h.estado))
+        .filter(h => !['Retirado por cliente','Sin stock','Vencido'].includes(h.estado))
 
       const hayEnUsoExist = existentes.some(h => h.estado === 'En uso')
 
-      // Combinar existentes + nuevos frascos para calcular FEFO
       const parseFecha = v => {
         if (!v) return new Date('9999-12-31')
         if (v?.toDate) return v.toDate()
@@ -282,24 +276,16 @@ export default function Estandares() {
         return new Date(v)
       }
 
-      // Todos los frascos nuevos con sus fechas
       const nuevosConFecha = frascos.map(fr => ({
-        letra: fr.letra,
-        stock: fr.stock,
-        codigoCustom: fr.codigoCustom,
+        letra: fr.letra, stock: fr.stock, codigoCustom: fr.codigoCustom,
         fechaVenc: !fEsUSP && fVencimiento ? parseFecha(fVencimiento) : new Date('9999-12-31'),
       }))
 
-      // Si no hay ninguno En uso (ni existentes ni nuevos serán los primeros),
-      // el frasco a poner En uso es el de fecha más próxima entre todos
       let frascoAbrirLetra = null
       if (!hayEnUsoExist) {
-        // Combinar existentes cerrados + nuevos para encontrar el de menor vencimiento
         const candidatos = [
           ...existentes.filter(h => h.estado === 'Cerrado').map(h => ({
-            letra: h.frasco,
-            fechaVenc: parseFecha(h.fechaVencimiento),
-            esExistente: true,
+            letra: h.frasco, fechaVenc: parseFecha(h.fechaVencimiento), esExistente: true,
           })),
           ...nuevosConFecha.map(fr => ({ letra: fr.letra, fechaVenc: fr.fechaVenc, esExistente: false })),
         ]
@@ -308,9 +294,7 @@ export default function Estandares() {
           return (a.letra||'').localeCompare(b.letra||'')
         })
         const primero = candidatos[0]
-        // Solo abrir si es uno de los nuevos frascos (los existentes ya están en Firestore)
         if (primero && !primero.esExistente) frascoAbrirLetra = primero.letra
-        // Si el primero es un existente, hay que actualizarlo a En uso
         if (primero && primero.esExistente) {
           const docExist = existentes.find(h => h.frasco === primero.letra && h.estado === 'Cerrado')
           if (docExist) {
@@ -323,7 +307,6 @@ export default function Estandares() {
         const frasco = frascos[i]
         const sugerido = generarCodigo(numero, fMes || mesAct, fAnio || anioAct, fLote, frasco.letra)
         const codigo = frasco.codigoCustom?.trim() || sugerido
-        // Determinar estado: En uso solo para el frasco FEFO correcto
         const estadoFrasco = (!hayEnUsoExist && frasco.letra === frascoAbrirLetra) ? 'En uso' : 'Cerrado'
         await addDoc(collection(db, 'estandares'), {
           codigo, numeroStd: numero, frasco: frasco.letra,
@@ -345,7 +328,7 @@ export default function Estandares() {
           proximaRevisionUSP: fEsUSP ? fProxRevisionUSP : null,
           ultimaRevisionUSP: null,
           fechaVencimiento: !fEsUSP && fVencimiento ? new Date(fVencimiento) : null,
-          estado: rol === 'administrativo' ? 'Pendiente de aprobación' : estadoFrasco, creadoPorRol: rol,
+          estado: rol === 'administrativo' ? 'Espera Aprobación' : estadoFrasco, creadoPorRol: rol,
           mesIngreso: fMes || mesAct, anioIngreso: parseInt(fAnio || anioAct),
           creadoPor: user.email, creadoEn: serverTimestamp(), actualizadoEn: serverTimestamp(),
         })
@@ -354,7 +337,7 @@ export default function Estandares() {
     } catch(e) { setMsg('Error al guardar: ' + e.message) }
     finally { setGuardando(false) }
   }
- 
+
   const pesada = async () => {
     if (!pesadaId || !fMg) { setMsg('Ingresa la cantidad pesada'); return }
     try {
@@ -367,19 +350,18 @@ export default function Estandares() {
       setPesadaId(null); setFMg(''); setFNAnalisis(''); setFProducto2(''); setMsg(''); load()
     } catch(e) { setMsg(e.message) }
   }
- 
+
   const handlePonerEnUso = async (item, forzar = false) => {
     const parseFecha = v => {
       if (!v) return new Date('9999-12-31')
       if (v?.toDate) return v.toDate()
-      // Parsear string ISO sin problemas de timezone
       const m = String(v).match(/^(\d{4})-(\d{2})-(\d{2})/)
       if (m) return new Date(parseInt(m[1]), parseInt(m[2])-1, parseInt(m[3]))
       return new Date(v)
     }
     const hermanos = items.filter(h =>
       h.numeroStd === item.numeroStd &&
-      !['Dado de baja','Dada de baja','Retirado por cliente','Sin stock'].includes(h.estado)
+      !['Retirado por cliente','Sin stock','Vencido'].includes(h.estado)
     )
     const hayEnUso = hermanos.some(h => h.estado === 'En uso')
     if (hayEnUso) {
@@ -424,44 +406,11 @@ export default function Estandares() {
     } catch(e) { alert('Error: ' + e.message) }
   }
 
-  const darDeBaja = async (id, codigo) => {
-    const razon = window.prompt(`Razón para dar de baja ${codigo}:`)
-    if (!razon) return
-    try {
-      await updateDoc(doc(db, 'estandares', id), {
-        estado: 'Dado de baja', bajaPor: user.email, bajaRazon: capitalizar(razon),
-        bajaFecha: serverTimestamp(), actualizadoEn: serverTimestamp(),
-      })
-      await registrarAudit({
-        coleccion: 'estandares', documentoId: id, accion: 'dar_de_baja',
-        despues: { estado: 'Dado de baja' },
-        detalle: `Dado de baja por ${user.email}. Razón: ${razon}`,
-      })
-      load()
-    } catch(e) { alert('Error: ' + e.message) }
-  }
- 
-  const restaurar = async (id) => {
-    try {
-      await updateDoc(doc(db, 'estandares', id), {
-        estado: 'Cerrado', bajaPor: null, bajaRazon: null, bajaFecha: null,
-        actualizadoEn: serverTimestamp(),
-      })
-      await registrarAudit({
-        coleccion: 'estandares', documentoId: id, accion: 'restaurar',
-        despues: { estado: 'Cerrado' },
-        detalle: `Restaurado por ${user.email}`,
-      })
-      load()
-    } catch(e) { alert('Error: ' + e.message) }
-  }
- 
   const guardarSector = async (id) => {
     if (!editSectorVal.length) return
     try {
       await updateDoc(doc(db, 'estandares', id), { sector: editSectorVal, actualizadoEn: serverTimestamp() })
-      setEditSectorId(null)
-      load()
+      setEditSectorId(null); load()
     } catch(e) { alert('Error: ' + e.message) }
   }
 
@@ -469,7 +418,7 @@ export default function Estandares() {
     setReposicionItem(item)
     setRLote(''); setRVencimiento(''); setRMsg('')
     const letras = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-    const hermanos = items.filter(h => h.numeroStd === item.numeroStd && h.estado !== 'Dado de baja')
+    const hermanos = items.filter(h => h.numeroStd === item.numeroStd && !['Retirado por cliente','Sin stock','Vencido'].includes(h.estado))
     const usadas = new Set(hermanos.map(h => h.frasco))
     const sig = letras.split('').find(l => !usadas.has(l)) || 'A'
     setRFrascos([{ letra: sig, stock: '' }])
@@ -482,14 +431,13 @@ export default function Estandares() {
       for (const fr of rFrascos) {
         const codigo = generarCodigo(reposicionItem.numeroStd, reposicionItem.mesIngreso || mesAct, reposicionItem.anioIngreso || anioAct, rLote, fr.letra)
         await addDoc(collection(db, 'estandares'), {
-          ...reposicionItem,
-          id: undefined,
+          ...reposicionItem, id: undefined,
           codigo, frasco: fr.letra, lote: rLote.toUpperCase(),
           fechaVencimiento: rVencimiento ? new Date(rVencimiento) : null,
           stockInicial: parseFloat(fr.stock), stockRestante: parseFloat(fr.stock),
           estado: 'Cerrado',
           creadoPor: user.email, creadoEn: serverTimestamp(), actualizadoEn: serverTimestamp(),
-          bajaPor: null, bajaRazon: null, bajaFecha: null,
+          vencidoPor: null, vencidoRazon: null, vencidoFecha: null,
         })
       }
       setReposicionItem(null); load()
@@ -505,7 +453,7 @@ export default function Estandares() {
     setUspProxRevision(calcularProximaRevision(new Date().toISOString().split('T')[0], 1))
     setUspObs('')
   }
- 
+
   const guardarVerificacionUSP = async () => {
     if (!uspModalId) return
     setGuardandoUSP(true)
@@ -531,42 +479,39 @@ export default function Estandares() {
           detalle: `Verificación USP Vigente por ${user.displayName || user.email}. Próxima revisión: ${uspProxRevision}`,
         })
       } else {
-        const mismosLotes = items.filter(i => i.lote === item.lote && i.nombre === item.nombre && i.estado !== 'Dado de baja')
+        const mismosLotes = items.filter(i => i.lote === item.lote && i.nombre === item.nombre && !['Retirado por cliente','Vencido'].includes(i.estado))
         const batch = writeBatch(db)
         for (const vial of mismosLotes) {
           batch.update(doc(db, 'estandares', vial.id), {
-            estado: 'Dado de baja', bajaPor: user.email,
-            bajaRazon: `Estándar USP no vigente — verificación ${uspFechaVerif}. ${uspObs}`,
-            bajaFecha: serverTimestamp(), actualizadoEn: serverTimestamp(),
+            estado: 'Vencido', vencidoPor: user.email,
+            vencidoRazon: `Estándar USP no vigente — verificación ${uspFechaVerif}. ${uspObs}`,
+            vencidoFecha: serverTimestamp(), actualizadoEn: serverTimestamp(),
           })
         }
         await batch.commit()
         await addDoc(collection(db, 'usos_estandares'), {
           estandarId: uspModalId, codigo: item.codigo, nombre: item.nombre, cliente: item.cliente,
-          tipo: 'verificacion_usp', resultado: 'No vigente — baja automática',
-          vialsDadosDeBaja: mismosLotes.length, fechaVerif: uspFechaVerif, observacion: uspObs,
+          tipo: 'verificacion_usp', resultado: 'No vigente — marcado como Vencido',
+          vialsMarcadosComoVencidos: mismosLotes.length, fechaVerif: uspFechaVerif, observacion: uspObs,
           analista: user.displayName || user.email, email: user.email, fecha: serverTimestamp(),
         })
         await registrarAudit({
           coleccion: 'estandares', documentoId: uspModalId, accion: 'verificacion_usp',
-          despues: { resultado: 'No vigente', estado: 'Dado de baja', vialsDadosDeBaja: mismosLotes.length, fechaVerif: uspFechaVerif },
-          detalle: `Verificación USP No vigente por ${user.displayName || user.email}. ${mismosLotes.length} vial(es) dado(s) de baja automáticamente.`,
+          despues: { resultado: 'No vigente', estado: 'Vencido', vialsMarcadosComoVencidos: mismosLotes.length, fechaVerif: uspFechaVerif },
+          detalle: `Verificación USP No vigente por ${user.displayName || user.email}. ${mismosLotes.length} vial(es) marcado(s) como Vencido automáticamente.`,
         })
       }
       setUspModalId(null); load()
     } catch(e) { alert('Error: ' + e.message) }
     finally { setGuardandoUSP(false) }
   }
- 
+
   const toggleOrden = (campo) => {
     if (ordenCampo === campo) setOrdenDir(d => d === 'asc' ? 'desc' : 'asc')
     else { setOrdenCampo(campo); setOrdenDir('asc') }
   }
- 
-  const activos  = items.filter(i => i.estado !== 'Dado de baja')
-  const papelera = items.filter(i => i.estado === 'Dado de baja')
- 
-  const filtrados = (verPapelera ? papelera : activos)
+
+  const filtrados = items
     .filter(i => {
       const q = search.toLowerCase()
       const matchQ = !q || i.codigo?.toLowerCase().includes(q) || i.nombre?.toLowerCase().includes(q) || i.cliente?.toLowerCase().includes(q)
@@ -577,11 +522,9 @@ export default function Estandares() {
     .sort((a, b) => {
       let valA, valB
       if (ordenCampo === 'nombre') {
-        valA = a.nombre?.toLowerCase() || ''
-        valB = b.nombre?.toLowerCase() || ''
+        valA = a.nombre?.toLowerCase() || ''; valB = b.nombre?.toLowerCase() || ''
       } else if (ordenCampo === 'codigo') {
-        valA = a.codigo?.toLowerCase() || ''
-        valB = b.codigo?.toLowerCase() || ''
+        valA = a.codigo?.toLowerCase() || ''; valB = b.codigo?.toLowerCase() || ''
       } else if (ordenCampo === 'vencimiento') {
         const getTs = (i) => {
           if (i.esUSP && i.proximaRevisionUSP) return new Date(i.proximaRevisionUSP).getTime()
@@ -596,10 +539,10 @@ export default function Estandares() {
       if (valA > valB) return ordenDir === 'asc' ? 1 : -1
       return 0
     })
- 
+
   const usuariosUnicos = [...new Set(pesadas.map(p => p.analista || p.email).filter(Boolean))]
   const stdsUnicos     = [...new Set(pesadas.map(p => p.codigo).filter(Boolean))]
- 
+
   const pesadasFiltradas = pesadas.filter(p => {
     const q = searchH.toLowerCase()
     const matchQ = !q || p.codigo?.toLowerCase().includes(q) || p.nombre?.toLowerCase().includes(q) || p.nAnalisis?.toLowerCase().includes(q)
@@ -610,12 +553,12 @@ export default function Estandares() {
     const matchH = !fechaHasta || (fecha && fecha <= new Date(fechaHasta + 'T23:59:59'))
     return matchQ && matchU && matchS && matchD && matchH
   })
- 
+
   const totalMg = pesadasFiltradas.reduce((acc, p) => acc + (parseFloat(p.mgPesados) || 0), 0)
   const needsPotencia = fTipoPotencia === 'tal_cual' || fTipoPotencia === 'base_seca' || fTipoPotencia === 'base_anhidra'
- 
+
   if (loading) return <div style={{display:'flex',justifyContent:'center',padding:40}}><div className="spinner"/></div>
- 
+
   return (
     <>
       {reposicionItem && (
@@ -650,9 +593,9 @@ export default function Estandares() {
           </div>
         </div>
       )}
+
       {retiroItem && (
-        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:1000,
-          display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
           <div style={{background:'var(--surface)',borderRadius:'var(--radius-lg)',padding:24,width:'100%',maxWidth:440}}>
             <p style={{fontSize:15,fontWeight:600,marginBottom:4}}>Retirar por cliente</p>
             <p style={{fontSize:12,color:'var(--text-2)',marginBottom:16}}>{retiroItem.codigo} — {retiroItem.nombre}</p>
@@ -662,8 +605,7 @@ export default function Estandares() {
             </div>
             <div className="form-group" style={{marginBottom:16}}>
               <label>Motivo / observación</label>
-              <input value={retiroMotivo} onChange={e=>setRetiroMotivo(e.target.value)}
-                placeholder="ej: Cliente solicitó devolución del insumo"/>
+              <input value={retiroMotivo} onChange={e=>setRetiroMotivo(e.target.value)} placeholder="ej: Cliente solicitó devolución del insumo"/>
             </div>
             <div style={{display:'flex',gap:8}}>
               <button className="btn btn-primary btn-sm" onClick={confirmarRetiro}>Confirmar retiro</button>
@@ -672,12 +614,13 @@ export default function Estandares() {
           </div>
         </div>
       )}
+
       {docInsumo && (
         <DocumentosPanel insumoId={docInsumo.id} modulo="estandares"
           nombreInsumo={`${docInsumo.nombre} · ${docInsumo.codigo}`}
           onClose={()=>setDocInsumo(null)} />
       )}
- 
+
       {uspModalId && (() => {
         const item = items.find(i => i.id === uspModalId)
         if (!item) return null
@@ -704,12 +647,12 @@ export default function Estandares() {
                 </label>
                 <label style={{flex:1,display:'flex',alignItems:'center',gap:8,padding:'10px 14px',borderRadius:'var(--radius-sm)',border:`2px solid ${uspResultado==='no_vigente'?'var(--danger)':'var(--border-md)'}`,background:uspResultado==='no_vigente'?'var(--danger-lt)':'var(--surface)',cursor:'pointer',fontSize:13}}>
                   <input type="radio" name="uspRes" value="no_vigente" checked={uspResultado==='no_vigente'} onChange={e=>setUspResultado(e.target.value)} style={{display:'none'}}/>
-                  <XCircle size={16} style={{color:uspResultado==='no_vigente'?'var(--danger)':'var(--text-3)'}}/> No vigente — dar de baja
+                  <XCircle size={16} style={{color:uspResultado==='no_vigente'?'var(--danger)':'var(--text-3)'}}/> No vigente — marcar como Vencido
                 </label>
               </div>
               {uspResultado === 'no_vigente' && (
                 <div style={{background:'var(--danger-lt)',border:'1px solid var(--danger)',borderRadius:'var(--radius-sm)',padding:'10px 12px',marginBottom:16,fontSize:12,color:'var(--danger)'}}>
-                  ⚠️ Se darán de baja automáticamente <strong>todos los frascos del lote {item.lote}</strong> del estándar {item.nombre}.
+                  ⚠️ Se marcarán como <strong>Vencido</strong> automáticamente <strong>todos los frascos del lote {item.lote}</strong> del estándar {item.nombre}.
                 </div>
               )}
               <div className="form-grid">
@@ -739,7 +682,7 @@ export default function Estandares() {
                 <button className={`btn btn-sm ${uspResultado==='no_vigente'?'btn-danger':'btn-primary'}`}
                   onClick={guardarVerificacionUSP} disabled={guardandoUSP}>
                   {guardandoUSP ? <div className="spinner" style={{width:14,height:14,borderWidth:2}}/> : null}
-                  {uspResultado==='vigente' ? 'Confirmar — sigue vigente' : 'Confirmar — dar de baja lote completo'}
+                  {uspResultado==='vigente' ? 'Confirmar — sigue vigente' : 'Confirmar — marcar como Vencido'}
                 </button>
                 <button className="btn btn-sm" onClick={()=>setUspModalId(null)}>Cancelar</button>
               </div>
@@ -747,18 +690,11 @@ export default function Estandares() {
           </div>
         )
       })()}
- 
+
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
         <h2 style={{fontSize:16,fontWeight:600}}>Estándares</h2>
         <div style={{display:'flex',gap:8}}>
-          {tab==='inventario' && puedeBaja && (
-            <button className="btn btn-sm"
-              style={verPapelera?{background:'var(--danger-lt)',color:'var(--danger)',borderColor:'var(--danger)'}:{}}
-              onClick={()=>{setVerPapelera(!verPapelera);setSearch('');setFiltroEst('');setFiltroCliente('')}}>
-              🗑 Papelera {papelera.length>0&&`(${papelera.length})`}
-            </button>
-          )}
-          {tab==='inventario' && !verPapelera && puedeAgregar && (
+          {tab==='inventario' && puedeAgregar && (
             <button className="btn btn-primary btn-sm" onClick={abrirFormulario}>
               <Plus size={14}/> Nuevo estándar
             </button>
@@ -766,10 +702,10 @@ export default function Estandares() {
           {tab==='historial' && <button className="btn btn-sm" onClick={loadHistorial}>↻ Actualizar</button>}
         </div>
       </div>
- 
+
       <div style={{display:'flex',gap:4,marginBottom:16,borderBottom:'1px solid var(--border)'}}>
         {[
-          { id:'inventario', label:'Inventario', count:activos.length },
+          { id:'inventario', label:'Inventario', count:items.length },
           { id:'historial',  label:'Historial de pesadas', count:pesadas.length },
         ].map(t => (
           <button key={t.id} onClick={()=>setTab(t.id)} style={{
@@ -785,10 +721,10 @@ export default function Estandares() {
           </button>
         ))}
       </div>
- 
+
       {tab==='inventario' && (
         <>
-          {showForm && puedeAgregar && !verPapelera && (
+          {showForm && puedeAgregar && (
             <div className="card">
               <div className="card-title">
                 Ingresar nuevo estándar
@@ -820,8 +756,7 @@ export default function Estandares() {
                   <div style={{display:'flex',gap:8}}>
                     {SECTORES.map(s=>(
                       <label key={s} style={{display:'flex',alignItems:'center',gap:6,cursor:'pointer',fontSize:13,padding:'5px 11px',borderRadius:'var(--radius-sm)',border:`1px solid ${fSector.includes(s)?'var(--accent)':'var(--border-md)'}`,background:fSector.includes(s)?'var(--accent-lt)':'var(--surface)',color:fSector.includes(s)?'var(--accent)':'var(--text-1)'}}>
-                        <input type="checkbox" style={{display:'none'}} checked={fSector.includes(s)}
-                          onChange={()=>setFSector(p=>p.includes(s)?p.filter(x=>x!==s):[...p,s])}/>
+                        <input type="checkbox" style={{display:'none'}} checked={fSector.includes(s)} onChange={()=>setFSector(p=>p.includes(s)?p.filter(x=>x!==s):[...p,s])}/>
                         {s}
                       </label>
                     ))}
@@ -833,7 +768,7 @@ export default function Estandares() {
                 <div className="form-group"><label>Fabricante</label><input value={fFabricante} onChange={onChangeCapitalizar(setFabricante)} placeholder="ej: Sigma-aldrich"/></div>
                 <div className="form-group"><label>Cant. por análisis (mg)</label><input type="number" step="0.01" value={fXAnalisis} onChange={e=>setFXAnalisis(e.target.value)}/></div>
               </div>
- 
+
               <div style={{background:'var(--accent-lt)',borderRadius:'var(--radius-md)',padding:'12px 14px',marginBottom:14,border:'1px solid var(--border)'}}>
                 <label style={{display:'flex',alignItems:'center',gap:10,cursor:'pointer',fontSize:13,fontWeight:500}}>
                   <input type="checkbox" checked={fEsUSP} onChange={e=>setFEsUSP(e.target.checked)}/>
@@ -857,14 +792,14 @@ export default function Estandares() {
                   </div>
                 )}
               </div>
- 
+
               {!fEsUSP && (
                 <div className="form-group" style={{marginBottom:14,maxWidth:200}}>
                   <label>Fecha vencimiento</label>
                   <input type="date" value={fVencimiento} onChange={e=>setFVencimiento(e.target.value)}/>
                 </div>
               )}
- 
+
               <div style={{background:'var(--bg)',borderRadius:'var(--radius-md)',padding:'12px 14px',marginBottom:14}}>
                 <p style={{fontSize:11,fontWeight:600,color:'var(--text-2)',marginBottom:10}}>POTENCIA</p>
                 <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:10}}>
@@ -882,7 +817,7 @@ export default function Estandares() {
                   </div>
                 )}
               </div>
- 
+
               <div style={{background:'var(--bg)',borderRadius:'var(--radius-md)',padding:'12px 14px',marginBottom:14}}>
                 <p style={{fontSize:11,fontWeight:600,color:'var(--text-2)',marginBottom:10}}>TIPO DE INSUMO</p>
                 <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
@@ -926,12 +861,12 @@ export default function Estandares() {
                   </div>
                 )}
               </div>
- 
+
               <div className="form-group" style={{marginBottom:14}}>
                 <label>Observaciones</label>
                 <input value={fObservacion} onChange={onChangeCapitalizar(setFObservacion)} placeholder="Observaciones adicionales"/>
               </div>
- 
+
               <div style={{marginBottom:14}}>
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
                   <label style={{fontSize:11,fontWeight:600,color:'var(--text-2)'}}>FRASCOS DEL ENVÍO</label>
@@ -970,7 +905,7 @@ export default function Estandares() {
                   )
                 })}
               </div>
- 
+
               <div style={{display:'flex',gap:8}}>
                 <button className="btn btn-primary btn-sm" onClick={guardar} disabled={guardando}>
                   {guardando?<div className="spinner" style={{width:14,height:14,borderWidth:2}}/>:<FlaskConical size={14}/>}
@@ -980,7 +915,7 @@ export default function Estandares() {
               </div>
             </div>
           )}
- 
+
           {pesadaId && puedePesada && (
             <div className="card">
               <div className="card-title">Registrar pesada — {items.find(i=>i.id===pesadaId)?.nombre} · Frasco {items.find(i=>i.id===pesadaId)?.frasco}</div>
@@ -1006,19 +941,15 @@ export default function Estandares() {
               </div>
             </div>
           )}
- 
-          {/* Barra búsqueda y ordenamiento */}
+
           <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:12}}>
             <div className="search-bar">
               <Search size={16} style={{color:'var(--text-3)',flexShrink:0}}/>
-              <input value={search} onChange={e=>setSearch(e.target.value)}
-                placeholder="Buscar por código, nombre o cliente..." style={{flex:1}}/>
-              {!verPapelera && (
-                <select value={filtroEst} onChange={e=>setFiltroEst(e.target.value)}>
-                  <option value="">Todos los estados</option>
-                  {ESTADOS.filter(e=>e!=='Dado de baja').map(e=><option key={e}>{e}</option>)}
-                </select>
-              )}
+              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por código, nombre o cliente..." style={{flex:1}}/>
+              <select value={filtroEst} onChange={e=>setFiltroEst(e.target.value)}>
+                <option value="">Todos los estados</option>
+                {ESTADOS.map(e=><option key={e}>{e}</option>)}
+              </select>
               <select value={filtroCliente} onChange={e=>setFiltroCliente(e.target.value)}>
                 <option value="">Todos los clientes</option>
                 {listaClientes.map(c=><option key={c}>{c}</option>)}
@@ -1039,7 +970,7 @@ export default function Estandares() {
               ))}
             </div>
           </div>
- 
+
           <div className="table-wrap">
             <table>
               <thead>
@@ -1054,7 +985,7 @@ export default function Estandares() {
                   const vence    = i.fechaVencimiento?.toDate?.() || (i.fechaVencimiento ? new Date(i.fechaVencimiento) : null)
                   const sem      = calcularSemaforo(vence)
                   const badgeCls = sem.color==='danger'?'badge-danger':sem.color==='warning'?'badge-warn':sem.color==='success'?'badge-ok':'badge-gray'
-                  const estCls   = {'En uso':'badge-ok','Cerrado':'badge-info','Vencido':'badge-danger','Sin stock':'badge-warn','Dado de baja':'badge-gray','Dada de baja':'badge-gray','Retirado por cliente':'badge-purple'}[i.estado]||'badge-gray'
+                  const estCls   = {'Espera Aprobación':'badge-warn','En uso':'badge-ok','Cerrado':'badge-info','Vencido':'badge-danger','Sin stock':'badge-warn','Vigente':'badge-ok','Retirado por cliente':'badge-purple'}[i.estado]||'badge-gray'
                   const diasUSP  = i.esUSP ? diasHastaRevision(i.proximaRevisionUSP) : null
                   const uspAlerta = i.esUSP && diasUSP !== null && diasUSP <= 60
                   return (
@@ -1076,8 +1007,7 @@ export default function Estandares() {
                           <div style={{display:'flex',gap:4,alignItems:'center',flexWrap:'wrap'}}>
                             {SECTORES.map(s=>(
                               <label key={s} style={{display:'flex',alignItems:'center',gap:4,cursor:'pointer',fontSize:11,padding:'2px 8px',borderRadius:'var(--radius-sm)',border:`1px solid ${editSectorVal.includes(s)?'var(--accent)':'var(--border-md)'}`,background:editSectorVal.includes(s)?'var(--accent-lt)':'var(--surface)'}}>
-                                <input type="checkbox" style={{display:'none'}} checked={editSectorVal.includes(s)}
-                                  onChange={()=>setEditSectorVal(p=>p.includes(s)?p.filter(x=>x!==s):[...p,s])}/>
+                                <input type="checkbox" style={{display:'none'}} checked={editSectorVal.includes(s)} onChange={()=>setEditSectorVal(p=>p.includes(s)?p.filter(x=>x!==s):[...p,s])}/>
                                 {s}
                               </label>
                             ))}
@@ -1120,18 +1050,12 @@ export default function Estandares() {
                               <CheckCircle size={13}/>
                             </button>
                           </span>
-                          <span style={{visibility: puedeAgregar && !verPapelera ? 'visible':'hidden'}}>
+                          <span style={{visibility: puedeAgregar ? 'visible':'hidden'}}>
                             <button className="btn btn-sm" title="Reposición de stock" onClick={()=>abrirReposicion(i)}><RefreshCw size={13}/></button>
                           </span>
                           <button className="btn btn-sm" onClick={()=>setDocInsumo(i)} title="Ver documentos"><FileText size={13}/></button>
-                          <span style={{visibility: puedeBaja && !verPapelera && i.estado!=='Retirado por cliente' ? 'visible':'hidden'}}>
+                          <span style={{visibility: puedeAgregar && !['Retirado por cliente','Vencido','Sin stock'].includes(i.estado) ? 'visible':'hidden'}}>
                             <button className="btn btn-sm" title="Retirar por cliente" onClick={()=>setRetiroItem(i)}><PackageX size={13}/></button>
-                          </span>
-                          <span style={{visibility: puedeBaja && !verPapelera ? 'visible':'hidden'}}>
-                            <button className="btn btn-sm" style={{color:'var(--danger)',borderColor:'var(--danger)'}} onClick={()=>darDeBaja(i.id,i.codigo)} title="Dar de baja"><PackageX size={13} style={{transform:'rotate(180deg)'}}/></button>
-                          </span>
-                          <span style={{visibility: puedeBaja && verPapelera ? 'visible':'hidden'}}>
-                            <button className="btn btn-sm" onClick={()=>restaurar(i.id)} title="Restaurar"><RefreshCw size={13}/></button>
                           </span>
                         </div>
                       </td>
@@ -1140,7 +1064,7 @@ export default function Estandares() {
                 })}
                 {filtrados.length===0 && (
                   <tr><td colSpan={11} style={{textAlign:'center',padding:24,color:'var(--text-3)'}}>
-                    {verPapelera?'La papelera está vacía':'No hay estándares que coincidan'}
+                    No hay estándares que coincidan
                   </td></tr>
                 )}
               </tbody>
@@ -1148,7 +1072,7 @@ export default function Estandares() {
           </div>
         </>
       )}
- 
+
       {tab==='historial' && (
         <>
           <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10,marginBottom:16}}>

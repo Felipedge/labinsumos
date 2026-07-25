@@ -48,7 +48,7 @@ export const PERMISOS = {
     registrarUso:      false,
     verDocumentacion:  true,
     agregarInsumo:     true,
-    darDeBaja:         true,
+    darDeBaja:         false,
     ponerEnUso:        true,
     aprobarInsumos:    true,
     exportar:          true,
@@ -63,7 +63,7 @@ export const PERMISOS = {
     registrarUso:      false,
     verDocumentacion:  true,
     agregarInsumo:     true,
-    darDeBaja:         true,
+    darDeBaja:         false,
     ponerEnUso:        true,
     aprobarInsumos:    true,
     exportar:          true,
@@ -125,7 +125,6 @@ export function puedoHacer(rol, accion) {
   return PERMISOS[rol][accion] === true
 }
 
-// Jerarquía para flujo de aprobaciones
 export const JERARQUIA = {
   admin:          5,
   jefe:           4,
