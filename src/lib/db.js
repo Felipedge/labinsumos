@@ -1,4 +1,5 @@
 // src/lib/db.js
+// Todas las operaciones de base de datos centralizadas aquí
 import {
   collection, doc, addDoc, updateDoc,
   getDocs, getDoc, query, where, orderBy, serverTimestamp,
@@ -7,6 +8,9 @@ import {
 import { db } from './firebase'
 import { getAuth } from 'firebase/auth'
  
+// ─────────────────────────────────────────────────────────────
+// AUDIT TRAIL — CFR 21 Parte 11 §11.10(e)
+// ─────────────────────────────────────────────────────────────
 export async function registrarAudit({ coleccion, documentoId, accion, antes = null, despues = null, detalle = '' }) {
   try {
     const user = getAuth().currentUser
@@ -22,6 +26,9 @@ export async function registrarAudit({ coleccion, documentoId, accion, antes = n
   }
 }
  
+// ─────────────────────────────────────────────────────────────
+// ESTÁNDARES
+// ─────────────────────────────────────────────────────────────
 export const estandaresCol = () => collection(db, 'estandares')
  
 export async function getEstandares(filtros = {}) {
@@ -79,6 +86,9 @@ export async function registrarPesada({ estandarId, mgPesados, nAnalisis, produc
   return { nuevoStock, nuevoEstado }
 }
  
+// ─────────────────────────────────────────────────────────────
+// COLUMNAS CROMATOGRÁFICAS
+// ─────────────────────────────────────────────────────────────
 export async function getColumnas(filtros = {}) {
   const constraints = [orderBy('cliente')]
   if (filtros.cliente) constraints.push(where('cliente', '==', filtros.cliente))
@@ -135,7 +145,7 @@ export async function registrarUsoColumna({ columnaId, analisis = [], totalInyec
     despues: { inyeccionesAcumuladas: nuevasInyecciones },
     detalle: `${total} inyecciones registradas por ${analista}. Análisis: ${detalleAnalisis || '—'}. Total acumulado: ${nuevasInyecciones}`,
   })
- 
+
   return { nuevasInyecciones }
 }
  
@@ -147,9 +157,8 @@ export async function retirarColumna({ columnaId, fechaRetiro, motivo, usuario, 
  
   await updateDoc(ref, {
     estado: 'Retirado por cliente',
-    motivoBaja: 'Retirada por cliente',
-    fechaRetiro,
     motivoRetiro: motivo || 'Cliente solicitó devolución del insumo',
+    fechaRetiro,
     retiradoPor: usuario || '',
     retiradoPorEmail: email || '',
     actualizadoEn: serverTimestamp(),
@@ -196,7 +205,6 @@ export async function darBajaColumnaSST({ columnaId, motivo, usuario, email }) {
  
   await updateDoc(ref, {
     estado: 'No cumple SST',
-    motivoBaja: 'No cumple System Suitability',
     motivoRetiro: motivo || 'No cumple System Suitability',
     retiradoPor: usuario || '',
     retiradoPorEmail: email || '',
@@ -208,7 +216,7 @@ export async function darBajaColumnaSST({ columnaId, motivo, usuario, email }) {
     coleccion: 'columnas', documentoId: columnaId, accion: 'no_cumple_sst',
     antes:   { estado: actual.estado },
     despues: { estado: 'No cumple SST' },
-    detalle: `Columna ${actual.codigo} no cumple System Suitability. ${motivo || ''}`.trim(),
+    detalle: `Columna ${actual.codigo} no cumple SST. ${motivo || ''}`.trim(),
   })
 
   return { estado: 'No cumple SST' }
@@ -229,6 +237,9 @@ export async function reasignarColumna(columnaId, { cliente, producto }) {
   })
 }
  
+// ─────────────────────────────────────────────────────────────
+// REACTIVOS
+// ─────────────────────────────────────────────────────────────
 export async function getReactivos(filtros = {}) {
   const constraints = [orderBy('nombre')]
   if (filtros.categoria) constraints.push(where('categoria', '==', filtros.categoria))
@@ -279,6 +290,9 @@ export async function registrarRetiroReactivo({ reactivoId, cantidad, unidad, nA
   return { nuevoStock, nuevoEstado }
 }
  
+// ─────────────────────────────────────────────────────────────
+// PLACEBO
+// ─────────────────────────────────────────────────────────────
 export async function getPlacebos(filtros = {}) {
   const constraints = [orderBy('cliente')]
   if (filtros.cliente) constraints.push(where('cliente', '==', filtros.cliente))
@@ -298,36 +312,45 @@ export async function crearPlacebo(data, usuarioEmail) {
   return ref
 }
  
-export async function registrarUsoPlacebo({ placeboId, unidades, nAnalisis, analista, email }) {
+export async function registrarUsoPlacebo({ placeboId, cantidad, unidad, nAnalisis, analista, email }) {
   const ref  = doc(db, 'placebo', placeboId)
   const snap = await getDoc(ref)
   if (!snap.exists()) throw new Error('Placebo no encontrado')
   const actual = snap.data()
- 
-  const nuevoStock  = Math.max(0, (actual.stockUnidades || 0) - unidades)
+
+  // El campo de stock depende de la presentación
+  const presentacion = actual.presentacion || 'comprimido'
+  const campoStock = presentacion === 'polvo' ? 'stockGramos' : 'stockUnidades'
+  const stockActual = actual[campoStock] || 0
+  const nuevoStock  = Math.max(0, stockActual - cantidad)
   const nuevoEstado = nuevoStock === 0 ? 'Sin stock' : actual.estado
  
   await updateDoc(ref, {
-    stockUnidades: nuevoStock, ultimoUso: serverTimestamp(),
+    [campoStock]: nuevoStock, ultimoUso: serverTimestamp(),
     estado: nuevoEstado, actualizadoEn: serverTimestamp(),
   })
  
   await addDoc(collection(db, 'usos_placebo'), {
     placeboId, codigo: actual.codigo, productoReferencia: actual.productoReferencia,
-    cliente: actual.cliente, unidades, stockAntes: actual.stockUnidades, stockDespues: nuevoStock,
+    cliente: actual.cliente, presentacion,
+    cantidad, unidad,
+    stockAntes: stockActual, stockDespues: nuevoStock,
     nAnalisis: nAnalisis || '', analista, email, fecha: serverTimestamp(),
   })
  
   await registrarAudit({
     coleccion: 'placebo', documentoId: placeboId, accion: 'uso',
-    antes:   { stockUnidades: actual.stockUnidades, estado: actual.estado },
-    despues: { stockUnidades: nuevoStock, estado: nuevoEstado },
-    detalle: `${unidades} unidades usadas por ${analista}. N° análisis: ${nAnalisis || '—'}`,
+    antes:   { [campoStock]: stockActual, estado: actual.estado },
+    despues: { [campoStock]: nuevoStock, estado: nuevoEstado },
+    detalle: `${cantidad} ${unidad} usados por ${analista}. N° análisis: ${nAnalisis || '—'}`,
   })
  
   return { nuevoStock, nuevoEstado }
 }
  
+// ─────────────────────────────────────────────────────────────
+// APIs — PRINCIPIOS ACTIVOS
+// ─────────────────────────────────────────────────────────────
 export async function getAPIs(filtros = {}) {
   const constraints = [orderBy('nombre')]
   if (filtros.laboratorio) constraints.push(where('laboratorio', '==', filtros.laboratorio))
@@ -341,7 +364,7 @@ export async function registrarPesadaAPI({ apiId, mgPesados, nAnalisis, producto
   if (!snap.exists()) throw new Error('API no encontrado')
   const actual = snap.data()
  
-  const stockActual = actual.stockRestante ?? actual.cantidadRecibida ?? 0
+  const stockActual = actual.stockRestante ?? 0
   const nuevoStock  = Math.max(0, parseFloat(stockActual) - mgPesados)
   const nuevoEstado = nuevoStock === 0 ? 'Sin stock' : actual.estado
  
@@ -367,6 +390,9 @@ export async function registrarPesadaAPI({ apiId, mgPesados, nAnalisis, producto
   return { nuevoStock, nuevoEstado }
 }
  
+// ─────────────────────────────────────────────────────────────
+// ALERTAS (calculadas en cliente)
+// ─────────────────────────────────────────────────────────────
 export function calcularSemaforo(fechaVencimiento, diasCritico = 45, diasAdv = 90) {
   if (!fechaVencimiento) return { texto: 'Sin fecha', color: 'gray', dias: null }
   const hoy   = new Date(); hoy.setHours(0, 0, 0, 0)
@@ -378,6 +404,9 @@ export function calcularSemaforo(fechaVencimiento, diasCritico = 45, diasAdv = 9
   return                          { texto: `${dias} días`, color: 'success', dias }
 }
  
+// ─────────────────────────────────────────────────────────────
+// HISTORIAL DE USOS
+// ─────────────────────────────────────────────────────────────
 export async function getUsosPorInsumo(insumoId, coleccion = 'usos_estandares', limitN = 20) {
   const q = query(
     collection(db, coleccion),
@@ -396,6 +425,9 @@ export async function getUsosRecientes(col = 'usos_estandares', limitN = 50) {
   return snap.docs.map(d => ({ id: d.id, ...d.data() }))
 }
  
+// ─────────────────────────────────────────────────────────────
+// AUDIT LOG — consulta (solo Admin y Jefe)
+// ─────────────────────────────────────────────────────────────
 export async function getAuditLog({ coleccion, accion, limitN = 100 } = {}) {
   const constraints = [orderBy('timestamp', 'desc'), limit(limitN)]
   if (coleccion) constraints.push(where('coleccion', '==', coleccion))
@@ -410,6 +442,10 @@ export function suscribirAlertas(callback) {
     snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() })))
   )
 }
+
+// ─────────────────────────────────────────────────────────────
+// TRANSICIONES DE ESTADO — INSUMOS (Estándar / Placebo / API)
+// ─────────────────────────────────────────────────────────────
 
 export async function ponerEnUsoInsumo({ coleccion, insumoId, usuario, email }) {
   const ref  = doc(db, coleccion, insumoId)
@@ -449,7 +485,7 @@ export async function retirarInsumo({ coleccion, insumoId, fechaRetiro, motivo, 
   })
 
   await registrarAudit({
-    coleccion, documentoId: insumoId, accion: 'dar_de_baja',
+    coleccion, documentoId: insumoId, accion: 'retiro_cliente',
     antes:   { estado: actual.estado },
     despues: { estado: 'Retirado por cliente', fechaRetiro },
     detalle: `Retirado por cliente el ${fechaRetiro}. ${motivo || ''}`.trim(),

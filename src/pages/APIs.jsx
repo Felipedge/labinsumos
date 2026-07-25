@@ -1,7 +1,6 @@
 // src/pages/APIs.jsx
 import { useState, useEffect } from 'react'
-import { collection, getDocs, addDoc, updateDoc, doc,
-         serverTimestamp, query, orderBy, limit } from 'firebase/firestore'
+import { collection, getDocs, addDoc, serverTimestamp, query, orderBy, limit } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { calcularSemaforo, registrarPesadaAPI, ponerEnUsoInsumo, retirarInsumo } from '../lib/db'
 import { useAuth } from '../hooks/useAuth.jsx'
@@ -12,6 +11,7 @@ import DocumentosPanel from '../components/shared/DocumentosPanel.jsx'
 import { useClientes } from '../hooks/useClientes.jsx'
  
 const UBICACIONES = ['Desecador', 'Refrigerador', 'Freezer', 'Refrigerador controlado', 'Desecador Validaciones', 'Otro']
+const ESTADOS = ['Espera Aprobación','En uso','Cerrado','Sin stock','Vencido','Retirado por cliente']
 
 async function getSiguienteNumeroAPI(db) {
   try {
@@ -66,7 +66,6 @@ export default function APIs() {
   const [guardandoR, setGuardandoR]         = useState(false)
   const [codigoGeneradoAPI, setCodigoGeneradoAPI] = useState('')
 
-  // Historial
   const [pesadas, setPesadas]         = useState([])
   const [loadingH, setLoadingH]       = useState(false)
   const [searchH, setSearchH]         = useState('')
@@ -78,7 +77,7 @@ export default function APIs() {
     try {
       const snap = await getDocs(query(collection(db, 'apis'), orderBy('creadoEn', 'desc')))
       setItems(snap.docs.map(d => ({ id: d.id, ...d.data() })))
-    } catch { setItems(DEMO) }
+    } catch { setItems([]) }
     finally { setLoading(false) }
   }
  
@@ -173,15 +172,14 @@ export default function APIs() {
     if (!rForm.lote || !rForm.stock) { setRMsg('Lote y stock son obligatorios'); return }
     setGuardandoR(true)
     try {
-      const { addDoc: aDoc, collection: col, serverTimestamp: sts } = await import('firebase/firestore')
-      await aDoc(col(db, 'apis'), {
+      await addDoc(collection(db, 'apis'), {
         ...reposicionItem, id: undefined,
         lote: rForm.lote.toUpperCase(),
         fechaVencimiento: rForm.vencimiento ? new Date(rForm.vencimiento) : null,
         stockRestante: parseFloat(rForm.stock) || 0,
         observacion: rForm.observacion || '',
         estado: rol === 'administrativo' ? 'Espera Aprobación' : 'Cerrado',
-        creadoPor: user.email, creadoEn: sts(), actualizadoEn: sts(),
+        creadoPor: user.email, creadoEn: serverTimestamp(), actualizadoEn: serverTimestamp(),
         bajaPor: null, bajaRazon: null, bajaFecha: null,
       })
       setReposicionItem(null); setRForm({}); load()
@@ -304,7 +302,6 @@ export default function APIs() {
         </div>
       </div>
  
-      {/* Tabs */}
       <div style={{display:'flex',gap:4,marginBottom:16,borderBottom:'1px solid var(--border)'}}>
         {[
           { id:'inventario', label:'Inventario', count:items.length },
@@ -352,16 +349,10 @@ export default function APIs() {
                     {listaClientes.map(l=><option key={l}>{l}</option>)}
                   </select>
                 </div>
-                <div className="form-group"><label>Lote</label>
-                  <input onChange={f('lote')}/>
-                </div>
-                <div className="form-group"><label>Fecha vencimiento</label>
-                  <input type="date" onChange={f('vencimiento')}/>
-                </div>
+                <div className="form-group"><label>Lote</label><input onChange={f('lote')}/></div>
+                <div className="form-group"><label>Fecha vencimiento</label><input type="date" onChange={f('vencimiento')}/></div>
                 <div className="form-group"><label>Ubicación</label>
-                  <select onChange={f('ubicacion')}>
-                    {UBICACIONES.map(u=><option key={u}>{u}</option>)}
-                  </select>
+                  <select onChange={f('ubicacion')}>{UBICACIONES.map(u=><option key={u}>{u}</option>)}</select>
                 </div>
                 <div className="form-group"><label>Stock inicial (mg)</label>
                   <input type="number" step="0.01" placeholder="ej: 20000" onChange={f('stock')}/>
@@ -385,12 +376,8 @@ export default function APIs() {
                 <div className="form-group"><label>Cantidad pesada (mg) *</label>
                   <input type="number" step="0.01" placeholder="ej: 10.25" onChange={f('mg')}/>
                 </div>
-                <div className="form-group"><label>N° análisis</label>
-                  <input onChange={f('nAnalisis')}/>
-                </div>
-                <div className="form-group"><label>Producto / análisis</label>
-                  <input onChange={f('producto')}/>
-                </div>
+                <div className="form-group"><label>N° análisis</label><input onChange={f('nAnalisis')}/></div>
+                <div className="form-group"><label>Producto / análisis</label><input onChange={f('producto')}/></div>
               </div>
               <div style={{display:'flex',gap:8}}>
                 <button className="btn btn-primary btn-sm" onClick={registrarPesada}>Confirmar pesada</button>
@@ -399,7 +386,6 @@ export default function APIs() {
             </div>
           )}
  
-          {/* Barra búsqueda */}
           <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:12}}>
             <div className="search-bar">
               <Search size={16} style={{color:'var(--text-3)',flexShrink:0}}/>
@@ -411,12 +397,7 @@ export default function APIs() {
               </select>
               <select value={filtroEst} onChange={e=>setFiltroEst(e.target.value)}>
                 <option value="">Todos los estados</option>
-                <option value="Espera Aprobación">Espera Aprobación</option>
-                <option value="En uso">En uso</option>
-                <option value="Cerrado">Cerrado</option>
-                <option value="Vencido">Vencido</option>
-                <option value="Sin stock">Sin stock</option>
-                <option value="Retirado por cliente">Retirado por cliente</option>
+                {ESTADOS.map(e=><option key={e}>{e}</option>)}
               </select>
             </div>
             <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
@@ -435,7 +416,6 @@ export default function APIs() {
             </div>
           </div>
  
-          {/* KPIs */}
           <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10,marginBottom:14}}>
             {[
               { label:'Total',      valor: items.length, color:'var(--accent)' },
@@ -469,10 +449,9 @@ export default function APIs() {
                     'Sin stock':'badge-warn','Vencido':'badge-danger',
                     'Retirado por cliente':'badge-purple',
                   }[i.estado] || 'badge-gray'
-                  const stockMostrado = i.stockRestante ?? '—'
- 
+                  const estaInactivo = ['Retirado por cliente','Vencido','Sin stock'].includes(i.estado)
                   return (
-                    <tr key={i.id}>
+                    <tr key={i.id} style={estaInactivo?{opacity:0.6}:{}}>
                       <td className="mono" style={{fontWeight:600}}>{i.codigo}</td>
                       <td style={{fontWeight:500}}>
                         <div>{i.nombre}</div>
@@ -480,7 +459,7 @@ export default function APIs() {
                       </td>
                       <td style={{color:'var(--text-2)'}}>{i.laboratorio}</td>
                       <td style={{color:'var(--text-2)',fontSize:11}}>{i.lote || '—'}</td>
-                      <td><strong>{stockMostrado}</strong></td>
+                      <td><strong>{i.stockRestante ?? '—'}</strong></td>
                       <td>{vence ? <span className={`badge ${badgeCls}`}>{sem.texto}</span> : <span style={{color:'var(--text-3)'}}>—</span>}</td>
                       <td><span className={`badge ${estCls}`}>{i.estado}</span></td>
                       <td>
@@ -491,11 +470,11 @@ export default function APIs() {
                           <span style={{visibility: puedeOperar && i.estado==='En uso' ? 'visible':'hidden'}}>
                             <button className="btn btn-sm" title="Registrar pesada" onClick={()=>{setPesadaId(i.id);setShowForm(false);setForm({})}}><FileText size={13}/></button>
                           </span>
-                          <span style={{visibility: puedeAgregar ? 'visible':'hidden'}}>
+                          <span style={{visibility: puedeAgregar && !estaInactivo ? 'visible':'hidden'}}>
                             <button className="btn btn-sm" title="Reposición de stock" onClick={()=>{setReposicionItem(i);setRForm({});setRMsg('')}}><RefreshCw size={13}/></button>
                           </span>
                           <button className="btn btn-sm" onClick={()=>setDocInsumo(i)} title="Ver documentos"><FileText size={13}/></button>
-                          <span style={{visibility: puedeAgregar && i.estado!=='Retirado por cliente' ? 'visible':'hidden'}}>
+                          <span style={{visibility: puedeAgregar && !estaInactivo && i.estado!=='Retirado por cliente' ? 'visible':'hidden'}}>
                             <button className="btn btn-sm" title="Retirar por cliente" onClick={()=>setRetiroItem(i)}><PackageX size={13}/></button>
                           </span>
                         </div>

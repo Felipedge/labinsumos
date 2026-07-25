@@ -11,9 +11,14 @@ import { useClientes } from '../hooks/useClientes.jsx'
 import { Plus, Search, FlaskConical, History, Package, ExternalLink, CheckCircle, XCircle, FileText, PlayCircle, PackageX, RefreshCw } from 'lucide-react'
 import DocumentosPanel from '../components/shared/DocumentosPanel.jsx'
 
+const CLIENTES  = ['Ascend','Galenicum','Grunenthal','Bamberg','Labomed','Laboratorio Chile','Novartis','Seven Pharma','Emcure','Prater','MSN','Otro']
 const SECTORES  = ['Fisicoquímico', 'Validaciones']
 const ESTADOS   = ['Espera Aprobación','En uso','Cerrado','Sin stock','Vencido','Vigente','Retirado por cliente']
-const ALMACENES = ['Desecador','Refrigerador','Freezer','Desecador-controlado','Refrigerador-controlado','Freezer-controlado','Desecador-oncológico','Refrigerador-oncológico','Freezer-oncológico']
+const ALMACENES = [
+  'Desecador','Refrigerador','Freezer',
+  'Desecador-controlado','Refrigerador-controlado','Freezer-controlado',
+  'Desecador-oncológico','Refrigerador-oncológico','Freezer-oncológico',
+]
 const MESES     = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
 const MESES_NUM = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC']
 
@@ -26,10 +31,18 @@ const TIPO_POTENCIA = [
 ]
 
 const TIPO_INSUMO = [
-  { value: 'polvo',          label: 'Polvo' },
-  { value: 'liquido',        label: 'Líquido' },
-  { value: 'liquido_ampolla',label: 'Líquido-ampolla' },
+  { value: 'polvo',           label: 'Polvo' },
+  { value: 'liquido',         label: 'Líquido' },
+  { value: 'liquido_ampolla', label: 'Líquido-ampolla' },
 ]
+
+// Colores de almacenamiento
+function colorAlmacen(almacen = '') {
+  const a = almacen.toLowerCase()
+  if (a.includes('freezer'))       return { bg: '#fee2e2', fg: '#b91c1c', label: '🔴' }
+  if (a.includes('refrigerador'))  return { bg: '#fef9c3', fg: '#854d0e', label: '🟡' }
+  return                                   { bg: '#dcfce7', fg: '#15803d', label: '🟢' }
+}
 
 function capitalizar(str) {
   if (!str) return ''
@@ -123,6 +136,7 @@ export default function Estandares() {
   const [items, setItems]         = useState([])
   const [loading, setLoading]     = useState(true)
   const [showForm, setShowForm]   = useState(false)
+  const [editItem, setEditItem]   = useState(null)   // item en edición (Espera Aprobación)
   const [pesadaId, setPesadaId]   = useState(null)
   const [frascos, setFrascos]     = useState([{ letra: 'A', stock: '' }])
   const [retiroItem, setRetiroItem]     = useState(null)
@@ -134,9 +148,9 @@ export default function Estandares() {
   const [filtroCliente, setFiltroCliente] = useState('')
   const [sigNum, setSigNum]       = useState(null)
   const [guardando, setGuardando] = useState(false)
-  const [docInsumo, setDocInsumo]     = useState(null)
-  const [ordenCampo, setOrdenCampo]   = useState('nombre')
-  const [ordenDir, setOrdenDir]       = useState('asc')
+  const [docInsumo, setDocInsumo] = useState(null)
+  const [ordenCampo, setOrdenCampo] = useState('nombre')
+  const [ordenDir, setOrdenDir]     = useState('asc')
 
   const [uspModalId, setUspModalId]           = useState(null)
   const [uspResultado, setUspResultado]       = useState('vigente')
@@ -177,20 +191,20 @@ export default function Estandares() {
   const [rFrascos, setRFrascos]             = useState([{ letra: 'A', stock: '' }])
   const [rMsg, setRMsg]                     = useState('')
   const [guardandoR, setGuardandoR]         = useState(false)
-  const [fEsUSP, setFEsUSP]                 = useState(false)
+  const [fEsUSP, setFEsUSP]               = useState(false)
   const [fFrecuenciaUSP, setFFrecuenciaUSP] = useState('12')
   const [fProxRevisionUSP, setFProxRevisionUSP] = useState('')
-  const [fMg, setFMg]                       = useState('')
-  const [fNAnalisis, setFNAnalisis]         = useState('')
-  const [fProducto2, setFProducto2]         = useState('')
+  const [fMg, setFMg]                     = useState('')
+  const [fNAnalisis, setFNAnalisis]       = useState('')
+  const [fProducto2, setFProducto2]       = useState('')
 
-  const [pesadas, setPesadas]         = useState([])
-  const [loadingH, setLoadingH]       = useState(false)
-  const [searchH, setSearchH]         = useState('')
+  const [pesadas, setPesadas]             = useState([])
+  const [loadingH, setLoadingH]           = useState(false)
+  const [searchH, setSearchH]             = useState('')
   const [filtroUsuario, setFiltroUsuario] = useState('')
-  const [filtroStd, setFiltroStd]     = useState('')
-  const [fechaDesde, setFechaDesde]   = useState('')
-  const [fechaHasta, setFechaHasta]   = useState('')
+  const [filtroStd, setFiltroStd]         = useState('')
+  const [fechaDesde, setFechaDesde]       = useState('')
+  const [fechaHasta, setFechaHasta]       = useState('')
 
   const hoy     = new Date()
   const mesAct  = String(hoy.getMonth() + 1).padStart(2, '0')
@@ -221,24 +235,62 @@ export default function Estandares() {
     }
   }, [fEsUSP, fFrecuenciaUSP])
 
+  const resetForm = () => {
+    setFNombre(''); setFCliente(''); setFLote(''); setFCas('')
+    setFProducto(''); setFabricante(''); setFObservacion('')
+    setFSector([]); setFAlmacen('Desecador'); setFVencimiento('')
+    setFXAnalisis('200'); setFTipoPotencia('tal_cual'); setFPotencia('')
+    setFTipoInsumo('polvo')
+    setFKarlFischer(false); setFSecadoPrevio(false)
+    setFTempSecado(''); setFTiempoSecado(''); setFSecadoDesecador(false)
+    setFEsUSP(false); setFFrecuenciaUSP('12'); setFProxRevisionUSP('')
+    setFrascos([{ letra: 'A', stock: '' }])
+    setMsg('')
+  }
+
   const abrirFormulario = async () => {
     if (!showForm) {
       const n = await getSiguienteNumero(db)
       setSigNum(n)
       setFMes(mesAct); setFAnio(String(anioAct))
-      setFrascos([{ letra: 'A', stock: '' }])
-      setFNombre(''); setFCliente(''); setFLote(''); setFCas('')
-      setFProducto(''); setFabricante(''); setFObservacion('')
-      setFSector([]); setFAlmacen('Desecador'); setFVencimiento('')
-      setFXAnalisis('200'); setFTipoPotencia('tal_cual'); setFPotencia('')
-      setFTipoInsumo('polvo')
-      setFKarlFischer(false); setFSecadoPrevio(false)
-      setFTempSecado(''); setFTiempoSecado(''); setFSecadoDesecador(false)
-      setFEsUSP(false); setFFrecuenciaUSP('12'); setFProxRevisionUSP('')
-      setMsg('')
+      setEditItem(null)
+      resetForm()
     }
     setShowForm(!showForm)
     setPesadaId(null)
+  }
+
+  const abrirEdicion = (item) => {
+    setEditItem(item)
+    setShowForm(true)
+    setPesadaId(null)
+    setSigNum(item.numeroStd)
+    setFNombre(item.nombre || '')
+    setFCliente(item.cliente || '')
+    setFLote(item.lote || '')
+    setFCas(item.cas || '')
+    setFProducto(item.producto || '')
+    setFabricante(item.fabricante || '')
+    setFObservacion(item.observacion || '')
+    setFSector(Array.isArray(item.sector) ? item.sector : (item.sector ? [item.sector] : []))
+    setFAlmacen(item.almacenamiento || 'Desecador')
+    setFMes(item.mesIngreso ? String(item.mesIngreso).padStart(2,'0') : mesAct)
+    setFAnio(String(item.anioIngreso || anioAct))
+    setFVencimiento(item.fechaVencimiento ? (item.fechaVencimiento?.toDate?.() || new Date(item.fechaVencimiento)).toISOString().split('T')[0] : '')
+    setFXAnalisis(String(item.cantPorAnalisis || 200))
+    setFTipoPotencia(item.tipoPotencia || 'tal_cual')
+    setFPotencia(item.potencia != null ? String(item.potencia) : '')
+    setFTipoInsumo(item.tipoInsumo || 'polvo')
+    setFKarlFischer(item.karlFischer || false)
+    setFSecadoPrevio(item.secadoPrevio || false)
+    setFTempSecado(item.tempSecado || '')
+    setFTiempoSecado(item.tiempoSecado || '')
+    setFSecadoDesecador(item.secadoDesecador || false)
+    setFEsUSP(item.esUSP || false)
+    setFFrecuenciaUSP(String(item.frecuenciaRevUSP || 12))
+    setFProxRevisionUSP(item.proximaRevisionUSP || '')
+    setFrascos([{ letra: item.frasco || 'A', stock: String(item.stockRestante || '') }])
+    setMsg('')
   }
 
   const agregarFrasco = () => {
@@ -258,6 +310,31 @@ export default function Estandares() {
     if (fEsUSP && !fFrecuenciaUSP) { setMsg('Ingresa la frecuencia de revisión USP'); return }
     setGuardando(true)
     try {
+      // Modo edición: actualizar documento existente
+      if (editItem) {
+        await updateDoc(doc(db, 'estandares', editItem.id), {
+          nombre: capitalizar(fNombre), cas: fCas.toUpperCase(), lote: fLote.toUpperCase(),
+          cliente: fCliente, producto: capitalizar(fProducto),
+          tipoPotencia: fTipoPotencia,
+          potencia: (fTipoPotencia === 'tal_cual' || fTipoPotencia === 'base_seca' || fTipoPotencia === 'base_anhidra') ? parseFloat(fPotencia) : null,
+          tipoInsumo: fTipoInsumo,
+          karlFischer: fKarlFischer, secadoPrevio: fSecadoPrevio,
+          tempSecado: fSecadoPrevio ? capitalizar(fTempSecado) : '',
+          tiempoSecado: fSecadoPrevio ? capitalizar(fTiempoSecado) : '',
+          secadoDesecador: fSecadoDesecador,
+          sector: fSector, almacenamiento: fAlmacen,
+          fabricante: capitalizar(fFabricante), observacion: capitalizar(fObservacion),
+          cantPorAnalisis: parseFloat(fXAnalisis) || 200,
+          esUSP: fEsUSP,
+          frecuenciaRevUSP: fEsUSP ? parseInt(fFrecuenciaUSP) : null,
+          proximaRevisionUSP: fEsUSP ? fProxRevisionUSP : null,
+          fechaVencimiento: !fEsUSP && fVencimiento ? new Date(fVencimiento) : null,
+          actualizadoEn: serverTimestamp(),
+        })
+        setShowForm(false); setEditItem(null); resetForm(); load()
+        return
+      }
+
       const numero = sigNum || await getSiguienteNumero(db)
 
       const snapExist = await getDocs(
@@ -277,7 +354,9 @@ export default function Estandares() {
       }
 
       const nuevosConFecha = frascos.map(fr => ({
-        letra: fr.letra, stock: fr.stock, codigoCustom: fr.codigoCustom,
+        letra: fr.letra,
+        stock: fr.stock,
+        codigoCustom: fr.codigoCustom,
         fechaVenc: !fEsUSP && fVencimiento ? parseFecha(fVencimiento) : new Date('9999-12-31'),
       }))
 
@@ -285,7 +364,9 @@ export default function Estandares() {
       if (!hayEnUsoExist) {
         const candidatos = [
           ...existentes.filter(h => h.estado === 'Cerrado').map(h => ({
-            letra: h.frasco, fechaVenc: parseFecha(h.fechaVencimiento), esExistente: true,
+            letra: h.frasco,
+            fechaVenc: parseFecha(h.fechaVencimiento),
+            esExistente: true,
           })),
           ...nuevosConFecha.map(fr => ({ letra: fr.letra, fechaVenc: fr.fechaVenc, esExistente: false })),
         ]
@@ -328,7 +409,8 @@ export default function Estandares() {
           proximaRevisionUSP: fEsUSP ? fProxRevisionUSP : null,
           ultimaRevisionUSP: null,
           fechaVencimiento: !fEsUSP && fVencimiento ? new Date(fVencimiento) : null,
-          estado: rol === 'administrativo' ? 'Espera Aprobación' : estadoFrasco, creadoPorRol: rol,
+          estado: rol === 'administrativo' ? 'Espera Aprobación' : estadoFrasco,
+          creadoPorRol: rol,
           mesIngreso: fMes || mesAct, anioIngreso: parseInt(fAnio || anioAct),
           creadoPor: user.email, creadoEn: serverTimestamp(), actualizadoEn: serverTimestamp(),
         })
@@ -410,7 +492,8 @@ export default function Estandares() {
     if (!editSectorVal.length) return
     try {
       await updateDoc(doc(db, 'estandares', id), { sector: editSectorVal, actualizadoEn: serverTimestamp() })
-      setEditSectorId(null); load()
+      setEditSectorId(null)
+      load()
     } catch(e) { alert('Error: ' + e.message) }
   }
 
@@ -428,16 +511,21 @@ export default function Estandares() {
     if (!rLote || rFrascos.some(fr => !fr.stock)) { setRMsg('Lote y stock son obligatorios'); return }
     setGuardandoR(true)
     try {
+      // La reposición usa el mes/año ACTUAL para el código
+      const mesRep  = String(new Date().getMonth() + 1).padStart(2, '0')
+      const anioRep = new Date().getFullYear()
       for (const fr of rFrascos) {
-        const codigo = generarCodigo(reposicionItem.numeroStd, reposicionItem.mesIngreso || mesAct, reposicionItem.anioIngreso || anioAct, rLote, fr.letra)
+        const codigo = generarCodigo(reposicionItem.numeroStd, mesRep, anioRep, rLote, fr.letra)
         await addDoc(collection(db, 'estandares'), {
-          ...reposicionItem, id: undefined,
+          ...reposicionItem,
+          id: undefined,
           codigo, frasco: fr.letra, lote: rLote.toUpperCase(),
           fechaVencimiento: rVencimiento ? new Date(rVencimiento) : null,
           stockInicial: parseFloat(fr.stock), stockRestante: parseFloat(fr.stock),
+          mesIngreso: mesRep, anioIngreso: anioRep,
           estado: 'Cerrado',
           creadoPor: user.email, creadoEn: serverTimestamp(), actualizadoEn: serverTimestamp(),
-          vencidoPor: null, vencidoRazon: null, vencidoFecha: null,
+          bajaPor: null, bajaRazon: null, bajaFecha: null,
         })
       }
       setReposicionItem(null); load()
@@ -483,21 +571,23 @@ export default function Estandares() {
         const batch = writeBatch(db)
         for (const vial of mismosLotes) {
           batch.update(doc(db, 'estandares', vial.id), {
-            estado: 'Vencido', vencidoPor: user.email,
+            estado: 'Vencido',
+            vencidoPor: user.email,
             vencidoRazon: `Estándar USP no vigente — verificación ${uspFechaVerif}. ${uspObs}`,
-            vencidoFecha: serverTimestamp(), actualizadoEn: serverTimestamp(),
+            vencidoFecha: serverTimestamp(),
+            actualizadoEn: serverTimestamp(),
           })
         }
         await batch.commit()
         await addDoc(collection(db, 'usos_estandares'), {
           estandarId: uspModalId, codigo: item.codigo, nombre: item.nombre, cliente: item.cliente,
           tipo: 'verificacion_usp', resultado: 'No vigente — marcado como Vencido',
-          vialsMarcadosComoVencidos: mismosLotes.length, fechaVerif: uspFechaVerif, observacion: uspObs,
+          vialsVencidos: mismosLotes.length, fechaVerif: uspFechaVerif, observacion: uspObs,
           analista: user.displayName || user.email, email: user.email, fecha: serverTimestamp(),
         })
         await registrarAudit({
           coleccion: 'estandares', documentoId: uspModalId, accion: 'verificacion_usp',
-          despues: { resultado: 'No vigente', estado: 'Vencido', vialsMarcadosComoVencidos: mismosLotes.length, fechaVerif: uspFechaVerif },
+          despues: { resultado: 'No vigente', estado: 'Vencido', vialsVencidos: mismosLotes.length, fechaVerif: uspFechaVerif },
           detalle: `Verificación USP No vigente por ${user.displayName || user.email}. ${mismosLotes.length} vial(es) marcado(s) como Vencido automáticamente.`,
         })
       }
@@ -522,9 +612,11 @@ export default function Estandares() {
     .sort((a, b) => {
       let valA, valB
       if (ordenCampo === 'nombre') {
-        valA = a.nombre?.toLowerCase() || ''; valB = b.nombre?.toLowerCase() || ''
+        valA = a.nombre?.toLowerCase() || ''
+        valB = b.nombre?.toLowerCase() || ''
       } else if (ordenCampo === 'codigo') {
-        valA = a.codigo?.toLowerCase() || ''; valB = b.codigo?.toLowerCase() || ''
+        valA = a.codigo?.toLowerCase() || ''
+        valB = b.codigo?.toLowerCase() || ''
       } else if (ordenCampo === 'vencimiento') {
         const getTs = (i) => {
           if (i.esUSP && i.proximaRevisionUSP) return new Date(i.proximaRevisionUSP).getTime()
@@ -593,9 +685,9 @@ export default function Estandares() {
           </div>
         </div>
       )}
-
       {retiroItem && (
-        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:1000,
+          display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
           <div style={{background:'var(--surface)',borderRadius:'var(--radius-lg)',padding:24,width:'100%',maxWidth:440}}>
             <p style={{fontSize:15,fontWeight:600,marginBottom:4}}>Retirar por cliente</p>
             <p style={{fontSize:12,color:'var(--text-2)',marginBottom:16}}>{retiroItem.codigo} — {retiroItem.nombre}</p>
@@ -605,7 +697,8 @@ export default function Estandares() {
             </div>
             <div className="form-group" style={{marginBottom:16}}>
               <label>Motivo / observación</label>
-              <input value={retiroMotivo} onChange={e=>setRetiroMotivo(e.target.value)} placeholder="ej: Cliente solicitó devolución del insumo"/>
+              <input value={retiroMotivo} onChange={e=>setRetiroMotivo(e.target.value)}
+                placeholder="ej: Cliente solicitó devolución del insumo"/>
             </div>
             <div style={{display:'flex',gap:8}}>
               <button className="btn btn-primary btn-sm" onClick={confirmarRetiro}>Confirmar retiro</button>
@@ -614,7 +707,6 @@ export default function Estandares() {
           </div>
         </div>
       )}
-
       {docInsumo && (
         <DocumentosPanel insumoId={docInsumo.id} modulo="estandares"
           nombreInsumo={`${docInsumo.nombre} · ${docInsumo.codigo}`}
@@ -652,7 +744,7 @@ export default function Estandares() {
               </div>
               {uspResultado === 'no_vigente' && (
                 <div style={{background:'var(--danger-lt)',border:'1px solid var(--danger)',borderRadius:'var(--radius-sm)',padding:'10px 12px',marginBottom:16,fontSize:12,color:'var(--danger)'}}>
-                  ⚠️ Se marcarán como <strong>Vencido</strong> automáticamente <strong>todos los frascos del lote {item.lote}</strong> del estándar {item.nombre}.
+                  ⚠️ Se marcarán como <strong>Vencido</strong> todos los frascos del lote <strong>{item.lote}</strong> del estándar {item.nombre}.
                 </div>
               )}
               <div className="form-grid">
@@ -727,8 +819,8 @@ export default function Estandares() {
           {showForm && puedeAgregar && (
             <div className="card">
               <div className="card-title">
-                Ingresar nuevo estándar
-                {sigNum && <span className="badge badge-purple">N°: STD-{String(sigNum).padStart(4,'0')}</span>}
+                {editItem ? `Editar estándar — ${editItem.codigo}` : 'Ingresar nuevo estándar'}
+                {sigNum && !editItem && <span className="badge badge-purple">N°: STD-{String(sigNum).padStart(4,'0')}</span>}
               </div>
               {msg && <div className="alert-item danger" style={{marginBottom:10}}>{msg}</div>}
               <div className="form-grid">
@@ -756,7 +848,8 @@ export default function Estandares() {
                   <div style={{display:'flex',gap:8}}>
                     {SECTORES.map(s=>(
                       <label key={s} style={{display:'flex',alignItems:'center',gap:6,cursor:'pointer',fontSize:13,padding:'5px 11px',borderRadius:'var(--radius-sm)',border:`1px solid ${fSector.includes(s)?'var(--accent)':'var(--border-md)'}`,background:fSector.includes(s)?'var(--accent-lt)':'var(--surface)',color:fSector.includes(s)?'var(--accent)':'var(--text-1)'}}>
-                        <input type="checkbox" style={{display:'none'}} checked={fSector.includes(s)} onChange={()=>setFSector(p=>p.includes(s)?p.filter(x=>x!==s):[...p,s])}/>
+                        <input type="checkbox" style={{display:'none'}} checked={fSector.includes(s)}
+                          onChange={()=>setFSector(p=>p.includes(s)?p.filter(x=>x!==s):[...p,s])}/>
                         {s}
                       </label>
                     ))}
@@ -867,51 +960,53 @@ export default function Estandares() {
                 <input value={fObservacion} onChange={onChangeCapitalizar(setFObservacion)} placeholder="Observaciones adicionales"/>
               </div>
 
-              <div style={{marginBottom:14}}>
-                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
-                  <label style={{fontSize:11,fontWeight:600,color:'var(--text-2)'}}>FRASCOS DEL ENVÍO</label>
-                  <button className="btn btn-sm" onClick={agregarFrasco}><Plus size={12}/> Agregar frasco</button>
-                </div>
-                {frascos.map((fr,i) => {
-                  const sugerido = sigNum && fLote ? generarCodigo(sigNum, fMes||mesAct, fAnio||anioAct, fLote, fr.letra) : ''
-                  return (
-                    <div key={fr.letra} style={{background:'var(--bg)',padding:'8px 12px',borderRadius:'var(--radius-sm)',border:'1px solid var(--border)',marginBottom:6}}>
-                      <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:sugerido?6:0}}>
-                        <div style={{width:28,height:28,borderRadius:'50%',background:i===0?'var(--accent-lt)':'var(--bg)',border:'1px solid var(--border-md)',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:600,fontSize:12,color:i===0?'var(--accent)':'var(--text-2)',flexShrink:0}}>{fr.letra}</div>
-                        <div style={{fontSize:11,color:'var(--text-2)',minWidth:80}}>{i===0?<span style={{color:'var(--ok)',fontWeight:500}}>En uso</span>:<span>Cerrado</span>}</div>
-                        <div className="form-group" style={{flex:1,margin:0}}>
-                          <input type="number" step="0.01" placeholder="Stock inicial (mg)" value={fr.stock} onChange={e=>updateFrasco(i,e.target.value)}/>
+              {!editItem && (
+                <div style={{marginBottom:14}}>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
+                    <label style={{fontSize:11,fontWeight:600,color:'var(--text-2)'}}>FRASCOS DEL ENVÍO</label>
+                    <button className="btn btn-sm" onClick={agregarFrasco}><Plus size={12}/> Agregar frasco</button>
+                  </div>
+                  {frascos.map((fr,i) => {
+                    const sugerido = sigNum && fLote ? generarCodigo(sigNum, fMes||mesAct, fAnio||anioAct, fLote, fr.letra) : ''
+                    return (
+                      <div key={fr.letra} style={{background:'var(--bg)',padding:'8px 12px',borderRadius:'var(--radius-sm)',border:'1px solid var(--border)',marginBottom:6}}>
+                        <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:sugerido?6:0}}>
+                          <div style={{width:28,height:28,borderRadius:'50%',background:i===0?'var(--accent-lt)':'var(--bg)',border:'1px solid var(--border-md)',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:600,fontSize:12,color:i===0?'var(--accent)':'var(--text-2)',flexShrink:0}}>{fr.letra}</div>
+                          <div style={{fontSize:11,color:'var(--text-2)',minWidth:80}}>{i===0?<span style={{color:'var(--ok)',fontWeight:500}}>En uso</span>:<span>Cerrado</span>}</div>
+                          <div className="form-group" style={{flex:1,margin:0}}>
+                            <input type="number" step="0.01" placeholder="Stock inicial (mg)" value={fr.stock} onChange={e=>updateFrasco(i,e.target.value)}/>
+                          </div>
+                          {frascos.length>1 && <button className="btn btn-sm" onClick={()=>quitarFrasco(i)} style={{padding:'4px 8px',color:'var(--danger)'}}>✕</button>}
                         </div>
-                        {frascos.length>1 && <button className="btn btn-sm" onClick={()=>quitarFrasco(i)} style={{padding:'4px 8px',color:'var(--danger)'}}>✕</button>}
+                        {sugerido && (
+                          <div style={{display:'flex',alignItems:'center',gap:6}}>
+                            <input
+                              value={fr.codigoCustom ?? sugerido}
+                              onChange={e=>setFrascos(p=>p.map((f,j)=>j===i?{...f,codigoCustom:e.target.value}:f))}
+                              style={{flex:1,fontFamily:'var(--font-mono)',fontSize:11,fontWeight:600,padding:'3px 7px',border:'1px solid var(--border)',borderRadius:'var(--radius-sm)',background:'var(--surface)'}}
+                            />
+                            {fr.codigoCustom !== undefined && fr.codigoCustom !== sugerido && (
+                              <button type="button" title="Restaurar código auto-generado"
+                                onClick={()=>setFrascos(p=>p.map((f,j)=>j===i?{...f,codigoCustom:undefined}:f))}
+                                style={{padding:'2px 7px',fontSize:13,border:'1px solid var(--border-md)',borderRadius:'var(--radius-sm)',background:'var(--bg)',cursor:'pointer',flexShrink:0}}>↺</button>
+                            )}
+                            {(fr.codigoCustom === undefined || fr.codigoCustom === sugerido) && (
+                              <span style={{fontSize:10,color:'var(--ok)',whiteSpace:'nowrap'}}>✓ Auto</span>
+                            )}
+                          </div>
+                        )}
                       </div>
-                      {sugerido && (
-                        <div style={{display:'flex',alignItems:'center',gap:6}}>
-                          <input
-                            value={fr.codigoCustom ?? sugerido}
-                            onChange={e=>setFrascos(p=>p.map((f,j)=>j===i?{...f,codigoCustom:e.target.value}:f))}
-                            style={{flex:1,fontFamily:'var(--font-mono)',fontSize:11,fontWeight:600,padding:'3px 7px',border:'1px solid var(--border)',borderRadius:'var(--radius-sm)',background:'var(--surface)'}}
-                          />
-                          {fr.codigoCustom !== undefined && fr.codigoCustom !== sugerido && (
-                            <button type="button" title="Restaurar código auto-generado"
-                              onClick={()=>setFrascos(p=>p.map((f,j)=>j===i?{...f,codigoCustom:undefined}:f))}
-                              style={{padding:'2px 7px',fontSize:13,border:'1px solid var(--border-md)',borderRadius:'var(--radius-sm)',background:'var(--bg)',cursor:'pointer',flexShrink:0}}>↺</button>
-                          )}
-                          {(fr.codigoCustom === undefined || fr.codigoCustom === sugerido) && (
-                            <span style={{fontSize:10,color:'var(--ok)',whiteSpace:'nowrap'}}>✓ Auto</span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
+                    )
+                  })}
+                </div>
+              )}
 
               <div style={{display:'flex',gap:8}}>
                 <button className="btn btn-primary btn-sm" onClick={guardar} disabled={guardando}>
                   {guardando?<div className="spinner" style={{width:14,height:14,borderWidth:2}}/>:<FlaskConical size={14}/>}
-                  {guardando?'Guardando...':`Guardar ${frascos.length} frasco${frascos.length>1?'s':''}`}
+                  {guardando?'Guardando...':editItem?'Guardar cambios':`Guardar ${frascos.length} frasco${frascos.length>1?'s':''}`}
                 </button>
-                <button className="btn btn-sm" onClick={()=>{setShowForm(false);setMsg('')}}>Cancelar</button>
+                <button className="btn btn-sm" onClick={()=>{setShowForm(false);setEditItem(null);setMsg('')}}>Cancelar</button>
               </div>
             </div>
           )}
@@ -945,7 +1040,8 @@ export default function Estandares() {
           <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:12}}>
             <div className="search-bar">
               <Search size={16} style={{color:'var(--text-3)',flexShrink:0}}/>
-              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por código, nombre o cliente..." style={{flex:1}}/>
+              <input value={search} onChange={e=>setSearch(e.target.value)}
+                placeholder="Buscar por código, nombre o cliente..." style={{flex:1}}/>
               <select value={filtroEst} onChange={e=>setFiltroEst(e.target.value)}>
                 <option value="">Todos los estados</option>
                 {ESTADOS.map(e=><option key={e}>{e}</option>)}
@@ -976,8 +1072,8 @@ export default function Estandares() {
               <thead>
                 <tr>
                   <th>Código</th><th>Nombre / Producto</th><th>Frasco</th><th>Cliente</th>
-                  <th>Sector</th><th>Potencia</th><th>Condiciones</th><th>Stock (mg)</th>
-                  <th>Vencimiento / Revisión</th><th>Estado</th><th></th>
+                  <th>Sector</th><th>Potencia</th><th>Condiciones</th><th>Almacén</th>
+                  <th>Stock (mg)</th><th>Vencimiento / Revisión</th><th>Estado</th><th></th>
                 </tr>
               </thead>
               <tbody>
@@ -985,14 +1081,26 @@ export default function Estandares() {
                   const vence    = i.fechaVencimiento?.toDate?.() || (i.fechaVencimiento ? new Date(i.fechaVencimiento) : null)
                   const sem      = calcularSemaforo(vence)
                   const badgeCls = sem.color==='danger'?'badge-danger':sem.color==='warning'?'badge-warn':sem.color==='success'?'badge-ok':'badge-gray'
-                  const estCls   = {'Espera Aprobación':'badge-warn','En uso':'badge-ok','Cerrado':'badge-info','Vencido':'badge-danger','Sin stock':'badge-warn','Vigente':'badge-ok','Retirado por cliente':'badge-purple'}[i.estado]||'badge-gray'
-                  const diasUSP  = i.esUSP ? diasHastaRevision(i.proximaRevisionUSP) : null
-                  const uspAlerta = i.esUSP && diasUSP !== null && diasUSP <= 60
+                  const estCls   = {
+                    'Espera Aprobación':'badge-warn',
+                    'En uso':'badge-ok','Cerrado':'badge-info',
+                    'Vencido':'badge-danger','Sin stock':'badge-warn',
+                    'Vigente':'badge-ok','Retirado por cliente':'badge-purple',
+                  }[i.estado] || 'badge-gray'
+                  const diasUSP    = i.esUSP ? diasHastaRevision(i.proximaRevisionUSP) : null
+                  const uspAlerta  = i.esUSP && diasUSP !== null && diasUSP <= 60
+                  const estaInact  = ['Retirado por cliente','Sin stock','Vencido'].includes(i.estado)
+                  const esOnco     = (i.almacenamiento || '').toLowerCase().includes('oncológico')
+                  const colAlm     = colorAlmacen(i.almacenamiento)
                   return (
-                    <tr key={i.id}>
+                    <tr key={i.id} style={estaInact?{opacity:0.6}:{}}>
                       <td className="mono" style={{fontSize:10}}>{i.codigo}</td>
                       <td style={{fontWeight:500}}>
-                        <div>{i.nombre}{i.esUSP && <span className="badge badge-info" style={{marginLeft:4,fontSize:10}}>USP</span>}</div>
+                        <div>
+                          {i.nombre}
+                          {esOnco && <span title="Oncológico" style={{marginLeft:4,display:'inline-block',width:8,height:8,borderRadius:'50%',background:'#111',verticalAlign:'middle'}}/>}
+                          {i.esUSP && <span className="badge badge-info" style={{marginLeft:4,fontSize:10}}>USP</span>}
+                        </div>
                         {i.producto && <div style={{fontSize:10,color:'var(--text-3)'}}>{i.producto}</div>}
                         {i.observacion && <div style={{fontSize:10,color:'var(--text-3)',fontStyle:'italic'}}>{i.observacion}</div>}
                       </td>
@@ -1007,7 +1115,8 @@ export default function Estandares() {
                           <div style={{display:'flex',gap:4,alignItems:'center',flexWrap:'wrap'}}>
                             {SECTORES.map(s=>(
                               <label key={s} style={{display:'flex',alignItems:'center',gap:4,cursor:'pointer',fontSize:11,padding:'2px 8px',borderRadius:'var(--radius-sm)',border:`1px solid ${editSectorVal.includes(s)?'var(--accent)':'var(--border-md)'}`,background:editSectorVal.includes(s)?'var(--accent-lt)':'var(--surface)'}}>
-                                <input type="checkbox" style={{display:'none'}} checked={editSectorVal.includes(s)} onChange={()=>setEditSectorVal(p=>p.includes(s)?p.filter(x=>x!==s):[...p,s])}/>
+                                <input type="checkbox" style={{display:'none'}} checked={editSectorVal.includes(s)}
+                                  onChange={()=>setEditSectorVal(p=>p.includes(s)?p.filter(x=>x!==s):[...p,s])}/>
                                 {s}
                               </label>
                             ))}
@@ -1027,6 +1136,11 @@ export default function Estandares() {
                           ?<BadgesCondiciones karlFischer={i.karlFischer} secadoPrevio={i.secadoPrevio} tempSecado={i.tempSecado} tiempoSecado={i.tiempoSecado} secadoDesecador={i.secadoDesecador}/>
                           :<span style={{color:'var(--text-3)',fontSize:11}}>—</span>}
                       </td>
+                      <td>
+                        <span style={{display:'inline-flex',alignItems:'center',gap:4,padding:'2px 8px',borderRadius:'var(--radius-sm)',background:colAlm.bg,color:colAlm.fg,fontSize:11,fontWeight:500,whiteSpace:'nowrap'}}>
+                          {colAlm.label} {i.almacenamiento || '—'}
+                        </span>
+                      </td>
                       <td><strong>{i.stockRestante??'—'}</strong></td>
                       <td>
                         {i.esUSP
@@ -1037,6 +1151,9 @@ export default function Estandares() {
                       <td><span className={`badge ${estCls}`}>{i.estado}</span></td>
                       <td>
                         <div style={{display:'flex',gap:4,alignItems:'center'}}>
+                          {puedeAgregar && i.estado === 'Espera Aprobación' && (
+                            <button className="btn btn-sm" title="Editar" onClick={()=>abrirEdicion(i)}>✏️</button>
+                          )}
                           <span style={{visibility: puedePonerEnUso && i.estado==='Cerrado' ? 'visible':'hidden'}}>
                             <button className="btn btn-sm" title="Poner en uso" onClick={()=>handlePonerEnUso(i)}><PlayCircle size={13}/></button>
                           </span>
@@ -1050,11 +1167,11 @@ export default function Estandares() {
                               <CheckCircle size={13}/>
                             </button>
                           </span>
-                          <span style={{visibility: puedeAgregar ? 'visible':'hidden'}}>
+                          <span style={{visibility: puedeAgregar && !estaInact ? 'visible':'hidden'}}>
                             <button className="btn btn-sm" title="Reposición de stock" onClick={()=>abrirReposicion(i)}><RefreshCw size={13}/></button>
                           </span>
                           <button className="btn btn-sm" onClick={()=>setDocInsumo(i)} title="Ver documentos"><FileText size={13}/></button>
-                          <span style={{visibility: puedeAgregar && !['Retirado por cliente','Vencido','Sin stock'].includes(i.estado) ? 'visible':'hidden'}}>
+                          <span style={{visibility: puedeAgregar && !estaInact ? 'visible':'hidden'}}>
                             <button className="btn btn-sm" title="Retirar por cliente" onClick={()=>setRetiroItem(i)}><PackageX size={13}/></button>
                           </span>
                         </div>
@@ -1063,7 +1180,7 @@ export default function Estandares() {
                   )
                 })}
                 {filtrados.length===0 && (
-                  <tr><td colSpan={11} style={{textAlign:'center',padding:24,color:'var(--text-3)'}}>
+                  <tr><td colSpan={12} style={{textAlign:'center',padding:24,color:'var(--text-3)'}}>
                     No hay estándares que coincidan
                   </td></tr>
                 )}
