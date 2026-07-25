@@ -10,23 +10,42 @@ import { puedoHacer } from '../lib/roles'
 import { Plus, FileText, Search, X, PackageX, PlayCircle, History, Clock, User, Beaker } from 'lucide-react'
 import DocumentosPanel from '../components/shared/DocumentosPanel.jsx'
 
+// Clientes se cargan desde Firestore (fallback si falla)
 const CLIENTES_FALLBACK = [
   { nombre:'Ascend', sigla:'ASC' }, { nombre:'Galenicum', sigla:'GL' },
   { nombre:'Laboratorio Chile', sigla:'LCH' }, { nombre:'Novartis', sigla:'NOV' },
   { nombre:'Otro', sigla:'OTR' },
 ]
 
-const FASES = [
+const FASES   = [
   'C18','C8','CN','Fenil','RP18','RP8','PH','CPS','Quiral','SCX','T3','RP',
   'SIL','Alquimide','NAP','ODS 3V','ODS 2','C1','L9','ODS 3','MOS','ODS','AMINO','Otro'
 ]
 
 const FASE_COLOR = {
-  'C18':'rojo','C8':'verde','CN':'morado','Fenil':'naranjo','RP18':'azul',
-  'RP8':'cian','PH':'rosa','CPS':'ambar','Quiral':'indigo','SCX':'teal',
-  'T3':'lima','RP':'cielo','SIL':'pizarra','Alquimide':'fucsia','NAP':'esmeralda',
-  'ODS 3V':'vino','ODS 2':'coral','ODS 3':'tomate','ODS':'ladrillo',
-  'C1':'oliva','L9':'bronce','MOS':'violeta','AMINO':'turquesa',
+  'C18':   'rojo',
+  'C8':    'verde',
+  'CN':    'morado',
+  'Fenil': 'naranjo',
+  'RP18':  'azul',
+  'RP8':       'cian',
+  'PH':        'rosa',
+  'CPS':       'ambar',
+  'Quiral':    'indigo',
+  'SCX':       'teal',
+  'T3':        'lima',
+  'RP':        'cielo',
+  'SIL':       'pizarra',
+  'Alquimide': 'fucsia',
+  'NAP':       'esmeralda',
+  'ODS 3V':    'vino',
+  'ODS 2':     'coral',
+  'ODS 3':     'tomate',
+  'ODS':       'ladrillo',
+  'C1':        'oliva',
+  'L9':        'bronce',
+  'MOS':       'violeta',
+  'AMINO':     'turquesa',
 }
 
 const COLOR_VARIANTES = {
@@ -57,8 +76,7 @@ const COLOR_VARIANTES = {
 }
 
 const AREAS = ['Fisicoquímico', 'Validaciones']
-const TIPOS_ANALISIS = ['Valoración','Identidad','Quiralidad','Sustancias relacionadas','Uniformidad','Disolución','Test límite']
-const MICRAS = ['1.5','1.7','1.8','2','2.5','3','3.5','5','10']
+const TIPOS_ANALISIS = ['Valoración','Identidad','Quiralidad','Sustancias relacionadas','Uniformidad','Disolución']
 
 function FaseBadge({ fase }) {
   const key = FASE_COLOR[fase] || 'gris'
@@ -92,7 +110,9 @@ async function getSiguienteCorrelativo(sigla) {
 export default function Columnas() {
   const { user } = useAuth()
   const { rol }  = useRole()
-  const puedeAgregar    = puedoHacer(rol, 'agregarInsumo')
+  const puedeAgregar = puedoHacer(rol, 'agregarInsumo')
+  const puedeOperar  = puedoHacer(rol, 'registrarUso')
+  const puedeDarBaja = puedoHacer(rol, 'darDeBaja')
   const puedePonerEnUso = puedoHacer(rol, 'ponerEnUso') && rol !== 'analista'
   const puedeRegistrarUso = rol === 'analista'
 
@@ -104,7 +124,7 @@ export default function Columnas() {
   const [retiroForm, setRetiroForm] = useState(null)
   const [motivoBaja, setMotivoBaja] = useState('retiro_cliente')
   const [fechaRetiroCliente, setFechaRetiroCliente] = useState('')
-  const [obsRetiro, setObsRetiro]   = useState('')
+  const [obsRetiro, setObsRetiro] = useState('')
   const [form, setForm]             = useState({})
   const [usoLineas, setUsoLineas]   = useState([{ nAnalisis:'', inyecciones:'' }])
   const [msg, setMsg]               = useState('')
@@ -114,16 +134,12 @@ export default function Columnas() {
   const [historialLoading, setHistorialLoading] = useState(false)
   const [search, setSearch]         = useState('')
   const [filtroCliente, setFiltroCliente] = useState('')
-  const [filtroLargo, setFiltroLargo]     = useState('')
-  const [filtroDiam, setFiltroDiam]       = useState('')
-  const [filtroTipo, setFiltroTipo]       = useState('')
-  const [filtroMicra, setFiltroMicra]     = useState('')
   const [ordenCampo, setOrdenCampo] = useState('codigo')
   const [ordenDir, setOrdenDir]     = useState('asc')
   const [codigoGenerado, setCodigoGenerado] = useState('')
   const [generandoCodigo, setGenerandoCodigo] = useState(false)
 
-  const SIGLAS_CLIENTE  = Object.fromEntries(clientesDB.map(c => [c.nombre, c.sigla]))
+  const SIGLAS_CLIENTE = Object.fromEntries(clientesDB.map(c => [c.nombre, c.sigla]))
   const NOMBRES_CLIENTE = clientesDB.map(c => c.nombre)
 
   const loadClientes = async () => {
@@ -161,27 +177,27 @@ export default function Columnas() {
     if (!form.codigo || !form.cliente || !form.fase) { setMsg('Completa los campos obligatorios'); return }
     try {
       await crearColumna({
-        codigo:                  form.codigo,
-        siglaCliente:            SIGLAS_CLIENTE[form.cliente] || 'OTR',
-        cliente:                 form.cliente,
-        producto:                form.producto || '',
-        fase:                    form.fase,
-        largo:                   parseFloat(form.largo) || 0,
-        diametro:                parseFloat(form.diametro) || 0,
-        micra:                   parseFloat(form.micra) || 0,
-        tamanoParticula:         form.micra ? `${form.micra}µm` : '',
-        dimensiones:             form.largo && form.diametro ? `${form.largo} x ${form.diametro} mm` : '',
-        fabricante:              form.fabricante || '',
+        codigo:            form.codigo,
+        siglaCliente:      SIGLAS_CLIENTE[form.cliente] || 'OTR',
+        cliente:           form.cliente,
+        producto:          form.producto || '',
+        fase:              form.fase,
+        largo:             parseFloat(form.largo) || 0,
+        diametro:          parseFloat(form.diametro) || 0,
+        micra:             parseFloat(form.micra) || 0,
+        tamanoParticula:   form.micra ? `${form.micra}µm` : '',
+        dimensiones:       form.largo && form.diametro ? `${form.largo} x ${form.diametro} mm` : '',
+        fabricante:        form.fabricante || '',
         platosTeoricosIniciales: parseInt(form.platosTeoricos) || null,
-        area:                    form.area || '',
-        loteSerie:               form.loteSerie || '',
-        fechaRecepcion:          form.fechaRecepcion || '',
-        fechaInicioUso:          form.fechaInicioUso || '',
-        fechaRetiro:             '',
-        inyeccionesAcumuladas:   0,
-        tiposAnalisis:           form.tiposAnalisis || [],
-        estado:                  rol === 'administrativo' ? 'Espera Aprobación' : 'Cerrado',
-        creadoPorRol:            rol,
+        area:              form.area || '',
+        loteSerie:         form.loteSerie || '',
+        fechaRecepcion:    form.fechaRecepcion || '',
+        fechaInicioUso:    form.fechaInicioUso || '',
+        fechaRetiro:       '',
+        inyeccionesAcumuladas: 0,
+        tiposAnalisis:     form.tiposAnalisis || [],
+        estado:            rol === 'administrativo' ? 'Espera Aprobación' : 'Cerrado',
+        creadoPorRol:      rol,
       }, user.email)
       setShowForm(false); setForm({}); setCodigoGenerado(''); setMsg(''); load()
     } catch(e) { setMsg(e.message) }
@@ -207,11 +223,11 @@ export default function Columnas() {
     if (totalInyeccionesUso <= 0) { setMsg('El total de inyecciones debe ser mayor a 0'); return }
     try {
       await registrarUsoColumna({
-        columnaId:        useForm.id,
-        analisis:         lineasValidas,
+        columnaId:    useForm.id,
+        analisis:     lineasValidas,
         totalInyecciones: totalInyeccionesUso,
-        analista:         user.displayName || user.email,
-        email:            user.email,
+        analista:     user.displayName || user.email,
+        email:        user.email,
       })
       setUseForm(null); setUsoLineas([{ nAnalisis:'', inyecciones:'' }]); setMsg(''); load()
     } catch(e) { setMsg(e.message) }
@@ -283,9 +299,6 @@ export default function Columnas() {
   }
 
   const clientesUnicos = [...new Set(columnas.map(c => c.cliente).filter(Boolean))].sort()
-  const largosUnicos   = [...new Set(columnas.map(c => c.largo).filter(Boolean))].sort((a,b)=>a-b)
-  const diamsUnicos    = [...new Set(columnas.map(c => c.diametro).filter(Boolean))].sort((a,b)=>a-b)
-  const micrasUnicas   = [...new Set(columnas.map(c => c.micra).filter(Boolean))].sort((a,b)=>a-b)
 
   const filtradas = columnas
     .filter(c => {
@@ -293,19 +306,18 @@ export default function Columnas() {
       const matchQ = !q ||
         c.codigo?.toLowerCase().includes(q) ||
         c.cliente?.toLowerCase().includes(q) ||
-        c.fase?.toLowerCase().includes(q)
-      const matchC     = !filtroCliente || c.cliente === filtroCliente
-      const matchLargo = !filtroLargo   || String(c.largo) === filtroLargo
-      const matchDiam  = !filtroDiam    || String(c.diametro) === filtroDiam
-      const matchTipo  = !filtroTipo    || (c.tiposAnalisis || []).includes(filtroTipo)
-      const matchMicra = !filtroMicra   || String(c.micra) === filtroMicra
-      return matchQ && matchC && matchLargo && matchDiam && matchTipo && matchMicra
+        c.fase?.toLowerCase().includes(q) ||
+        (c.fabricante || '').toLowerCase().includes(q) ||
+        (c.estado || '').toLowerCase().includes(q) ||
+        (c.tiposAnalisis || []).some(t => t.toLowerCase().includes(q))
+      const matchC = !filtroCliente || c.cliente === filtroCliente
+      return matchQ && matchC
     })
     .sort((a, b) => {
       let valA, valB
-      if (ordenCampo === 'codigo')       { valA = a.codigo?.toLowerCase() || '';  valB = b.codigo?.toLowerCase() || '' }
-      else if (ordenCampo === 'cliente') { valA = a.cliente?.toLowerCase() || ''; valB = b.cliente?.toLowerCase() || '' }
-      else if (ordenCampo === 'inicio')  { valA = a.fechaInicioUso || '';         valB = b.fechaInicioUso || '' }
+      if (ordenCampo === 'codigo')        { valA = a.codigo?.toLowerCase() || '';  valB = b.codigo?.toLowerCase() || '' }
+      else if (ordenCampo === 'cliente')  { valA = a.cliente?.toLowerCase() || ''; valB = b.cliente?.toLowerCase() || '' }
+      else if (ordenCampo === 'inicio')   { valA = a.fechaInicioUso || '';         valB = b.fechaInicioUso || '' }
       if (valA < valB) return ordenDir === 'asc' ? -1 : 1
       if (valA > valB) return ordenDir === 'asc' ? 1 : -1
       return 0
@@ -324,18 +336,19 @@ export default function Columnas() {
         />
       )}
 
-      {/* Panel historial de uso */}
+      {/* ——— Panel historial de uso ——— */}
       {historialCol && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:1000,
           display:'flex',alignItems:'flex-start',justifyContent:'flex-end',padding:16}}>
           <div style={{background:'var(--surface)',borderRadius:'var(--radius-lg)',
             width:'100%',maxWidth:680,height:'calc(100vh - 32px)',display:'flex',flexDirection:'column',overflow:'hidden'}}>
+
             <div style={{padding:'16px 20px',borderBottom:'1px solid var(--border)',
               display:'flex',justifyContent:'space-between',alignItems:'flex-start',flexShrink:0}}>
               <div>
                 <div style={{fontSize:15,fontWeight:600}}>{historialCol.codigo}</div>
                 <div style={{fontSize:12,color:'var(--text-2)',marginTop:2}}>
-                  <FaseBadge fase={historialCol.fase}/>
+                  <FaseBadge fase={historialCol.fase}/>{' '}
                   <span style={{marginLeft:6}}>{historialCol.cliente}</span>
                   {historialCol.area && <span style={{marginLeft:6,color:'var(--text-3)'}}>· {historialCol.area}</span>}
                 </div>
@@ -346,6 +359,7 @@ export default function Columnas() {
               </div>
               <button className="btn btn-sm" onClick={()=>setHistorialCol(null)}><X size={14}/></button>
             </div>
+
             <div style={{flex:1,overflowY:'auto',padding:'12px 20px'}}>
               {historialLoading ? (
                 <div style={{display:'flex',justifyContent:'center',padding:40}}><div className="spinner"/></div>
@@ -375,15 +389,22 @@ export default function Columnas() {
                         </span>
                       </div>
                     </div>
+
                     {(u.analisis && u.analisis.length > 0) ? (
                       <div style={{background:'var(--bg)',borderRadius:'var(--radius-sm)',padding:'8px 12px'}}>
-                        <div style={{fontSize:11,color:'var(--text-3)',marginBottom:6,fontWeight:500}}>Análisis registrados:</div>
+                        <div style={{fontSize:11,color:'var(--text-3)',marginBottom:6,fontWeight:500}}>
+                          Análisis registrados:
+                        </div>
                         {u.analisis.map((a, j) => (
                           <div key={j} style={{display:'flex',justifyContent:'space-between',
                             alignItems:'center',padding:'3px 0',
                             borderBottom: j < u.analisis.length-1 ? '1px solid var(--border)' : 'none'}}>
-                            <span style={{fontSize:12,fontFamily:'var(--font-mono)',color:'var(--text-1)'}}>{a.nAnalisis || '—'}</span>
-                            <span style={{fontSize:11,color:'var(--text-2)'}}>{a.inyecciones || 0} inyecciones</span>
+                            <span style={{fontSize:12,fontFamily:'var(--font-mono)',color:'var(--text-1)'}}>
+                              {a.nAnalisis || '—'}
+                            </span>
+                            <span style={{fontSize:11,color:'var(--text-2)'}}>
+                              {a.inyecciones || 0} inyecciones
+                            </span>
                           </div>
                         ))}
                       </div>
@@ -393,6 +414,7 @@ export default function Columnas() {
                         N° análisis: {u.nAnalisis || '—'} · {u.inyecciones || 0} inyecciones
                       </div>
                     )}
+
                     <div style={{fontSize:11,color:'var(--text-3)',marginTop:6,textAlign:'right'}}>
                       Acumulado tras este registro: <strong>{u.totalAcum || '—'}</strong>
                     </div>
@@ -466,7 +488,7 @@ export default function Columnas() {
             <div className="form-group"><label>Micra (µm)</label>
               <select value={form.micra || ''} onChange={f('micra')}>
                 <option value="">Seleccionar...</option>
-                {MICRAS.map(m=><option key={m} value={m}>{m} µm</option>)}
+                {['1.8','3','3.5','5','10'].map(m=><option key={m} value={m}>{m} µm</option>)}
               </select>
             </div>
             <div className="form-group"><label>Platos teóricos iniciales</label>
@@ -520,7 +542,7 @@ export default function Columnas() {
         </div>
       )}
 
-      {/* Registro de uso (solo Analista) */}
+      {/* ——— Registro de uso (solo Analista) ——— */}
       {useForm && puedeRegistrarUso && (
         <div className="card">
           <div className="card-title">Registrar uso — {useForm.codigo}</div>
@@ -528,6 +550,7 @@ export default function Columnas() {
           <div style={{fontSize:12,color:'var(--text-2)',marginBottom:10}}>
             Inyecciones acumuladas actuales: <strong>{useForm.inyeccionesAcumuladas || 0}</strong>
           </div>
+
           <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:12}}>
             {usoLineas.map((l, i) => (
               <div key={i} style={{display:'flex',gap:8,alignItems:'flex-end'}}>
@@ -541,12 +564,14 @@ export default function Columnas() {
                   <input type="number" placeholder="ej: 12" value={l.inyecciones}
                     onChange={e=>setLinea(i,'inyecciones',e.target.value)} />
                 </div>
-                <button className="btn btn-sm" style={{marginBottom:1}} onClick={()=>removeLinea(i)} disabled={usoLineas.length===1}>
+                <button className="btn btn-sm" title="Quitar línea"
+                  style={{marginBottom:1}} onClick={()=>removeLinea(i)} disabled={usoLineas.length===1}>
                   <X size={13}/>
                 </button>
               </div>
             ))}
           </div>
+
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
             <button className="btn btn-sm" onClick={addLinea}><Plus size={13}/> Agregar análisis</button>
             <div style={{fontSize:13}}>
@@ -554,6 +579,7 @@ export default function Columnas() {
               {' '}→ nuevo acumulado: <strong>{(useForm.inyeccionesAcumuladas || 0) + totalInyeccionesUso}</strong>
             </div>
           </div>
+
           <div style={{ display:'flex', gap:8 }}>
             <button className="btn btn-primary btn-sm" onClick={registrarUso}>Confirmar uso</button>
             <button className="btn btn-sm" onClick={() => { setUseForm(null); setUsoLineas([{ nAnalisis:'', inyecciones:'' }]); setMsg('') }}>Cancelar</button>
@@ -561,16 +587,17 @@ export default function Columnas() {
         </div>
       )}
 
-      {/* Modal retirar columna */}
-      {retiroForm && puedeAgregar && (
+      {/* ——— Modal dar de baja columna ——— */}
+      {retiroForm && puedeDarBaja && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:1000,
           display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
           <div style={{background:'var(--surface)',borderRadius:'var(--radius-lg)',padding:24,width:'100%',maxWidth:460}}>
-            <p style={{fontSize:15,fontWeight:600,marginBottom:4}}>Retirar columna — {retiroForm.codigo}</p>
+            <p style={{fontSize:15,fontWeight:600,marginBottom:4}}>Dar de baja — {retiroForm.codigo}</p>
             <p style={{fontSize:12,color:'var(--text-2)',marginBottom:16}}>
               {retiroForm.fase} · {retiroForm.cliente}
             </p>
             {msg && <div className="alert-item danger" style={{marginBottom:10}}>{msg}</div>}
+
             <div style={{display:'flex',gap:8,marginBottom:16}}>
               {[
                 { val:'retiro_cliente', label:'Retiro de cliente' },
@@ -581,23 +608,27 @@ export default function Columnas() {
                   className="btn btn-sm"
                   style={{
                     flex:1, padding:'8px 4px', fontSize:12,
-                    background:  motivoBaja===op.val ? 'var(--accent-lt)' : '',
-                    color:       motivoBaja===op.val ? 'var(--accent)' : 'var(--text-2)',
-                    borderColor: motivoBaja===op.val ? 'var(--accent)' : 'var(--border-md)',
-                    fontWeight:  motivoBaja===op.val ? 600 : 400,
+                    background: motivoBaja===op.val ? 'var(--accent-lt)' : '',
+                    color:      motivoBaja===op.val ? 'var(--accent)' : 'var(--text-2)',
+                    borderColor:motivoBaja===op.val ? 'var(--accent)' : 'var(--border-md)',
+                    fontWeight: motivoBaja===op.val ? 600 : 400,
                   }}>
                   {op.label}
                 </button>
               ))}
             </div>
+
             {motivoBaja === 'retiro_cliente' && (
               <div className="form-group" style={{marginBottom:12}}>
                 <label>Fecha en que el cliente retiró la columna *</label>
                 <input type="date" value={fechaRetiroCliente}
                   onChange={e => setFechaRetiroCliente(e.target.value)} />
-                <p style={{fontSize:11,color:'var(--text-3)',marginTop:4}}>Puede ser distinta a la fecha de hoy.</p>
+                <p style={{fontSize:11,color:'var(--text-3)',marginTop:4}}>
+                  Puede ser distinta a la fecha de hoy.
+                </p>
               </div>
             )}
+
             <div className="form-group" style={{marginBottom:16}}>
               <label>{motivoBaja === 'sst' ? 'Detalle de la falla *' : 'Observación (opcional)'}</label>
               <input value={obsRetiro} onChange={e => setObsRetiro(e.target.value)}
@@ -605,8 +636,11 @@ export default function Columnas() {
                   ? 'ej: Platos teóricos fuera de especificación, tailing factor > 2.0...'
                   : 'ej: Cliente solicitó devolución el 01/06/2025'} />
             </div>
+
             <div style={{display:'flex',gap:8}}>
-              <button className="btn btn-primary btn-sm" onClick={confirmarRetiro}>Confirmar retiro</button>
+              <button className="btn btn-primary btn-sm" onClick={confirmarRetiro}>
+                Confirmar y dar de baja
+              </button>
               <button className="btn btn-sm" onClick={() => {
                 setRetiroForm(null); setFechaRetiroCliente(''); setObsRetiro(''); setMsg('')
               }}>Cancelar</button>
@@ -615,37 +649,15 @@ export default function Columnas() {
         </div>
       )}
 
-      {/* Barra de búsqueda y filtros */}
+      {/* Barra búsqueda, filtro cliente y ordenamiento */}
       <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:12}}>
         <div className="search-bar">
           <Search size={16} style={{color:'var(--text-3)',flexShrink:0}}/>
           <input value={search} onChange={e=>setSearch(e.target.value)}
-            placeholder="Buscar por código, cliente o fase..." style={{flex:1}}/>
+            placeholder="Buscar por código, cliente, fase, fabricante, estado..." style={{flex:1}}/>
           <select value={filtroCliente} onChange={e=>setFiltroCliente(e.target.value)}>
             <option value="">Todos los clientes</option>
             {clientesUnicos.map(c=><option key={c}>{c}</option>)}
-          </select>
-        </div>
-        <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-          <select value={filtroLargo} onChange={e=>setFiltroLargo(e.target.value)}
-            style={{fontSize:12,padding:'4px 8px',border:'1px solid var(--border-md)',borderRadius:'var(--radius-sm)',background:'var(--surface)',color:'var(--text-1)'}}>
-            <option value="">Largo (mm)</option>
-            {largosUnicos.map(v=><option key={v} value={v}>{v} mm</option>)}
-          </select>
-          <select value={filtroDiam} onChange={e=>setFiltroDiam(e.target.value)}
-            style={{fontSize:12,padding:'4px 8px',border:'1px solid var(--border-md)',borderRadius:'var(--radius-sm)',background:'var(--surface)',color:'var(--text-1)'}}>
-            <option value="">Diámetro (mm)</option>
-            {diamsUnicos.map(v=><option key={v} value={v}>{v} mm</option>)}
-          </select>
-          <select value={filtroTipo} onChange={e=>setFiltroTipo(e.target.value)}
-            style={{fontSize:12,padding:'4px 8px',border:'1px solid var(--border-md)',borderRadius:'var(--radius-sm)',background:'var(--surface)',color:'var(--text-1)'}}>
-            <option value="">Tipo de análisis</option>
-            {TIPOS_ANALISIS.map(t=><option key={t}>{t}</option>)}
-          </select>
-          <select value={filtroMicra} onChange={e=>setFiltroMicra(e.target.value)}
-            style={{fontSize:12,padding:'4px 8px',border:'1px solid var(--border-md)',borderRadius:'var(--radius-sm)',background:'var(--surface)',color:'var(--text-1)'}}>
-            <option value="">Micra (µm)</option>
-            {micrasUnicas.map(v=><option key={v} value={v}>{v} µm</option>)}
           </select>
         </div>
         <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
@@ -680,21 +692,17 @@ export default function Columnas() {
           </thead>
           <tbody>
             {filtradas.map(c => {
-              const esCerrado      = c.estado === 'Cerrado'
-              const enUso          = c.estado === 'En uso'
-              const esPendiente    = c.estado === 'Espera Aprobación'
-              const retiroCliente  = c.estado === 'Retirado por cliente'
-              const noSSTFalla     = c.estado === 'No cumple SST'
-              const estaInactiva   = retiroCliente || noSSTFalla
+              const esCerrado    = c.estado === 'Cerrado'
+              const enUso        = c.estado === 'En uso'
+              const dadaBaja     = c.estado === 'Dado de baja'
+              const esEspera     = c.estado === 'Espera Aprobación'
               return (
-                <tr key={c.id} style={estaInactiva?{opacity:0.6}:{}}>
+                <tr key={c.id} style={dadaBaja?{opacity:0.6}:{}}>
                   <td className="mono" style={{fontWeight:600}}>{c.codigo}</td>
                   <td><FaseBadge fase={c.fase} /></td>
                   <td style={{color:'var(--text-2)',fontSize:12}}>{c.area || '—'}</td>
                   <td style={{fontSize:11}}>
-                    {c.tiposAnalisis?.length
-                      ? c.tiposAnalisis.map(t=><span key={t} className="badge badge-gray" style={{marginRight:2,fontSize:9}}>{t}</span>)
-                      : <span style={{color:'var(--text-3)'}}>—</span>}
+                    {c.tiposAnalisis?.length ? c.tiposAnalisis.map(t=><span key={t} className="badge badge-gray" style={{marginRight:2,fontSize:9}}>{t}</span>) : <span style={{color:'var(--text-3)'}}>—</span>}
                   </td>
                   <td style={{color:'var(--text-2)',fontSize:12}}>{c.largo ? `${c.largo} mm` : c.dimensiones || '—'}</td>
                   <td style={{color:'var(--text-2)',fontSize:12}}>{c.diametro ? `${c.diametro} mm` : '—'}</td>
@@ -702,19 +710,26 @@ export default function Columnas() {
                   <td style={{color:'var(--text-2)',fontSize:12}}>{c.platosTeoricosIniciales ?? '—'}</td>
                   <td style={{color:'var(--text-2)',fontSize:12}}>{c.loteSerie || '—'}</td>
                   <td>{c.cliente}</td>
-                  <td style={{color:'var(--text-2)',fontSize:11}}>{c.fechaRecepcion || '—'}</td>
-                  <td style={{color:'var(--text-2)',fontSize:11}}>{c.fechaInicioUso || '—'}</td>
-                  <td style={{minWidth:90}}>
+                  <td style={{ color:'var(--text-2)', fontSize:11 }}>{c.fechaRecepcion || '—'}</td>
+                  <td style={{ color:'var(--text-2)', fontSize:11 }}>{c.fechaInicioUso || '—'}</td>
+                  <td style={{ minWidth:90 }}>
                     <strong style={{fontSize:13}}>{c.inyeccionesAcumuladas || 0}</strong>
                     <span style={{color:'var(--text-3)',fontSize:11}}> inyecc.</span>
                   </td>
                   <td>
-                    {esPendiente   ? <span className="badge badge-warn">Espera Aprobación</span>
-                    : esCerrado    ? <span className="badge badge-info">Cerrado</span>
-                    : enUso        ? <span className="badge badge-ok">En uso</span>
-                    : retiroCliente? <span className="badge badge-purple">Retirado por cliente{c.fechaRetiro ? ` · ${c.fechaRetiro}` : ''}</span>
-                    : noSSTFalla   ? <span className="badge badge-danger">No cumple SST</span>
-                    :                <span className="badge badge-gray">{c.estado}</span>}
+                    {esCerrado
+                      ? <span className="badge badge-info">Cerrado</span>
+                      : enUso
+                        ? <span className="badge badge-ok">En uso</span>
+                        : esEspera
+                          ? <span className="badge badge-warn">Espera Aprobación</span>
+                          : dadaBaja
+                            ? <span className="badge badge-danger">Dado de baja{c.fechaRetiro ? ` · ${c.fechaRetiro}` : c.fechaBaja ? ` · ${c.fechaBaja}` : ''}</span>
+                            : <span className="badge badge-gray">{c.estado}</span>
+                    }
+                    {dadaBaja && c.motivoBaja && (
+                      <div style={{fontSize:10,color:'var(--text-3)',marginTop:2}}>{c.motivoBaja}</div>
+                    )}
                   </td>
                   <td>
                     <div style={{display:'flex',gap:4,alignItems:'center'}}>
@@ -724,8 +739,8 @@ export default function Columnas() {
                       <span style={{visibility: puedeRegistrarUso && enUso ? 'visible':'hidden'}}>
                         <button className="btn btn-sm" title="Registrar uso" onClick={()=>abrirUso(c)}><Beaker size={13}/></button>
                       </span>
-                      <span style={{visibility: puedeAgregar && !estaInactiva && !esPendiente ? 'visible':'hidden'}}>
-                        <button className="btn btn-sm" title="Retirar columna" onClick={()=>abrirRetiro(c)}><PackageX size={13}/></button>
+                      <span style={{visibility: puedeDarBaja && !dadaBaja ? 'visible':'hidden'}}>
+                        <button className="btn btn-sm" title="Dar de baja" onClick={()=>abrirRetiro(c)}><PackageX size={13}/></button>
                       </span>
                       <button className="btn btn-sm" onClick={()=>abrirHistorial(c)} title="Historial"><History size={13}/></button>
                       <button className="btn btn-sm" onClick={()=>setDocInsumo(c)} title="Documentos"><FileText size={13}/></button>

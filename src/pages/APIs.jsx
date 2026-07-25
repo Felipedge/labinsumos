@@ -1,6 +1,7 @@
 // src/pages/APIs.jsx
 import { useState, useEffect } from 'react'
-import { collection, getDocs, addDoc, serverTimestamp, query, orderBy, limit } from 'firebase/firestore'
+import { collection, getDocs, addDoc, updateDoc, doc,
+         serverTimestamp, query, orderBy, limit } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { calcularSemaforo, registrarPesadaAPI, ponerEnUsoInsumo, retirarInsumo } from '../lib/db'
 import { useAuth } from '../hooks/useAuth.jsx'
@@ -11,7 +12,6 @@ import DocumentosPanel from '../components/shared/DocumentosPanel.jsx'
 import { useClientes } from '../hooks/useClientes.jsx'
  
 const UBICACIONES = ['Desecador', 'Refrigerador', 'Freezer', 'Refrigerador controlado', 'Desecador Validaciones', 'Otro']
-const ESTADOS = ['Espera Aprobación','En uso','Cerrado','Sin stock','Vencido','Retirado por cliente']
 
 async function getSiguienteNumeroAPI(db) {
   try {
@@ -42,6 +42,7 @@ export default function APIs() {
   const { clientes: listaClientes } = useClientes()
   const puedeAgregar    = puedoHacer(rol, 'agregarInsumo')
   const puedeOperar     = puedoHacer(rol, 'registrarUso')
+  const puedeBaja       = puedoHacer(rol, 'darDeBaja')
   const puedePonerEnUso = puedoHacer(rol, 'ponerEnUso') && rol !== 'analista'
 
   const [tab, setTab]             = useState('inventario')
@@ -60,12 +61,14 @@ export default function APIs() {
   const [ordenDir, setOrdenDir]     = useState('asc')
   const [docInsumo, setDocInsumo]   = useState(null)
   const [filtroCliente, setFiltroCliente] = useState('')
+  const [verPapelera, setVerPapelera] = useState(false)
   const [reposicionItem, setReposicionItem] = useState(null)
   const [rForm, setRForm]                   = useState({})
   const [rMsg, setRMsg]                     = useState('')
   const [guardandoR, setGuardandoR]         = useState(false)
   const [codigoGeneradoAPI, setCodigoGeneradoAPI] = useState('')
 
+  // Historial
   const [pesadas, setPesadas]         = useState([])
   const [loadingH, setLoadingH]       = useState(false)
   const [searchH, setSearchH]         = useState('')
@@ -77,7 +80,7 @@ export default function APIs() {
     try {
       const snap = await getDocs(query(collection(db, 'apis'), orderBy('creadoEn', 'desc')))
       setItems(snap.docs.map(d => ({ id: d.id, ...d.data() })))
-    } catch { setItems([]) }
+    } catch { setItems(DEMO) }
     finally { setLoading(false) }
   }
  
@@ -121,6 +124,7 @@ export default function APIs() {
         laboratorio:      form.laboratorio,
         ubicacion:        form.ubicacion || 'Desecador',
         fechaVencimiento: form.vencimiento ? new Date(form.vencimiento) : null,
+        cantidadRecibida: form.cantidad || '',
         stockRestante:    parseFloat(form.stock) || 0,
         observacion:      capitalizar(form.observacion || ''),
         stock:            true,
@@ -168,18 +172,33 @@ export default function APIs() {
     } catch(e) { alert('Error: ' + e.message) }
   }
  
+  const darDeBaja = async (id, codigo) => {
+    const razon = window.prompt(`Razón para dar de baja ${codigo}:`)
+    if (!razon) return
+    try {
+      await updateDoc(doc(db, 'apis', id), {
+        estado: 'Dado de baja', bajaPor: user.email,
+        bajaRazon: capitalizar(razon),
+        bajaFecha: serverTimestamp(), actualizadoEn: serverTimestamp(),
+      })
+      load()
+    } catch(e) { alert('Error: ' + e.message) }
+  }
+ 
   const guardarReposicion = async () => {
     if (!rForm.lote || !rForm.stock) { setRMsg('Lote y stock son obligatorios'); return }
     setGuardandoR(true)
     try {
-      await addDoc(collection(db, 'apis'), {
+      const { addDoc: aDoc, collection: col, serverTimestamp: sts } = await import('firebase/firestore')
+      await aDoc(col(db, 'apis'), {
         ...reposicionItem, id: undefined,
         lote: rForm.lote.toUpperCase(),
         fechaVencimiento: rForm.vencimiento ? new Date(rForm.vencimiento) : null,
         stockRestante: parseFloat(rForm.stock) || 0,
+        cantidadRecibida: rForm.cantidad || reposicionItem.cantidadRecibida,
         observacion: rForm.observacion || '',
         estado: rol === 'administrativo' ? 'Espera Aprobación' : 'Cerrado',
-        creadoPor: user.email, creadoEn: serverTimestamp(), actualizadoEn: serverTimestamp(),
+        creadoPor: user.email, creadoEn: sts(), actualizadoEn: sts(),
         bajaPor: null, bajaRazon: null, bajaFecha: null,
       })
       setReposicionItem(null); setRForm({}); load()
@@ -187,15 +206,34 @@ export default function APIs() {
     finally { setGuardandoR(false) }
   }
 
+  const restaurar = async (id) => {
+    try {
+      await updateDoc(doc(db, 'apis', id), {
+        estado: 'Cerrado', bajaPor: null, bajaRazon: null,
+        bajaFecha: null, actualizadoEn: serverTimestamp(),
+      })
+      load()
+    } catch(e) { alert('Error: ' + e.message) }
+  }
+ 
   const toggleOrden = (campo) => {
     if (ordenCampo === campo) setOrdenDir(d => d === 'asc' ? 'desc' : 'asc')
     else { setOrdenCampo(campo); setOrdenDir('asc') }
   }
  
-  const filtrados = items
+  const activos  = items.filter(i => i.estado !== 'Dado de baja')
+  const papelera = items.filter(i => i.estado === 'Dado de baja')
+ 
+  const filtrados = (verPapelera ? papelera : activos)
     .filter(i => {
       const q = search.toLowerCase()
-      const matchQ = !q || i.codigo?.toLowerCase().includes(q) || i.nombre?.toLowerCase().includes(q) || i.laboratorio?.toLowerCase().includes(q)
+      const matchQ = !q ||
+        i.codigo?.toLowerCase().includes(q) ||
+        i.nombre?.toLowerCase().includes(q) ||
+        (i.laboratorio || '').toLowerCase().includes(q) ||
+        (i.lote || '').toLowerCase().includes(q) ||
+        (i.estado || '').toLowerCase().includes(q) ||
+        (i.ubicacion || '').toLowerCase().includes(q)
       const matchE = !filtroEst || i.estado === filtroEst
       const matchC = !filtroCliente || i.laboratorio === filtroCliente
       return matchQ && matchE && matchC
@@ -248,6 +286,7 @@ export default function APIs() {
             <div className="form-grid">
               <div className="form-group"><label>N° Lote nuevo *</label><input value={rForm.lote||''} onChange={e=>setRForm(p=>({...p,lote:e.target.value.toUpperCase()}))} placeholder="ej: LOT9999"/></div>
               <div className="form-group"><label>Fecha vencimiento</label><input type="date" value={rForm.vencimiento||''} onChange={e=>setRForm(p=>({...p,vencimiento:e.target.value}))}/></div>
+              <div className="form-group"><label>Cantidad recibida</label><input value={rForm.cantidad||''} onChange={e=>setRForm(p=>({...p,cantidad:e.target.value}))} placeholder="ej: 20 g"/></div>
               <div className="form-group"><label>Stock inicial (mg) *</label><input type="number" step="0.01" value={rForm.stock||''} onChange={e=>setRForm(p=>({...p,stock:e.target.value}))} placeholder="ej: 20000"/></div>
               <div className="form-group" style={{gridColumn:'1/-1'}}><label>Observaciones</label><input value={rForm.observacion||''} onChange={e=>setRForm(p=>({...p,observacion:e.target.value}))}/></div>
             </div>
@@ -294,17 +333,29 @@ export default function APIs() {
         <h2 style={{fontSize:16,fontWeight:600}}>APIs — Principios Activos</h2>
         <div style={{display:'flex',gap:8}}>
           {tab==='historial' && <button className="btn btn-sm" onClick={loadHistorial}>↻ Actualizar</button>}
-          {tab==='inventario' && puedeAgregar && (
-            <button className="btn btn-primary btn-sm" onClick={abrirFormulario}>
-              <Plus size={14}/> Nuevo API
-            </button>
+          {tab==='inventario' && (
+            <>
+              {puedeBaja && (
+                <button className="btn btn-sm"
+                  style={verPapelera?{background:'var(--danger-lt)',color:'var(--danger)',borderColor:'var(--danger)'}:{}}
+                  onClick={()=>{setVerPapelera(!verPapelera);setSearch('');setFiltroEst('')}}>
+                  🗑 Papelera {papelera.length>0&&`(${papelera.length})`}
+                </button>
+              )}
+              {puedeAgregar && !verPapelera && (
+                <button className="btn btn-primary btn-sm" onClick={abrirFormulario}>
+                  <Plus size={14}/> Nuevo API
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>
  
+      {/* Tabs */}
       <div style={{display:'flex',gap:4,marginBottom:16,borderBottom:'1px solid var(--border)'}}>
         {[
-          { id:'inventario', label:'Inventario', count:items.length },
+          { id:'inventario', label:'Inventario', count:activos.length },
           { id:'historial',  label:'Historial de pesadas', count:pesadas.length },
         ].map(t => (
           <button key={t.id} onClick={()=>setTab(t.id)} style={{
@@ -323,7 +374,7 @@ export default function APIs() {
  
       {tab==='inventario' && (
         <>
-          {showForm && puedeAgregar && (
+          {showForm && puedeAgregar && !verPapelera && (
             <div className="card">
               <div className="card-title">Registrar nuevo API</div>
               {msg && <div className="alert-item danger" style={{marginBottom:10}}>{msg}</div>}
@@ -349,10 +400,19 @@ export default function APIs() {
                     {listaClientes.map(l=><option key={l}>{l}</option>)}
                   </select>
                 </div>
-                <div className="form-group"><label>Lote</label><input onChange={f('lote')}/></div>
-                <div className="form-group"><label>Fecha vencimiento</label><input type="date" onChange={f('vencimiento')}/></div>
+                <div className="form-group"><label>Lote</label>
+                  <input onChange={f('lote')}/>
+                </div>
+                <div className="form-group"><label>Fecha vencimiento</label>
+                  <input type="date" onChange={f('vencimiento')}/>
+                </div>
                 <div className="form-group"><label>Ubicación</label>
-                  <select onChange={f('ubicacion')}>{UBICACIONES.map(u=><option key={u}>{u}</option>)}</select>
+                  <select onChange={f('ubicacion')}>
+                    {UBICACIONES.map(u=><option key={u}>{u}</option>)}
+                  </select>
+                </div>
+                <div className="form-group"><label>Cantidad recibida</label>
+                  <input placeholder="ej: 20 g" onChange={f('cantidad')}/>
                 </div>
                 <div className="form-group"><label>Stock inicial (mg)</label>
                   <input type="number" step="0.01" placeholder="ej: 20000" onChange={f('stock')}/>
@@ -376,8 +436,12 @@ export default function APIs() {
                 <div className="form-group"><label>Cantidad pesada (mg) *</label>
                   <input type="number" step="0.01" placeholder="ej: 10.25" onChange={f('mg')}/>
                 </div>
-                <div className="form-group"><label>N° análisis</label><input onChange={f('nAnalisis')}/></div>
-                <div className="form-group"><label>Producto / análisis</label><input onChange={f('producto')}/></div>
+                <div className="form-group"><label>N° análisis</label>
+                  <input onChange={f('nAnalisis')}/>
+                </div>
+                <div className="form-group"><label>Producto / análisis</label>
+                  <input onChange={f('producto')}/>
+                </div>
               </div>
               <div style={{display:'flex',gap:8}}>
                 <button className="btn btn-primary btn-sm" onClick={registrarPesada}>Confirmar pesada</button>
@@ -386,19 +450,26 @@ export default function APIs() {
             </div>
           )}
  
+          {/* Barra búsqueda */}
           <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:12}}>
             <div className="search-bar">
               <Search size={16} style={{color:'var(--text-3)',flexShrink:0}}/>
               <input value={search} onChange={e=>setSearch(e.target.value)}
-                placeholder="Buscar por código, nombre o laboratorio..." style={{flex:1}}/>
+                placeholder="Buscar por código, nombre, laboratorio, lote, estado..." style={{flex:1}}/>
               <select value={filtroCliente} onChange={e=>setFiltroCliente(e.target.value)}>
                 <option value="">Todos los laboratorios</option>
                 {listaClientes.map(c=><option key={c}>{c}</option>)}
               </select>
-              <select value={filtroEst} onChange={e=>setFiltroEst(e.target.value)}>
-                <option value="">Todos los estados</option>
-                {ESTADOS.map(e=><option key={e}>{e}</option>)}
-              </select>
+              {!verPapelera && (
+                <select value={filtroEst} onChange={e=>setFiltroEst(e.target.value)}>
+                  <option value="">Todos los estados</option>
+                  <option value="En uso">En uso</option>
+                  <option value="Cerrado">Cerrado</option>
+                  <option value="Vencido">Vencido</option>
+                  <option value="Sin stock">Sin stock</option>
+                  <option value="Espera Aprobación">Espera Aprobación</option>
+                </select>
+              )}
             </div>
             <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
               <span style={{fontSize:11,color:'var(--text-2)',alignSelf:'center'}}>Ordenar por:</span>
@@ -416,20 +487,6 @@ export default function APIs() {
             </div>
           </div>
  
-          <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10,marginBottom:14}}>
-            {[
-              { label:'Total',      valor: items.length, color:'var(--accent)' },
-              { label:'En uso',     valor: items.filter(i=>i.estado==='En uso').length, color:'var(--ok)' },
-              { label:'Vencidos',   valor: items.filter(i=>i.estado==='Vencido').length, color:'var(--danger)' },
-              { label:'Cerrados',   valor: items.filter(i=>i.estado==='Cerrado').length, color:'var(--warn)' },
-            ].map(k=>(
-              <div key={k.label} className="kpi-card">
-                <div className="kpi-label">{k.label}</div>
-                <div className="kpi-value" style={{color:k.color}}>{k.valor}</div>
-              </div>
-            ))}
-          </div>
- 
           <div className="table-wrap">
             <table>
               <thead>
@@ -444,14 +501,16 @@ export default function APIs() {
                   const sem      = calcularSemaforo(vence)
                   const badgeCls = sem.color==='danger'?'badge-danger':sem.color==='warning'?'badge-warn':sem.color==='success'?'badge-ok':'badge-gray'
                   const estCls   = {
-                    'Espera Aprobación':'badge-warn',
                     'En uso':'badge-ok','Cerrado':'badge-info',
                     'Sin stock':'badge-warn','Vencido':'badge-danger',
+                    'Espera Aprobación':'badge-warn',
                     'Retirado por cliente':'badge-purple',
+                    'Dado de baja':'badge-gray','Dada de baja':'badge-gray',
                   }[i.estado] || 'badge-gray'
-                  const estaInactivo = ['Retirado por cliente','Vencido','Sin stock'].includes(i.estado)
+                  const stockMostrado = i.stockRestante ?? i.cantidadRecibida ?? '—'
+ 
                   return (
-                    <tr key={i.id} style={estaInactivo?{opacity:0.6}:{}}>
+                    <tr key={i.id}>
                       <td className="mono" style={{fontWeight:600}}>{i.codigo}</td>
                       <td style={{fontWeight:500}}>
                         <div>{i.nombre}</div>
@@ -459,7 +518,7 @@ export default function APIs() {
                       </td>
                       <td style={{color:'var(--text-2)'}}>{i.laboratorio}</td>
                       <td style={{color:'var(--text-2)',fontSize:11}}>{i.lote || '—'}</td>
-                      <td><strong>{i.stockRestante ?? '—'}</strong></td>
+                      <td><strong>{stockMostrado}</strong></td>
                       <td>{vence ? <span className={`badge ${badgeCls}`}>{sem.texto}</span> : <span style={{color:'var(--text-3)'}}>—</span>}</td>
                       <td><span className={`badge ${estCls}`}>{i.estado}</span></td>
                       <td>
@@ -470,12 +529,18 @@ export default function APIs() {
                           <span style={{visibility: puedeOperar && i.estado==='En uso' ? 'visible':'hidden'}}>
                             <button className="btn btn-sm" title="Registrar pesada" onClick={()=>{setPesadaId(i.id);setShowForm(false);setForm({})}}><FileText size={13}/></button>
                           </span>
-                          <span style={{visibility: puedeAgregar && !estaInactivo ? 'visible':'hidden'}}>
+                          <span style={{visibility: puedeAgregar && !verPapelera ? 'visible':'hidden'}}>
                             <button className="btn btn-sm" title="Reposición de stock" onClick={()=>{setReposicionItem(i);setRForm({});setRMsg('')}}><RefreshCw size={13}/></button>
                           </span>
                           <button className="btn btn-sm" onClick={()=>setDocInsumo(i)} title="Ver documentos"><FileText size={13}/></button>
-                          <span style={{visibility: puedeAgregar && !estaInactivo && i.estado!=='Retirado por cliente' ? 'visible':'hidden'}}>
+                          <span style={{visibility: puedeBaja && !verPapelera && i.estado!=='Retirado por cliente' && i.estado!=='Dado de baja' && i.estado!=='Dada de baja' ? 'visible':'hidden'}}>
                             <button className="btn btn-sm" title="Retirar por cliente" onClick={()=>setRetiroItem(i)}><PackageX size={13}/></button>
+                          </span>
+                          <span style={{visibility: puedeBaja && !verPapelera ? 'visible':'hidden'}}>
+                            <button className="btn btn-sm" style={{color:'var(--danger)',borderColor:'var(--danger)'}} onClick={()=>darDeBaja(i.id, i.codigo)} title="Dar de baja"><PackageX size={13} style={{transform:'rotate(180deg)'}}/></button>
+                          </span>
+                          <span style={{visibility: puedeBaja && verPapelera ? 'visible':'hidden'}}>
+                            <button className="btn btn-sm" onClick={()=>restaurar(i.id)} title="Restaurar"><RefreshCw size={13}/></button>
                           </span>
                         </div>
                       </td>
@@ -484,7 +549,7 @@ export default function APIs() {
                 })}
                 {filtrados.length === 0 && (
                   <tr><td colSpan={8} style={{textAlign:'center',padding:24,color:'var(--text-3)'}}>
-                    No hay APIs que coincidan
+                    {verPapelera ? 'La papelera está vacía' : 'No hay APIs que coincidan'}
                   </td></tr>
                 )}
               </tbody>
@@ -495,12 +560,6 @@ export default function APIs() {
  
       {tab==='historial' && (
         <>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10,marginBottom:16}}>
-            <div className="kpi-card"><div className="kpi-label">Total registros</div><div className="kpi-value info">{pesadasFiltradas.length}</div></div>
-            <div className="kpi-card"><div className="kpi-label">Total mg pesados</div><div className="kpi-value">{totalMg.toFixed(2)} mg</div></div>
-            <div className="kpi-card"><div className="kpi-label">Analistas</div><div className="kpi-value">{usuariosUnicos.length}</div></div>
-          </div>
- 
           <div className="card" style={{marginBottom:12}}>
             <div className="card-title">Filtros</div>
             <div className="form-grid">
@@ -563,3 +622,4 @@ export default function APIs() {
     </>
   )
 }
+
