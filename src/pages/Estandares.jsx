@@ -38,7 +38,7 @@ const TIPO_INSUMO = [
 
 // Colores de almacenamiento
 function colorAlmacen(almacen = '') {
-  const a = almacen.toLowerCase()
+  const a = (almacen || '').toLowerCase()
   if (a.includes('freezer'))       return { bg: '#fee2e2', fg: '#b91c1c', label: '🔴' }
   if (a.includes('refrigerador'))  return { bg: '#fef9c3', fg: '#854d0e', label: '🟡' }
   return                                   { bg: '#dcfce7', fg: '#15803d', label: '🟢' }
@@ -136,7 +136,7 @@ export default function Estandares() {
   const [items, setItems]         = useState([])
   const [loading, setLoading]     = useState(true)
   const [showForm, setShowForm]   = useState(false)
-  const [editItem, setEditItem]   = useState(null)   // item en edición (Espera Aprobación)
+  const [editItem, setEditItem]   = useState(null)
   const [pesadaId, setPesadaId]   = useState(null)
   const [frascos, setFrascos]     = useState([{ letra: 'A', stock: '' }])
   const [retiroItem, setRetiroItem]     = useState(null)
@@ -310,7 +310,6 @@ export default function Estandares() {
     if (fEsUSP && !fFrecuenciaUSP) { setMsg('Ingresa la frecuencia de revisión USP'); return }
     setGuardando(true)
     try {
-      // Modo edición: actualizar documento existente
       if (editItem) {
         await updateDoc(doc(db, 'estandares', editItem.id), {
           nombre: capitalizar(fNombre), cas: fCas.toUpperCase(), lote: fLote.toUpperCase(),
@@ -511,7 +510,6 @@ export default function Estandares() {
     if (!rLote || rFrascos.some(fr => !fr.stock)) { setRMsg('Lote y stock son obligatorios'); return }
     setGuardandoR(true)
     try {
-      // La reposición usa el mes/año ACTUAL para el código
       const mesRep  = String(new Date().getMonth() + 1).padStart(2, '0')
       const anioRep = new Date().getFullYear()
       for (const fr of rFrascos) {
@@ -604,7 +602,13 @@ export default function Estandares() {
   const filtrados = items
     .filter(i => {
       const q = search.toLowerCase()
-      const matchQ = !q || i.codigo?.toLowerCase().includes(q) || i.nombre?.toLowerCase().includes(q) || i.cliente?.toLowerCase().includes(q)
+      const matchQ = !q ||
+        (i.codigo || '').toLowerCase().includes(q) ||
+        (i.nombre || '').toLowerCase().includes(q) ||
+        (i.cliente || '').toLowerCase().includes(q) ||
+        (i.lote || '').toLowerCase().includes(q) ||
+        (i.estado || '').toLowerCase().includes(q) ||
+        (i.almacenamiento || '').toLowerCase().includes(q)
       const matchE = !filtroEst || i.estado === filtroEst
       const matchC = !filtroCliente || i.cliente === filtroCliente
       return matchQ && matchE && matchC
@@ -612,11 +616,11 @@ export default function Estandares() {
     .sort((a, b) => {
       let valA, valB
       if (ordenCampo === 'nombre') {
-        valA = a.nombre?.toLowerCase() || ''
-        valB = b.nombre?.toLowerCase() || ''
+        valA = (a.nombre || '').toLowerCase()
+        valB = (b.nombre || '').toLowerCase()
       } else if (ordenCampo === 'codigo') {
-        valA = a.codigo?.toLowerCase() || ''
-        valB = b.codigo?.toLowerCase() || ''
+        valA = (a.codigo || '').toLowerCase()
+        valB = (b.codigo || '').toLowerCase()
       } else if (ordenCampo === 'vencimiento') {
         const getTs = (i) => {
           if (i.esUSP && i.proximaRevisionUSP) return new Date(i.proximaRevisionUSP).getTime()
@@ -1041,7 +1045,7 @@ export default function Estandares() {
             <div className="search-bar">
               <Search size={16} style={{color:'var(--text-3)',flexShrink:0}}/>
               <input value={search} onChange={e=>setSearch(e.target.value)}
-                placeholder="Buscar por código, nombre o cliente..." style={{flex:1}}/>
+                placeholder="Buscar por código, nombre, cliente, lote, estado..." style={{flex:1}}/>
               <select value={filtroEst} onChange={e=>setFiltroEst(e.target.value)}>
                 <option value="">Todos los estados</option>
                 {ESTADOS.map(e=><option key={e}>{e}</option>)}
@@ -1192,11 +1196,6 @@ export default function Estandares() {
 
       {tab==='historial' && (
         <>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10,marginBottom:16}}>
-            <div className="kpi-card"><div className="kpi-label">Total registros</div><div className="kpi-value info">{pesadasFiltradas.length}</div></div>
-            <div className="kpi-card"><div className="kpi-label">Total mg pesados</div><div className="kpi-value">{totalMg.toFixed(2)} mg</div></div>
-            <div className="kpi-card"><div className="kpi-label">Analistas</div><div className="kpi-value">{usuariosUnicos.length}</div></div>
-          </div>
           <div className="card" style={{marginBottom:12}}>
             <div className="card-title">Filtros</div>
             <div className="form-grid">

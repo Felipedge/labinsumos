@@ -38,7 +38,6 @@ export default function Reactivos() {
 
   const f = k => e => setForm(p => ({ ...p, [k]: e.target.value }))
 
-  // Auto-calc nFrascos según pesoFrasco
   const handlePesoFrasco = e => {
     const peso = parseFloat(e.target.value) || 0
     const nFrascos = peso > 100 ? 1 : 3
@@ -94,18 +93,24 @@ export default function Reactivos() {
   const filtrados = items
     .filter(r => {
       const q = search.toLowerCase()
-      const matchQ = !q || r.codigo?.toLowerCase().includes(q) || r.nombre?.toLowerCase().includes(q)
+      const matchQ = !q ||
+        (r.codigo || '').toLowerCase().includes(q) ||
+        (r.nombre || '').toLowerCase().includes(q) ||
+        (r.categoria || '').toLowerCase().includes(q) ||
+        (r.fabricante || '').toLowerCase().includes(q) ||
+        (r.estado || '').toLowerCase().includes(q) ||
+        (r.lote || '').toLowerCase().includes(q)
       const matchC = !filtro || r.categoria === filtro
       return matchQ && matchC
     })
     .sort((a, b) => {
       let valA, valB
       if (ordenCampo === 'nombre') {
-        valA = a.nombre?.toLowerCase() || ''
-        valB = b.nombre?.toLowerCase() || ''
+        valA = (a.nombre || '').toLowerCase()
+        valB = (b.nombre || '').toLowerCase()
       } else if (ordenCampo === 'codigo') {
-        valA = a.codigo?.toLowerCase() || ''
-        valB = b.codigo?.toLowerCase() || ''
+        valA = (a.codigo || '').toLowerCase()
+        valB = (b.codigo || '').toLowerCase()
       } else if (ordenCampo === 'vencimiento') {
         valA = a.fechaVencimiento?.toDate?.()?.getTime() || (a.fechaVencimiento ? new Date(a.fechaVencimiento).getTime() : 0)
         valB = b.fechaVencimiento?.toDate?.()?.getTime() || (b.fechaVencimiento ? new Date(b.fechaVencimiento).getTime() : 0)
@@ -194,7 +199,6 @@ export default function Reactivos() {
         </div>
       )}
 
-      {/* Filtros por categoría */}
       <div style={{ display:'flex', gap:8, marginBottom:12, flexWrap:'wrap' }}>
         {['', ...CATEGORIAS].map(c => (
           <button key={c} className="btn btn-sm"
@@ -203,10 +207,9 @@ export default function Reactivos() {
         ))}
       </div>
 
-      {/* Barra búsqueda y ordenamiento */}
       <div className="search-bar">
         <Search size={16} style={{color:'var(--text-3)',flexShrink:0}}/>
-        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por código o nombre..." style={{flex:1}}/>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por código, nombre, categoría, fabricante, estado..." style={{flex:1}}/>
         {[
           { campo:'nombre',      label:'Nombre' },
           { campo:'codigo',      label:'Código' },
@@ -220,7 +223,6 @@ export default function Reactivos() {
         ))}
       </div>
 
-      {/* Vista analista: tabla resumida */}
       {esAnalista ? (
         <div className="table-wrap">
           <table>
@@ -259,7 +261,6 @@ export default function Reactivos() {
           </table>
         </div>
       ) : (
-        /* Vista completa para otros roles */
         <div className="table-wrap">
           <table>
             <thead><tr><th>Código</th><th>Nombre</th><th>Categoría</th><th>Frascos</th><th>Stock</th><th>Umbral alerta</th><th>Vencimiento</th><th>Estado</th><th></th></tr></thead>

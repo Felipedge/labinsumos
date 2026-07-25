@@ -13,7 +13,7 @@ import { useClientes } from '../hooks/useClientes.jsx'
 const PRESENTACIONES = ['Polvo', 'Ampolla', 'Comprimido']
 
 function colorAlmacen(almacen = '') {
-  const a = almacen.toLowerCase()
+  const a = (almacen || '').toLowerCase()
   if (a.includes('freezer'))      return { bg:'#fee2e2', fg:'#b91c1c' }
   if (a.includes('refrigerador')) return { bg:'#fef9c3', fg:'#854d0e' }
   return                                  { bg:'#dcfce7', fg:'#15803d' }
@@ -75,8 +75,6 @@ export default function Placebo() {
   const [search, setSearch]       = useState('')
   const [ordenCampo, setOrdenCampo] = useState('productoReferencia')
   const [ordenDir, setOrdenDir]     = useState('asc')
-
-  // Historial
   const [usos, setUsos]           = useState([])
   const [loadingH, setLoadingH]   = useState(false)
   const [searchH, setSearchH]     = useState('')
@@ -235,18 +233,24 @@ export default function Placebo() {
   const filtrados = items
     .filter(p => {
       const q = search.toLowerCase()
-      const matchQ = !q || p.codigo?.toLowerCase().includes(q) || p.productoReferencia?.toLowerCase().includes(q) || p.cliente?.toLowerCase().includes(q)
+      const matchQ = !q ||
+        (p.codigo || '').toLowerCase().includes(q) ||
+        (p.productoReferencia || '').toLowerCase().includes(q) ||
+        (p.cliente || '').toLowerCase().includes(q) ||
+        (p.estado || '').toLowerCase().includes(q) ||
+        (p.almacenamiento || '').toLowerCase().includes(q) ||
+        (p.presentacion || '').toLowerCase().includes(q)
       const matchC = !filtroCliente || p.cliente === filtroCliente
       return matchQ && matchC
     })
     .sort((a, b) => {
       let valA, valB
       if (ordenCampo === 'productoReferencia') {
-        valA = a.productoReferencia?.toLowerCase() || ''
-        valB = b.productoReferencia?.toLowerCase() || ''
+        valA = (a.productoReferencia || '').toLowerCase()
+        valB = (b.productoReferencia || '').toLowerCase()
       } else if (ordenCampo === 'codigo') {
-        valA = a.codigo?.toLowerCase() || ''
-        valB = b.codigo?.toLowerCase() || ''
+        valA = (a.codigo || '').toLowerCase()
+        valB = (b.codigo || '').toLowerCase()
       } else if (ordenCampo === 'vencimiento') {
         valA = a.fechaVencimiento?.toDate?.()?.getTime() || (a.fechaVencimiento ? new Date(a.fechaVencimiento).getTime() : 9999999999999)
         valB = b.fechaVencimiento?.toDate?.()?.getTime() || (b.fechaVencimiento ? new Date(b.fechaVencimiento).getTime() : 9999999999999)
@@ -261,15 +265,16 @@ export default function Placebo() {
 
   const usosFiltrados = usos.filter(u => {
     const q = searchH.toLowerCase()
-    const matchQ = !q || u.codigo?.toLowerCase().includes(q) || u.productoReferencia?.toLowerCase().includes(q) || u.nAnalisis?.toLowerCase().includes(q)
+    const matchQ = !q ||
+      (u.codigo || '').toLowerCase().includes(q) ||
+      (u.productoReferencia || '').toLowerCase().includes(q) ||
+      (u.nAnalisis || '').toLowerCase().includes(q)
     const matchU = !filtroUsuario || (u.analista || u.email) === filtroUsuario
     const fecha  = u.fecha?.toDate ? u.fecha.toDate() : null
     const matchD = !fechaDesde || (fecha && fecha >= new Date(fechaDesde))
     const matchH = !fechaHasta || (fecha && fecha <= new Date(fechaHasta + 'T23:59:59'))
     return matchQ && matchU && matchD && matchH
   })
-
-  const totalUnidades = usosFiltrados.reduce((acc, u) => acc + (parseInt(u.unidades) || 0), 0)
 
   if (loading) return <div style={{display:'flex',justifyContent:'center',padding:40}}><div className="spinner"/></div>
 
@@ -304,8 +309,7 @@ export default function Placebo() {
       )}
 
       {retiroItem && (
-        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:1000,
-          display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
           <div style={{background:'var(--surface)',borderRadius:'var(--radius-lg)',padding:24,width:'100%',maxWidth:440}}>
             <p style={{fontSize:15,fontWeight:600,marginBottom:4}}>Retirar por cliente</p>
             <p style={{fontSize:12,color:'var(--text-2)',marginBottom:16}}>{retiroItem.codigo} — {retiroItem.productoReferencia}</p>
@@ -344,7 +348,6 @@ export default function Placebo() {
         </div>
       </div>
 
-      {/* Tabs */}
       <div style={{display:'flex',gap:4,marginBottom:16,borderBottom:'1px solid var(--border)'}}>
         {[
           { id:'inventario', label:'Inventario', count:items.length },
@@ -459,7 +462,7 @@ export default function Placebo() {
           <div className="search-bar">
             <Search size={16} style={{color:'var(--text-3)',flexShrink:0}}/>
             <input value={search} onChange={e=>setSearch(e.target.value)}
-              placeholder="Buscar por código, producto o cliente..." style={{flex:1}}/>
+              placeholder="Buscar por código, producto, cliente, estado..." style={{flex:1}}/>
             <select value={filtroCliente} onChange={e=>setFiltroCliente(e.target.value)}>
               <option value="">Todos los clientes</option>
               {listaClientes.map(c=><option key={c}>{c}</option>)}
@@ -550,12 +553,6 @@ export default function Placebo() {
 
       {tab==='historial' && (
         <>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10,marginBottom:16}}>
-            <div className="kpi-card"><div className="kpi-label">Total registros</div><div className="kpi-value info">{usosFiltrados.length}</div></div>
-            <div className="kpi-card"><div className="kpi-label">Total unidades usadas</div><div className="kpi-value">{totalUnidades}</div></div>
-            <div className="kpi-card"><div className="kpi-label">Analistas</div><div className="kpi-value">{usuariosUnicos.length}</div></div>
-          </div>
-
           <div className="card" style={{marginBottom:12}}>
             <div className="card-title">Filtros</div>
             <div className="form-grid">
@@ -619,4 +616,3 @@ export default function Placebo() {
   )
 }
 
-const DEMO_P = []
