@@ -14,13 +14,14 @@ import DocumentosPanel from '../components/shared/DocumentosPanel.jsx'
 const CLIENTES  = ['Ascend','Galenicum','Grunenthal','Bamberg','Labomed','Laboratorio Chile','Novartis','Seven Pharma','Emcure','Prater','MSN','Otro']
 const SECTORES  = ['Fisicoquímico', 'Validaciones']
 const ESTADOS   = ['En uso','Cerrado','Vencido','Sin stock','Dado de baja','Retirado por cliente']
-const ALMACENES = ['Desecador','Refrigerador','Freezer','Desecador-controlado','Refrigerador-controlado','Freezer-controlado','Desecador-oncológico','Refrigerador-oncológico']
+const ALMACENES = ['Desecador','Refrigerador','Freezer','Desecador-controlado','Refrigerador-controlado','Freezer-controlado','Desecador-oncológico','Refrigerador-oncológico','Freezer-oncológico']
 const MESES     = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
 const MESES_NUM = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC']
  
 const TIPO_POTENCIA = [
   { value: 'tal_cual',     label: 'Tal cual' },
   { value: 'base_seca',    label: 'Base seca' },
+  { value: 'base_anhidra', label: 'Base anhidra' },
   { value: 'sin_potencia', label: 'Sin potencia' },
   { value: 'cualitativo',  label: 'Estándar cualitativo' },
 ]
@@ -83,6 +84,7 @@ function BadgePotencia({ tipoPotencia, potencia }) {
   if (tipoPotencia === 'cualitativo')  return <span className="badge badge-purple">Cualitativo</span>
   if (tipoPotencia === 'sin_potencia') return <span className="badge badge-gray">Sin potencia</span>
   if (tipoPotencia === 'base_seca')    return <span className="badge badge-info">{potencia}% Base seca</span>
+  if (tipoPotencia === 'base_anhidra') return <span className="badge badge-info">{potencia}% Base anhidra</span>
   if (tipoPotencia === 'tal_cual')     return <span className="badge badge-ok">{potencia}% Tal cual</span>
   return potencia ? <span className="badge badge-gray">{potencia}%</span> : <span style={{color:'var(--text-3)'}}>—</span>
 }
@@ -253,7 +255,7 @@ export default function Estandares() {
   const guardar = async () => {
     if (!fLote || !fNombre || !fCliente) { setMsg('Nombre, cliente y lote son obligatorios'); return }
     if (frascos.some(fr => !fr.stock || isNaN(fr.stock))) { setMsg('Ingresa el stock de cada frasco'); return }
-    if ((fTipoPotencia === 'tal_cual' || fTipoPotencia === 'base_seca') && !fPotencia) {
+    if ((fTipoPotencia === 'tal_cual' || fTipoPotencia === 'base_seca' || fTipoPotencia === 'base_anhidra') && !fPotencia) {
       setMsg('Ingresa el valor de potencia'); return
     }
     if (fEsUSP && !fFrecuenciaUSP) { setMsg('Ingresa la frecuencia de revisión USP'); return }
@@ -328,7 +330,7 @@ export default function Estandares() {
           nombre: capitalizar(fNombre), cas: fCas.toUpperCase(), lote: fLote.toUpperCase(),
           cliente: fCliente, producto: capitalizar(fProducto),
           tipoPotencia: fTipoPotencia,
-          potencia: (fTipoPotencia === 'tal_cual' || fTipoPotencia === 'base_seca') ? parseFloat(fPotencia) : null,
+          potencia: (fTipoPotencia === 'tal_cual' || fTipoPotencia === 'base_seca' || fTipoPotencia === 'base_anhidra') ? parseFloat(fPotencia) : null,
           tipoInsumo: fTipoInsumo,
           karlFischer: fKarlFischer, secadoPrevio: fSecadoPrevio,
           tempSecado: fSecadoPrevio ? capitalizar(fTempSecado) : '',
@@ -610,7 +612,7 @@ export default function Estandares() {
   })
  
   const totalMg = pesadasFiltradas.reduce((acc, p) => acc + (parseFloat(p.mgPesados) || 0), 0)
-  const needsPotencia = fTipoPotencia === 'tal_cual' || fTipoPotencia === 'base_seca'
+  const needsPotencia = fTipoPotencia === 'tal_cual' || fTipoPotencia === 'base_seca' || fTipoPotencia === 'base_anhidra'
  
   if (loading) return <div style={{display:'flex',justifyContent:'center',padding:40}}><div className="spinner"/></div>
  
