@@ -69,7 +69,7 @@ export const PERMISOS = {
     exportar:          true,
     verHistorial:      'todo',
     gestionarUsuarios: false,
-    editarDatos:       false,
+    editarDatos:       True,
     verAuditoria:      true,
     gestionarClientes: false,
   },
