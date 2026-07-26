@@ -24,6 +24,7 @@ export default function Reactivos() {
   const [form, setForm]           = useState({})
   const [msg, setMsg]             = useState('')
   const [filtro, setFiltro]       = useState('')
+  const [filtroEst, setFiltroEst] = useState('')
   const [docInsumo, setDocInsumo] = useState(null)
   const [search, setSearch]       = useState('')
   const [ordenCampo, setOrdenCampo] = useState('nombre')
@@ -31,7 +32,7 @@ export default function Reactivos() {
 
   const load = async () => {
     try { setItems(await getReactivos()) }
-    catch { setItems(DEMO_R) }
+    catch { setItems([]) }
     finally { setLoading(false) }
   }
   useEffect(() => { load() }, [])
@@ -101,7 +102,8 @@ export default function Reactivos() {
         (r.estado || '').toLowerCase().includes(q) ||
         (r.lote || '').toLowerCase().includes(q)
       const matchC = !filtro || r.categoria === filtro
-      return matchQ && matchC
+      const matchE = !filtroEst || r.estado === filtroEst
+      return matchQ && matchC && matchE
     })
     .sort((a, b) => {
       let valA, valB
@@ -199,17 +201,17 @@ export default function Reactivos() {
         </div>
       )}
 
-      <div style={{ display:'flex', gap:8, marginBottom:12, flexWrap:'wrap' }}>
-        {['', ...CATEGORIAS].map(c => (
-          <button key={c} className="btn btn-sm"
-            style={filtro===c?{background:'var(--accent-lt)',color:'var(--accent)',borderColor:'var(--accent)'}:{}}
-            onClick={() => setFiltro(c)}>{c || 'Todos'}</button>
-        ))}
-      </div>
-
       <div className="search-bar">
         <Search size={16} style={{color:'var(--text-3)',flexShrink:0}}/>
-        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por código, nombre, categoría, fabricante, estado..." style={{flex:1}}/>
+        <input value={search} onChange={e=>setSearch(e.target.value)}
+          placeholder="Buscar por código, nombre, categoría, fabricante, estado..." style={{flex:1}}/>
+        <select value={filtroEst} onChange={e=>setFiltroEst(e.target.value)}>
+          <option value="">Todos los estados</option>
+          <option value="Espera Aprobación">Espera Aprobación</option>
+          <option value="Activo">Activo</option>
+          <option value="Agotado">Agotado</option>
+          <option value="Vencido">Vencido</option>
+        </select>
         {[
           { campo:'nombre',      label:'Nombre' },
           { campo:'codigo',      label:'Código' },
@@ -306,4 +308,3 @@ export default function Reactivos() {
     </>
   )
 }
-

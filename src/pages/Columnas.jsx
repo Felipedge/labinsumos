@@ -10,7 +10,6 @@ import { puedoHacer } from '../lib/roles'
 import { Plus, FileText, Search, X, PackageX, PlayCircle, History, Clock, User, Beaker } from 'lucide-react'
 import DocumentosPanel from '../components/shared/DocumentosPanel.jsx'
 
-// Clientes se cargan desde Firestore (fallback si falla)
 const CLIENTES_FALLBACK = [
   { nombre:'Ascend', sigla:'ASC' }, { nombre:'Galenicum', sigla:'GL' },
   { nombre:'Laboratorio Chile', sigla:'LCH' }, { nombre:'Novartis', sigla:'NOV' },
@@ -134,6 +133,7 @@ export default function Columnas() {
   const [historialLoading, setHistorialLoading] = useState(false)
   const [search, setSearch]         = useState('')
   const [filtroCliente, setFiltroCliente] = useState('')
+  const [filtroEst, setFiltroEst]   = useState('')
   const [ordenCampo, setOrdenCampo] = useState('codigo')
   const [ordenDir, setOrdenDir]     = useState('asc')
   const [codigoGenerado, setCodigoGenerado] = useState('')
@@ -311,7 +311,8 @@ export default function Columnas() {
         (c.estado || '').toLowerCase().includes(q) ||
         (c.tiposAnalisis || []).some(t => t.toLowerCase().includes(q))
       const matchC = !filtroCliente || c.cliente === filtroCliente
-      return matchQ && matchC
+      const matchE = !filtroEst || c.estado === filtroEst
+      return matchQ && matchC && matchE
     })
     .sort((a, b) => {
       let valA, valB
@@ -336,7 +337,6 @@ export default function Columnas() {
         />
       )}
 
-      {/* ——— Panel historial de uso ——— */}
       {historialCol && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:1000,
           display:'flex',alignItems:'flex-start',justifyContent:'flex-end',padding:16}}>
@@ -542,7 +542,6 @@ export default function Columnas() {
         </div>
       )}
 
-      {/* ——— Registro de uso (solo Analista) ——— */}
       {useForm && puedeRegistrarUso && (
         <div className="card">
           <div className="card-title">Registrar uso — {useForm.codigo}</div>
@@ -587,7 +586,6 @@ export default function Columnas() {
         </div>
       )}
 
-      {/* ——— Modal dar de baja columna ——— */}
       {retiroForm && puedeDarBaja && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:1000,
           display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
@@ -649,7 +647,7 @@ export default function Columnas() {
         </div>
       )}
 
-      {/* Barra búsqueda, filtro cliente y ordenamiento */}
+      {/* Barra búsqueda, filtros y ordenamiento */}
       <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:12}}>
         <div className="search-bar">
           <Search size={16} style={{color:'var(--text-3)',flexShrink:0}}/>
@@ -658,6 +656,14 @@ export default function Columnas() {
           <select value={filtroCliente} onChange={e=>setFiltroCliente(e.target.value)}>
             <option value="">Todos los clientes</option>
             {clientesUnicos.map(c=><option key={c}>{c}</option>)}
+          </select>
+          <select value={filtroEst} onChange={e=>setFiltroEst(e.target.value)}>
+            <option value="">Todos los estados</option>
+            <option value="Espera Aprobación">Espera Aprobación</option>
+            <option value="En uso">En uso</option>
+            <option value="Cerrado">Cerrado</option>
+            <option value="Baja">Baja</option>
+            <option value="Retirado por cliente">Retirado por cliente</option>
           </select>
         </div>
         <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
@@ -679,6 +685,7 @@ export default function Columnas() {
       <div style={{fontSize:12,color:'var(--text-2)',marginBottom:8}}>
         Mostrando {filtradas.length} de {columnas.length} columnas
         {filtroCliente && <span> · Cliente: <strong>{filtroCliente}</strong></span>}
+        {filtroEst && <span> · Estado: <strong>{filtroEst}</strong></span>}
       </div>
 
       <div className="table-wrap">
