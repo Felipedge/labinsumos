@@ -9,15 +9,17 @@ import { db } from '../../lib/firebase'
 import {
   LayoutDashboard, FlaskConical, Cylinder, Droplets,
   Pill, Bell, ScanLine, LogOut, Users, BookOpen,
-  ClipboardCheck, Pencil, Check, X, BarChart2, ClipboardList, Building2
+  ClipboardCheck, Pencil, Check, X, BarChart2, ClipboardList,
+  Building2, AlertTriangle
 } from 'lucide-react'
- 
+
 export default function AppShell() {
   const { user, logout } = useAuth()
   const { rol }          = useRole()
   const navigate         = useNavigate()
- 
+
   const [pendientes, setPendientes]           = useState(0)
+  const [correcciones, setCorrecciones]       = useState(0)
   const [alertasCount, setAlertasCount]       = useState(0)
   const [editandoNombre, setEditandoNombre]   = useState(false)
   const [nuevoNombre, setNuevoNombre]         = useState('')
@@ -25,11 +27,12 @@ export default function AppShell() {
   const [guardandoNombre, setGuardandoNombre] = useState(false)
   const [nombreBloqueado, setNombreBloqueado] = useState(false)
   const [docUsuarioId, setDocUsuarioId]       = useState(null)
- 
-  const puedeOperar  = puedoHacer(rol, 'registrarUso')
-  const puedeAprobar = puedoHacer(rol, 'aprobarInsumos')
-  const puedeAuditoria = puedoHacer(rol, 'verAuditoria')
- 
+
+  const puedeOperar       = puedoHacer(rol, 'registrarUso')
+  const puedeAprobar      = puedoHacer(rol, 'aprobarInsumos')
+  const puedeAuditoria    = puedoHacer(rol, 'verAuditoria')
+  const esAdministrativo  = rol === 'administrativo'
+
   // Cargar nombre del usuario desde Firestore
   useEffect(() => {
     if (!user) return
@@ -52,8 +55,8 @@ export default function AppShell() {
     }
     cargarNombre()
   }, [user])
- 
-  // Contar aprobaciones pendientes
+
+  // Contar aprobaciones pendientes (para jefe/admin)
   useEffect(() => {
     if (!puedeAprobar) return
     async function contarPendientes() {
@@ -61,7 +64,7 @@ export default function AppShell() {
         let total = 0
         for (const col of ['estandares','columnas','reactivos','placebo','apis']) {
           const snap = await getDocs(
-            query(collection(db, col), where('estado', '==', 'Pendiente de aprobación'))
+            query(collection(db, col), where('estado', '==', 'Espera Aprobación'))
           )
           total += snap.size
         }
@@ -72,8 +75,31 @@ export default function AppShell() {
     const interval = setInterval(contarPendientes, 60000)
     return () => clearInterval(interval)
   }, [puedeAprobar])
- 
-  // Contar alertas activas — misma lógica que Alertas.jsx (45/90 días)
+
+  // Contar correcciones pendientes (para administrativo)
+  useEffect(() => {
+    if (!esAdministrativo || !user?.email) return
+    async function contarCorrecciones() {
+      try {
+        let total = 0
+        for (const col of ['estandares','columnas','reactivos','placebo','apis']) {
+          const snap = await getDocs(
+            query(collection(db, col),
+              where('estado', '==', 'Requiere corrección'),
+              where('creadoPor', '==', user.email)
+            )
+          )
+          total += snap.size
+        }
+        setCorrecciones(total)
+      } catch {}
+    }
+    contarCorrecciones()
+    const interval = setInterval(contarCorrecciones, 60000)
+    return () => clearInterval(interval)
+  }, [esAdministrativo, user])
+
+  // Contar alertas activas
   useEffect(() => {
     async function contarAlertas() {
       try {
@@ -132,24 +158,24 @@ export default function AppShell() {
     } catch(e) { console.error(e) }
     finally { setGuardandoNombre(false) }
   }
- 
+
   const iniciarEdicion = () => {
     if (nombreBloqueado) return
     setNuevoNombre(nombreMostrado)
     setEditandoNombre(true)
   }
- 
+
   const cancelarEdicion = () => {
     setEditandoNombre(false)
     setNuevoNombre('')
   }
- 
+
   const initials = nombreMostrado
     ? nombreMostrado.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
     : user?.email?.[0]?.toUpperCase() ?? 'U'
- 
+
   const handleLogout = async () => { await logout(); navigate('/login') }
- 
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -159,7 +185,7 @@ export default function AppShell() {
           </div>
           <p style={{ fontSize:10, color:'rgba(255,255,255,0.45)', marginTop:8 }}>Laboratorio de Análisis Químico</p>
         </div>
- 
+
         <nav>
           <div className="nav-section">Principal</div>
           <NavLink to="/" end className={({ isActive }) => `nav-link${isActive?' active':''}`}>
@@ -170,7 +196,7 @@ export default function AppShell() {
               <ScanLine size={16}/> Escanear
             </NavLink>
           )}
- 
+
           <div className="nav-section">Módulos</div>
           <NavLink to="/estandares" className={({ isActive }) => `nav-link${isActive?' active':''}`}>
             <FlaskConical size={16}/> Estándares
@@ -187,7 +213,7 @@ export default function AppShell() {
           <NavLink to="/apis" className={({ isActive }) => `nav-link${isActive?' active':''}`}>
             <FlaskConical size={16}/> APIs
           </NavLink>
- 
+
           <div className="nav-section">Sistema</div>
           <NavLink to="/alertas" className={({ isActive }) => `nav-link${isActive?' active':''}`}>
             <Bell size={16}/>
@@ -230,6 +256,21 @@ export default function AppShell() {
               )}
             </NavLink>
           )}
+          {esAdministrativo && (
+            <NavLink to="/miscorrecciones" className={({ isActive }) => `nav-link${isActive?' active':''}`}>
+              <AlertTriangle size={16}/>
+              <span style={{flex:1}}>Mis correcciones</span>
+              {correcciones > 0 && (
+                <span style={{
+                  background:'var(--warn)', color:'#fff',
+                  borderRadius:10, fontSize:10, fontWeight:600,
+                  padding:'1px 6px', minWidth:18, textAlign:'center'
+                }}>
+                  {correcciones}
+                </span>
+              )}
+            </NavLink>
+          )}
           {puedoHacer(rol, 'gestionarClientes') && (
             <NavLink to="/clientes" className={({ isActive }) => `nav-link${isActive?' active':''}`}>
               <Building2 size={16}/> Clientes
@@ -241,7 +282,7 @@ export default function AppShell() {
             </NavLink>
           )}
         </nav>
- 
+
         <div className="sidebar-footer">
           <div className="user-row">
             <div className="avatar">
@@ -302,7 +343,7 @@ export default function AppShell() {
           </div>
         </div>
       </aside>
- 
+
       <div className="main-area">
         <header className="topbar">
           <span className="topbar-title">Gestión de insumos</span>

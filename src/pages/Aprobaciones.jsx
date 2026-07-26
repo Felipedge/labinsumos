@@ -6,7 +6,7 @@ import { db } from '../lib/firebase'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useRole } from '../hooks/useRole.jsx'
 import { puedoHacer, puedeAprobarA } from '../lib/roles'
-import { CheckCircle, XCircle, Clock, Shield } from 'lucide-react'
+import { CheckCircle, XCircle, Clock, Shield, AlertTriangle } from 'lucide-react'
 
 const MODULOS = [
   { id: 'estandares', label: 'Estándares', color: 'badge-ok' },
@@ -16,10 +16,9 @@ const MODULOS = [
   { id: 'apis',       label: 'APIs',       color: 'badge-gray' },
 ]
 
-// Estado inicial tras aprobación según módulo
 function estadoTrasAprobacion(item) {
-  if (item.modulo === 'columnas')   return 'Cerrado'  // Cerrado → Encargado/Jefe la pone En uso
-  return 'Cerrado'                                    // Todos los demás: Cerrado → poner en uso manual
+  if (item.modulo === 'columnas') return 'Cerrado'
+  return 'Cerrado'
 }
 
 function nombreInsumo(item, modulo) {
@@ -36,13 +35,15 @@ export default function Aprobaciones() {
   const { rol }   = useRole()
   const puedeAprobar = puedoHacer(rol, 'aprobarInsumos')
 
-  const [pendientes, setPendientes]     = useState([])
-  const [loading, setLoading]           = useState(true)
-  const [filtroModulo, setFiltroModulo] = useState('')
-  const [rechazandoId, setRechazandoId] = useState(null)
-  const [razonRechazo, setRazonRechazo] = useState('')
-  const [procesando, setProcesando]     = useState(false)
-  const [msg, setMsg]                   = useState('')
+  const [pendientes, setPendientes]         = useState([])
+  const [loading, setLoading]               = useState(true)
+  const [filtroModulo, setFiltroModulo]     = useState('')
+  const [rechazandoId, setRechazandoId]     = useState(null)
+  const [razonRechazo, setRazonRechazo]     = useState('')
+  const [corrigiendoId, setCorrigiendoId]   = useState(null)
+  const [motivoCorreccion, setMotivoCorreccion] = useState('')
+  const [procesando, setProcesando]         = useState(false)
+  const [msg, setMsg]                       = useState('')
 
   const load = async () => {
     setLoading(true)
@@ -50,7 +51,7 @@ export default function Aprobaciones() {
       const todos = []
       for (const modulo of MODULOS) {
         const snap = await getDocs(
-          query(collection(db, modulo.id), where('estado', '==', 'Pendiente de aprobación'))
+          query(collection(db, modulo.id), where('estado', '==', 'Espera Aprobación'))
         )
         snap.docs.forEach(d => {
           todos.push({ id: d.id, modulo: modulo.id, ...d.data() })
@@ -68,7 +69,6 @@ export default function Aprobaciones() {
 
   useEffect(() => { load() }, [])
 
-  // Admin siempre puede aprobar, otros según jerarquía
   const puedeAprobarItem = (item) => {
     if (rol === 'admin') return true
     return puedeAprobarA(rol, item.creadoPorRol || 'administrativo')
@@ -83,7 +83,6 @@ export default function Aprobaciones() {
     setProcesando(true)
     try {
       const estadoFinal = estadoTrasAprobacion(item)
-
       await updateDoc(doc(db, item.modulo, item.id), {
         estado:         estadoFinal,
         aprobadoPor:    user.email,
@@ -91,7 +90,6 @@ export default function Aprobaciones() {
         aprobadoEn:     serverTimestamp(),
         actualizadoEn:  serverTimestamp(),
       })
-
       await addDoc(collection(db, 'aprobaciones_log'), {
         insumoId:     item.id,
         modulo:       item.modulo,
@@ -106,7 +104,6 @@ export default function Aprobaciones() {
         ingresadoRol: item.creadoPorRol || '',
         fecha:        serverTimestamp(),
       })
-
       setMsg(`✅ ${nombreInsumo(item, item.modulo)} aprobado → estado: ${estadoFinal}`)
       setTimeout(() => setMsg(''), 3000)
       load()
@@ -130,7 +127,6 @@ export default function Aprobaciones() {
         razonRechazo:    razonRechazo,
         actualizadoEn:   serverTimestamp(),
       })
-
       await addDoc(collection(db, 'aprobaciones_log'), {
         insumoId:     item.id,
         modulo:       item.modulo,
@@ -145,13 +141,50 @@ export default function Aprobaciones() {
         ingresadoRol: item.creadoPorRol || '',
         fecha:        serverTimestamp(),
       })
-
       setRechazandoId(null)
       setRazonRechazo('')
       setMsg('❌ Insumo rechazado. El encargado verá la razón en el inventario.')
       setTimeout(() => setMsg(''), 4000)
       load()
     } catch(e) { setMsg('Error al rechazar: ' + e.message) }
+    finally { setProcesando(false) }
+  }
+
+  const solicitarCorreccion = async (item) => {
+    if (!motivoCorreccion.trim()) { setMsg('Indica qué debe corregirse'); return }
+    if (!puedeAprobarItem(item)) {
+      setMsg('No tienes jerarquía suficiente')
+      return
+    }
+    setProcesando(true)
+    try {
+      await updateDoc(doc(db, item.modulo, item.id), {
+        estado:           'Requiere corrección',
+        motivoCorreccion: motivoCorreccion,
+        correccionPor:    user.email,
+        correccionEn:     serverTimestamp(),
+        actualizadoEn:    serverTimestamp(),
+      })
+      await addDoc(collection(db, 'aprobaciones_log'), {
+        insumoId:     item.id,
+        modulo:       item.modulo,
+        codigo:       item.codigo || '',
+        nombre:       nombreInsumo(item, item.modulo),
+        cliente:      item.cliente || '',
+        accion:       'correccion_solicitada',
+        motivo:       motivoCorreccion,
+        solicitadoPor: user.email,
+        solicitadoRol: rol,
+        ingresadoPor:  item.creadoPor || '',
+        ingresadoRol:  item.creadoPorRol || '',
+        fecha:         serverTimestamp(),
+      })
+      setCorrigiendoId(null)
+      setMotivoCorreccion('')
+      setMsg('⚠️ Corrección solicitada. El encargado deberá corregir y reenviar.')
+      setTimeout(() => setMsg(''), 4000)
+      load()
+    } catch(e) { setMsg('Error: ' + e.message) }
     finally { setProcesando(false) }
   }
 
@@ -182,7 +215,6 @@ export default function Aprobaciones() {
         <button className="btn btn-sm" onClick={load}>↻ Actualizar</button>
       </div>
 
-      {/* Filtros por módulo */}
       <div style={{display:'flex',gap:6,marginBottom:14,flexWrap:'wrap'}}>
         <button className="btn btn-sm"
           style={!filtroModulo?{background:'var(--accent-lt)',color:'var(--accent)',borderColor:'var(--accent)'}:{}}
@@ -219,29 +251,28 @@ export default function Aprobaciones() {
       )}
 
       {filtrados.map(item => {
-        const esRechazando = rechazandoId === item.id
-        const fechaIngreso = item.creadoEn?.toDate?.()
-        const puedeEste    = puedeAprobarItem(item)
+        const esRechazando  = rechazandoId  === item.id
+        const esCorrigiendo = corrigiendoId === item.id
+        const fechaIngreso  = item.creadoEn?.toDate?.()
+        const puedeEste     = puedeAprobarItem(item)
         const estadoSiAprueba = estadoTrasAprobacion(item)
 
         return (
           <div key={item.id} className="card" style={{marginBottom:12}}>
             <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
               <div style={{flex:1}}>
-                {/* Header */}
                 <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',marginBottom:6}}>
                   <span className={`badge ${MODULOS.find(m=>m.id===item.modulo)?.color||'badge-gray'}`}>
                     {MODULOS.find(m=>m.id===item.modulo)?.label}
                   </span>
                   <span className="badge badge-warn">
-                    <Clock size={10} style={{marginRight:3}}/> Pendiente de aprobación
+                    <Clock size={10} style={{marginRight:3}}/> Espera Aprobación
                   </span>
                   {!puedeEste && (
                     <span className="badge badge-gray">Sin permiso para aprobar</span>
                   )}
                 </div>
 
-                {/* Nombre e info */}
                 <p style={{fontSize:14,fontWeight:600,marginBottom:4}}>
                   {nombreInsumo(item, item.modulo)}
                 </p>
@@ -252,7 +283,6 @@ export default function Aprobaciones() {
                   {fechaIngreso    && <span>Fecha: {fechaIngreso.toLocaleDateString('es-CL')} {fechaIngreso.toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'})}</span>}
                 </div>
 
-                {/* Detalles por módulo */}
                 <div style={{marginTop:8,display:'flex',gap:8,flexWrap:'wrap'}}>
                   {item.modulo === 'estandares' && (
                     <>
@@ -304,24 +334,22 @@ export default function Aprobaciones() {
                   )}
                 </div>
 
-                {/* Nota de estado tras aprobación */}
                 {puedeEste && (
                   <div style={{marginTop:8,fontSize:11,color:'var(--text-3)'}}>
                     Al aprobar, el insumo pasará a estado{' '}
-                    <span className={`badge ${estadoSiAprueba === 'Nueva' ? 'badge-info' : 'badge-info'}`}
-                      style={{fontSize:10}}>{estadoSiAprueba}</span>
+                    <span className="badge badge-info" style={{fontSize:10}}>{estadoSiAprueba}</span>
                     {' '}— deberá ser puesto en uso manualmente.
                   </div>
                 )}
 
-                {/* Formulario de rechazo */}
+                {/* Formulario rechazo */}
                 {esRechazando && (
-                  <div style={{marginTop:12,display:'flex',gap:8,alignItems:'center'}}>
+                  <div style={{marginTop:12,display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
                     <input
                       value={razonRechazo}
                       onChange={e=>setRazonRechazo(e.target.value)}
                       placeholder="Razón del rechazo (obligatorio)"
-                      style={{flex:1,padding:'6px 10px',border:'1px solid var(--danger)',borderRadius:'var(--radius-sm)',fontSize:13}}
+                      style={{flex:1,minWidth:200,padding:'6px 10px',border:'1px solid var(--danger)',borderRadius:'var(--radius-sm)',fontSize:13}}
                       autoFocus
                     />
                     <button className="btn btn-sm" style={{background:'var(--danger-lt)',color:'var(--danger)',borderColor:'var(--danger)'}}
@@ -333,19 +361,46 @@ export default function Aprobaciones() {
                     </button>
                   </div>
                 )}
+
+                {/* Formulario corrección */}
+                {esCorrigiendo && (
+                  <div style={{marginTop:12,display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+                    <input
+                      value={motivoCorreccion}
+                      onChange={e=>setMotivoCorreccion(e.target.value)}
+                      placeholder="¿Qué debe corregirse? (obligatorio)"
+                      style={{flex:1,minWidth:200,padding:'6px 10px',border:'1px solid var(--warn)',borderRadius:'var(--radius-sm)',fontSize:13}}
+                      autoFocus
+                    />
+                    <button className="btn btn-sm"
+                      style={{background:'var(--warn-lt)',color:'var(--warn)',borderColor:'var(--warn)'}}
+                      onClick={()=>solicitarCorreccion(item)} disabled={procesando}>
+                      Solicitar corrección
+                    </button>
+                    <button className="btn btn-sm" onClick={()=>{setCorrigiendoId(null);setMotivoCorreccion('')}}>
+                      Cancelar
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Botones de acción */}
-              {!esRechazando && puedeEste && (
-                <div style={{display:'flex',gap:6,flexShrink:0}}>
+              {!esRechazando && !esCorrigiendo && puedeEste && (
+                <div style={{display:'flex',gap:6,flexShrink:0,flexWrap:'wrap'}}>
                   <button className="btn btn-sm"
                     style={{background:'var(--ok-lt)',color:'var(--ok)',borderColor:'var(--ok)'}}
                     onClick={()=>aprobar(item)} disabled={procesando}>
                     <CheckCircle size={14}/> Aprobar
                   </button>
                   <button className="btn btn-sm"
+                    style={{background:'var(--warn-lt)',color:'var(--warn)',borderColor:'var(--warn)'}}
+                    onClick={()=>{setCorrigiendoId(item.id);setMotivoCorreccion('');setRechazandoId(null)}}
+                    disabled={procesando}>
+                    <AlertTriangle size={14}/> Corrección
+                  </button>
+                  <button className="btn btn-sm"
                     style={{background:'var(--danger-lt)',color:'var(--danger)',borderColor:'var(--danger)'}}
-                    onClick={()=>{setRechazandoId(item.id);setRazonRechazo('')}}
+                    onClick={()=>{setRechazandoId(item.id);setRazonRechazo('');setCorrigiendoId(null)}}
                     disabled={procesando}>
                     <XCircle size={14}/> Rechazar
                   </button>
