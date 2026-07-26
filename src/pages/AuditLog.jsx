@@ -6,8 +6,7 @@ import { useRole } from '../hooks/useRole.jsx'
 import { puedoHacer } from '../lib/roles'
 import { Shield, RefreshCw } from 'lucide-react'
 
-const MODULOS = ['estandares', 'columnas', 'reactivos', 'placebo']
-
+const MODULOS = ['estandares', 'columnas', 'reactivos', 'placebo', 'apis']
 const ACCIONES = ['crear', 'pesada', 'uso', 'retiro', 'reasignar',
                   'dar_de_baja', 'restaurar', 'poner_en_uso',
                   'verificacion_usp', 'aprobado', 'rechazado']
