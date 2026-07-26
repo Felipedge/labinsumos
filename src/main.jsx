@@ -20,6 +20,7 @@ import Reportes from './pages/Reportes'
 import APIs from './pages/APIs'
 import Clientes from './pages/Clientes'
 import AuditLog from './pages/AuditLog'
+import MisCorrecciones from './pages/MisCorrecciones'
 import './index.css'
 
 function ProtectedRoute({ children }) {
@@ -46,20 +47,21 @@ function App() {
               </RoleProvider>
             </ProtectedRoute>
           }>
-            <Route index                element={<Dashboard />} />
-            <Route path="estandares"    element={<Estandares />} />
-            <Route path="columnas"      element={<Columnas />} />
-            <Route path="reactivos"     element={<Reactivos />} />
-            <Route path="placebo"       element={<Placebo />} />
-            <Route path="apis"          element={<APIs />} />
-            <Route path="clientes"      element={<Clientes />} />
-            <Route path="alertas"       element={<Alertas />} />
-            <Route path="escanear"      element={<Escanear />} />
-            <Route path="metodos"       element={<Metodos />} />
-            <Route path="aprobaciones"  element={<Aprobaciones />} />
-            <Route path="reportes"      element={<Reportes />} />
-            <Route path="usuarios"      element={<Usuarios />} />
-            <Route path="auditlog" element={<AuditLog />} />
+            <Route index                    element={<Dashboard />} />
+            <Route path="estandares"        element={<Estandares />} />
+            <Route path="columnas"          element={<Columnas />} />
+            <Route path="reactivos"         element={<Reactivos />} />
+            <Route path="placebo"           element={<Placebo />} />
+            <Route path="apis"              element={<APIs />} />
+            <Route path="clientes"          element={<Clientes />} />
+            <Route path="alertas"           element={<Alertas />} />
+            <Route path="escanear"          element={<Escanear />} />
+            <Route path="metodos"           element={<Metodos />} />
+            <Route path="aprobaciones"      element={<Aprobaciones />} />
+            <Route path="miscorrecciones"   element={<MisCorrecciones />} />
+            <Route path="reportes"          element={<Reportes />} />
+            <Route path="usuarios"          element={<Usuarios />} />
+            <Route path="auditlog"          element={<AuditLog />} />
           </Route>
         </Routes>
       </BrowserRouter>
