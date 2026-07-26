@@ -9,34 +9,36 @@ import { Shield, RefreshCw } from 'lucide-react'
 const MODULOS = ['estandares', 'columnas', 'reactivos', 'placebo', 'apis']
 const ACCIONES = ['crear', 'pesada', 'uso', 'retiro', 'reasignar',
                   'dar_de_baja', 'restaurar', 'poner_en_uso',
-                  'verificacion_usp', 'aprobado', 'rechazado']
+                  'verificacion_usp', 'aprobado', 'rechazado', 'correccion_solicitada']
 
 const ETIQUETAS_ACCION = {
-  crear:            'Crear',
-  pesada:           'Pesada',
-  uso:              'Uso',
-  retiro:           'Retiro',
-  reasignar:        'Reasignar',
-  dar_de_baja:      'Dar de baja',
-  restaurar:        'Restaurar',
-  poner_en_uso:     'Poner en uso',
-  verificacion_usp: 'Verificación USP',
-  aprobado:         'Aprobado',
-  rechazado:        'Rechazado',
+  crear:                 'Crear',
+  pesada:                'Pesada',
+  uso:                   'Uso',
+  retiro:                'Retiro',
+  reasignar:             'Reasignar',
+  dar_de_baja:           'Dar de baja',
+  restaurar:             'Restaurar',
+  poner_en_uso:          'Poner en uso',
+  verificacion_usp:      'Verificación USP',
+  aprobado:              'Aprobado',
+  rechazado:             'Rechazado',
+  correccion_solicitada: 'Corrección solicitada',
 }
 
 const COLORES_ACCION = {
-  crear:            'badge-ok',
-  pesada:           'badge-info',
-  uso:              'badge-info',
-  retiro:           'badge-purple',
-  reasignar:        'badge-gray',
-  dar_de_baja:      'badge-danger',
-  restaurar:        'badge-ok',
-  poner_en_uso:     'badge-ok',
-  verificacion_usp: 'badge-info',
-  aprobado:         'badge-ok',
-  rechazado:        'badge-danger',
+  crear:                 'badge-ok',
+  pesada:                'badge-info',
+  uso:                   'badge-info',
+  retiro:                'badge-purple',
+  reasignar:             'badge-gray',
+  dar_de_baja:           'badge-danger',
+  restaurar:             'badge-ok',
+  poner_en_uso:          'badge-ok',
+  verificacion_usp:      'badge-info',
+  aprobado:              'badge-ok',
+  rechazado:             'badge-danger',
+  correccion_solicitada: 'badge-warn',
 }
 
 function formatFecha(ts) {
